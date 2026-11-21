@@ -26,6 +26,8 @@ export function HeroSection({ items }: HeroSectionProps) {
   const [inView, setInView] = useState(true);
   const [pageHidden, setPageHidden] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const swipeAtRef = useRef(0);
 
   /* Slide pertama harus langsung terlihat. Sebelumnya gambar hero memulai dari
      opacity 0 lalu dianimasikan setelah hydration, sehingga Largest Contentful
@@ -68,6 +70,29 @@ export function HeroSection({ items }: HeroSectionProps) {
   const autoplay = !reduce && slides.length > 1 && inView && !pageHidden;
   const paused = hovered || trailerOpen;
 
+  /* Geser banner pakai jari: geser ke kiri lanjut ke slide berikutnya, geser ke
+     kanan balik ke sebelumnya. Tombol panah dan titik slide tetap ada. */
+  const handleTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    const touch = event.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLElement>) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || slides.length < 2) return;
+
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+
+    if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      swipeAtRef.current = Date.now();
+      event.preventDefault();
+      go(index + (dx < 0 ? 1 : -1));
+    }
+  };
+
   if (slides.length === 0) return null;
 
   const current = slides[index] || slides[0];
@@ -84,7 +109,16 @@ export function HeroSection({ items }: HeroSectionProps) {
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
-      className="relative -mt-16 w-full overflow-hidden bg-canvas"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onClickCapture={(event) => {
+        // Setelah geser, jangan sampai tap ikut membuka link yang ada di banner.
+        if (Date.now() - swipeAtRef.current < 400) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+      className="relative -mt-16 w-full touch-pan-y overflow-hidden bg-canvas"
     >
       <div className="absolute inset-0" aria-hidden="true">
         <AnimatePresence initial={false}>

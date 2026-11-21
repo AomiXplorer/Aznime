@@ -71,7 +71,7 @@ export function AnimeRow({
 
         <div
           ref={scrollerRef}
-          className="no-scrollbar -mx-4 -my-3 flex snap-x gap-3 overflow-x-auto px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          className="no-scrollbar -mx-4 -my-3 flex snap-x gap-3 overflow-x-auto overscroll-x-contain px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
         >
           {items.map((item, idx) => (
             <div

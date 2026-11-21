@@ -389,7 +389,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
 
   return (
     <div className="rounded-2xl border border-white/[0.07] bg-[#12141a] p-3">
-      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
         <button
           type="button"
           ref={(node) => {

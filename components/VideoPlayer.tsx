@@ -26,19 +26,50 @@ interface VideoPlayerProps {
   seriesSlug: string | null;
 }
 
-/** Server yang selalu dipakai lebih dulu saat episode dibuka. */
-const DEFAULT_SERVER = 'vastads';
+/** Hanya dua server ini yang dipakai; sisanya disembunyikan. */
+const ALLOWED_SERVERS = ['vastads', 'abyss'] as const;
+/** Batas waktu satu pengukuran server. */
+const PROBE_TIMEOUT_MS = 4000;
+/** Server yang lebih lambat segini masih boleh menang kalau yang lain belum jawab. */
+const GRACE_MS = 250;
 /** Jika server terpilih belum selesai dimuat sampai batas ini, pindah otomatis. */
 const STALL_MS = 12000;
 
 const isDirect = (s: MirrorServer) => s.type === 'hls' || s.type === 'video';
-
 const normalizeServerName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, '');
 
-const isDefaultServer = (s: MirrorServer) => {
-  const name = normalizeServerName(s.name);
-  return name === DEFAULT_SERVER || name.startsWith(DEFAULT_SERVER);
-};
+const isVastads = (s: MirrorServer) => normalizeServerName(s.name).startsWith('vastads');
+const isAbyss = (s: MirrorServer) => normalizeServerName(s.name).startsWith('abyss');
+
+const isAllowedServer = (s: MirrorServer) =>
+  ALLOWED_SERVERS.some((name) => normalizeServerName(s.name).startsWith(name));
+
+/**
+ * Mengukur waktu sampai respons (header) pertama dari server, dari jaringan pengguna.
+ * Mode no-cors dipakai karena host embed jarang mengirim header CORS; responsnya opaque,
+ * tapi waktu tibanya tetap terukur. Koneksi langsung dibatalkan setelah header diterima.
+ */
+async function probeServer(url: string, signal: AbortSignal): Promise<number> {
+  const start = performance.now();
+  const ctrl = new AbortController();
+  const onAbort = () => ctrl.abort();
+  signal.addEventListener('abort', onAbort, { once: true });
+  const timer = setTimeout(() => ctrl.abort(), PROBE_TIMEOUT_MS);
+  try {
+    await fetch(url, {
+      mode: 'no-cors',
+      cache: 'no-store',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      signal: ctrl.signal,
+    });
+    return Math.round(performance.now() - start);
+  } finally {
+    clearTimeout(timer);
+    ctrl.abort();
+    signal.removeEventListener('abort', onAbort);
+  }
+}
 
 export function VideoPlayer({
   title,
@@ -64,14 +95,13 @@ export function VideoPlayer({
 
     if (base.length === 0) return base;
 
-    // vastads selalu di depan supaya jadi default dan gampang ditemukan.
-    const list = [...base];
-    const idx = list.findIndex(isDefaultServer);
-    if (idx > 0) {
-      const [preferred] = list.splice(idx, 1);
-      list.unshift(preferred);
-    }
-    return list;
+    // Batasi ke vastads + abyss. Kalau upstream mengganti nama server,
+    // tampilkan semua supaya episode tetap bisa ditonton.
+    const allowed = base.filter(isAllowedServer);
+    const list = allowed.length > 0 ? allowed : base;
+
+    // vastads selalu di depan sebagai cadangan pertama.
+    return [...list].sort((a, b) => Number(isVastads(b)) - Number(isVastads(a)));
   }, [servers, defaultEmbed]);
 
   const playable = useMemo(
@@ -82,46 +112,42 @@ export function VideoPlayer({
     [effectiveServers]
   );
 
-  // Cadangan bila vastads tidak tersedia: server direct pertama, lalu server apa pun.
-  const defaultIdx = useMemo(() => {
-    const preferred = playable.find(({ s }) => isDefaultServer(s));
+  const fallbackIdx = useMemo(() => {
+    const preferred = playable.find(({ s }) => isVastads(s));
     if (preferred) return preferred.i;
     const direct = playable.find(({ s }) => isDirect(s));
     if (direct) return direct.i;
     return playable[0]?.i ?? 0;
   }, [playable]);
 
-  const [selectedIdx, setSelectedIdx] = useState<number>(defaultIdx);
+  // null = sedang mengukur server mana yang tercepat.
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(
+    playable.length > 1 ? null : fallbackIdx
+  );
+  const [latencies, setLatencies] = useState<Record<number, number | null>>({});
+  const [autoIdx, setAutoIdx] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mediaError, setMediaError] = useState<string | null>(null);
 
   const manualRef = useRef(false);
   const triedRef = useRef<Set<number>>(new Set());
+  const latencyRef = useRef<Record<number, number | null>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const activeServer = effectiveServers[selectedIdx] || null;
+  const activeServer = selectedIdx !== null ? effectiveServers[selectedIdx] || null : null;
+  const racing = selectedIdx === null;
 
-  // Setiap episode punya daftar server baru: mulai lagi dari vastads.
-  const serverSignature = useMemo(
-    () => effectiveServers.map((s) => `${s.name}:${s.url ?? ''}`).join('|'),
-    [effectiveServers]
-  );
-
-  useEffect(() => {
-    manualRef.current = false;
-    triedRef.current = new Set([defaultIdx]);
-    setSelectedIdx(defaultIdx);
-    setNotice(null);
-    setMediaError(null);
-  }, [defaultIdx, serverSignature]);
-
-  // Pindah ke server berikutnya yang belum dicoba (hanya jika pengguna belum memilih manual).
   const advanceToNext = useCallback(
     (reason: string): boolean => {
       if (manualRef.current) return false;
-      const next = playable.map((p) => p.i).find((i) => !triedRef.current.has(i));
+      const lat = latencyRef.current;
+      const rank = (i: number) => (typeof lat[i] === 'number' ? (lat[i] as number) : 1e9);
+      const next = playable
+        .map((p) => p.i)
+        .filter((i) => !triedRef.current.has(i))
+        .sort((a, b) => rank(a) - rank(b))[0];
       if (next === undefined) return false;
       triedRef.current.add(next);
       setNotice(`${reason} Pindah ke ${effectiveServers[next].name}.`);
@@ -131,7 +157,84 @@ export function VideoPlayer({
     [playable, effectiveServers]
   );
 
-  // Muat server aktif (HLS / video langsung / iframe).
+  // 1) Balapan antar server: yang pertama merespons menjadi default.
+  useEffect(() => {
+    manualRef.current = false;
+    triedRef.current = new Set();
+    latencyRef.current = {};
+    setLatencies({});
+    setAutoIdx(null);
+    setNotice(null);
+    setMediaError(null);
+
+    if (playable.length <= 1) {
+      setSelectedIdx(fallbackIdx);
+      return;
+    }
+    setSelectedIdx(null);
+
+    const ac = new AbortController();
+    let decided = false;
+    let settled = 0;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    let hardTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const decide = () => {
+      if (decided) return;
+      decided = true;
+      clearTimeout(graceTimer);
+      clearTimeout(hardTimer);
+      if (manualRef.current) return;
+
+      let best = -1;
+      let bestScore = Infinity;
+      for (const { s, i } of playable) {
+        const ms = latencyRef.current[i];
+        if (typeof ms !== 'number') continue;
+        const score = ms - (isDirect(s) ? GRACE_MS : 0);
+        if (score < bestScore) {
+          best = i;
+          bestScore = score;
+        }
+      }
+      const pick = best === -1 ? fallbackIdx : best;
+      triedRef.current.add(pick);
+      setAutoIdx(best === -1 ? null : pick);
+      setSelectedIdx(pick);
+    };
+
+    hardTimer = setTimeout(decide, PROBE_TIMEOUT_MS + 200);
+
+    for (const { s, i } of playable) {
+      probeServer(s.url as string, ac.signal).then(
+        (ms) => {
+          if (ac.signal.aborted) return;
+          latencyRef.current[i] = ms;
+          setLatencies({ ...latencyRef.current });
+          settled += 1;
+          if (decided) return;
+          if (isDirect(s)) decide();
+          else if (!graceTimer) graceTimer = setTimeout(decide, GRACE_MS);
+        },
+        () => {
+          if (ac.signal.aborted) return;
+          latencyRef.current[i] = null;
+          setLatencies({ ...latencyRef.current });
+          settled += 1;
+          if (!decided && settled >= playable.length) decide();
+        }
+      );
+    }
+
+    return () => {
+      decided = true;
+      ac.abort();
+      clearTimeout(graceTimer);
+      clearTimeout(hardTimer);
+    };
+  }, [playable, fallbackIdx]);
+
+  // 2) Muat server aktif (HLS / video langsung / iframe).
   useEffect(() => {
     setMediaError(null);
     if (!activeServer || !activeServer.available || !activeServer.url) {
@@ -160,7 +263,6 @@ export function VideoPlayer({
     if (!wantsHls || videoEl.canPlayType('application/vnd.apple.mpegurl')) {
       videoEl.src = url;
     } else {
-      // hls.js hanya diunduh saat benar-benar dibutuhkan, bukan saat halaman dibuka.
       void (async () => {
         try {
           const mod = await import('hls.js');
@@ -193,7 +295,7 @@ export function VideoPlayer({
     };
   }, [activeServer, advanceToNext]);
 
-  // Jika server terpilih macet, pindah otomatis.
+  // 3) Jika server terpilih macet, pindah otomatis.
   useEffect(() => {
     if (!activeServer || !isLoading || manualRef.current) return;
     const t = setTimeout(() => {
@@ -272,7 +374,15 @@ export function VideoPlayer({
         ref={containerRef}
         className="relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-2xl shadow-black/60 ring-1 ring-white/10"
       >
-        {!activeServer || !activeServer.available || !activeServer.url ? (
+        {racing ? (
+          <div role="status" aria-live="polite" className="flex h-full w-full flex-col items-center justify-center gap-3 text-center">
+            <Loader2 className="h-7 w-7 animate-spin text-accent motion-reduce:animate-none" aria-hidden="true" />
+            <p className="text-sm font-semibold text-zinc-200">Mencari server tercepat</p>
+            <p className="text-xs text-muted">
+              {Object.keys(latencies).length} dari {playable.length} server merespons
+            </p>
+          </div>
+        ) : !activeServer || !activeServer.available || !activeServer.url ? (
           <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center">
             <AlertCircle className="mb-2 h-7 w-7 text-rose-400" aria-hidden="true" />
             <p className="text-sm font-semibold text-zinc-200">
@@ -310,12 +420,20 @@ export function VideoPlayer({
             allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
             allowFullScreen
             referrerPolicy="no-referrer"
+            /* Abyss suka membuka tab iklan saat tombol play ditekan. Sandbox tanpa
+               allow-popups / allow-top-navigation memblokir popup dan redirect halaman,
+               tanpa mengganggu pemutaran video di dalam iframe. */
+            sandbox={
+              isAbyss(activeServer)
+                ? 'allow-scripts allow-same-origin allow-forms allow-presentation'
+                : undefined
+            }
             onLoad={() => setIsLoading(false)}
             className="h-full w-full border-0"
           />
         )}
 
-        {isLoading && activeServer?.available && activeServer?.url && !mediaError ? (
+        {!racing && isLoading && activeServer?.available && activeServer?.url && !mediaError ? (
           <div
             role="status"
             aria-live="polite"
@@ -397,14 +515,15 @@ export function VideoPlayer({
             <span className="text-xs text-muted">
               {activeServer && isDirect(activeServer)
                 ? 'Spasi putar/jeda, F layar penuh, M bisu, panah untuk geser'
-                : 'Default di vastads. Kalau macet, pindah server di bawah.'}
+                : 'Cuma vastads & abyss. Yang tercepat dipakai otomatis.'}
             </span>
           </div>
 
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Server video">
             {effectiveServers.map((srv, idx) => {
               const isSelected = idx === selectedIdx;
-              const isDefault = isDefaultServer(srv);
+              const ms = latencies[idx];
+              const isFastest = autoIdx === idx;
               return (
                 <button
                   key={`${srv.name}-${idx}`}
@@ -418,14 +537,22 @@ export function VideoPlayer({
                   }`}
                 >
                   <span>{srv.name}</span>
-                  {isDefault ? (
+                  {isFastest ? (
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[11px] font-bold">
                       <Zap className="h-3 w-3 fill-current" aria-hidden="true" />
-                      Default
+                      Tercepat
                     </span>
                   ) : null}
                   <span className="text-[11px] font-medium opacity-70">
-                    {!srv.available ? 'Offline' : isDirect(srv) ? 'Direct' : 'Embed'}
+                    {!srv.available
+                      ? 'Offline'
+                      : typeof ms === 'number'
+                        ? `${ms} ms`
+                        : ms === null
+                          ? 'Lambat'
+                          : isDirect(srv)
+                            ? 'Direct'
+                            : 'Embed'}
                   </span>
                 </button>
               );
