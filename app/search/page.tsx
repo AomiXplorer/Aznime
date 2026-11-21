@@ -25,6 +25,10 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
     description: q
       ? `Hasil pencarian anime subtitle Indonesia untuk "${q}" di Aznime.`
       : 'Cari anime subtitle Indonesia berdasarkan judul di Aznime.',
+    // Halaman hasil pencarian tidak diindeks: kontennya dinamis, bertumpuk
+    // dengan katalog, dan bisa menghasilkan URL tak terbatas.
+    robots: { index: false, follow: true },
+    alternates: { canonical: '/search' },
   };
 }
 

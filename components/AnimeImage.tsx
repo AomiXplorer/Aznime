@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import Image from 'next/image';
 import { Film } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -17,7 +17,7 @@ interface AnimeImageProps {
   fallbackClassName?: string;
 }
 
-export function AnimeImage({
+function AnimeImageComponent({
   src,
   alt,
   fill = true,
@@ -55,6 +55,7 @@ export function AnimeImage({
       sizes={sizes}
       priority={priority}
       loading={priority ? undefined : 'lazy'}
+      decoding="async"
       referrerPolicy="no-referrer"
       onLoad={() => setLoaded(true)}
       onError={() => setHasError(true)}
@@ -66,3 +67,5 @@ export function AnimeImage({
     />
   );
 }
+
+export const AnimeImage = memo(AnimeImageComponent);

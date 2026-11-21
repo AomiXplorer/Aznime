@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/PageHeader';
 export const metadata: Metadata = {
   title: 'Anime Ongoing',
   description: 'Daftar anime ongoing subtitle Indonesia yang masih tayang dan diperbarui setiap minggu.',
+  alternates: { canonical: '/ongoing' },
 };
 
 export const revalidate = 180;

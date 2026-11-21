@@ -1,16 +1,12 @@
-'use client';
-
-import { motion, useReducedMotion } from 'motion/react';
-
+/**
+ * Transisi antar halaman.
+ *
+ * Sengaja dibuat sebagai Server Component: sebelumnya template ini adalah
+ * Client Component berbasis `motion` yang menambahkan boundary hydration dan
+ * menganimasikan `transform` pada seluruh dokumen setiap navigasi. Sekarang
+ * hanya opacity lewat CSS animation, jadi nol JavaScript tambahan dan tidak
+ * ada layer besar yang dibuat ulang.
+ */
 export default function Template({ children }: { children: React.ReactNode }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      initial={reduce ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className="page-enter">{children}</div>;
 }

@@ -10,47 +10,102 @@ const figtree = Figtree({
   display: 'swap',
 });
 
-const siteUrl =
+const SITE_NAME = 'Aznime';
+
+/** URL publik kanonik. Urutan prioritas mengikuti lingkungan deploy (Vercel). */
+const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.APP_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000')
+).replace(/\/+$/, '');
 
+const TITLE = 'Aznime – Streaming Anime Subtitle Indonesia';
 const DESCRIPTION =
   'Tonton anime subtitle Indonesia terbaru, ongoing, dan completed dengan katalog cepat, jadwal tayang harian, trailer AniList, serta pemutar yang otomatis memilih server tercepat.';
 
+/** 1200x630, dibuat khusus untuk preview WhatsApp/Discord/Telegram/X. */
+const OG_IMAGE = `${siteUrl}/og/aznime-og.png`;
+const OG_IMAGE_ALT = 'Aznime – streaming anime subtitle Indonesia';
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  applicationName: SITE_NAME,
   title: {
-    default: 'Aznime – Streaming Anime Subtitle Indonesia',
-    template: '%s | Aznime',
+    default: TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
   description: DESCRIPTION,
+  keywords: [
+    'streaming anime',
+    'anime subtitle indonesia',
+    'nonton anime',
+    'anime ongoing',
+    'jadwal anime',
+    'anime completed',
+  ],
+  category: 'entertainment',
+  alternates: {
+    canonical: '/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   openGraph: {
     type: 'website',
     locale: 'id_ID',
-    siteName: 'Aznime',
-    title: 'Aznime – Streaming Anime Subtitle Indonesia',
+    siteName: SITE_NAME,
+    url: siteUrl,
+    title: TITLE,
     description: DESCRIPTION,
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: OG_IMAGE_ALT,
+        type: 'image/png',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aznime – Streaming Anime Subtitle Indonesia',
+    title: TITLE,
     description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
+  // Diisi lewat env setelah properti Search Console dibuat; tidak diklaim aktif.
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export const viewport: Viewport = {
   themeColor: '#0a0b0e',
   width: 'device-width',
   initialScale: 1,
+  colorScheme: 'dark',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Aznime',
+    name: SITE_NAME,
+    alternateName: 'Aznime Streaming Anime',
     url: siteUrl,
+    inLanguage: 'id-ID',
     description: DESCRIPTION,
     potentialAction: {
       '@type': 'SearchAction',

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { memo } from 'react';
 import { Play } from 'lucide-react';
 import type { AnimeCardItem } from '@/lib/scraper/types';
 import { AnimeImage } from './AnimeImage';
@@ -21,19 +22,21 @@ function episodeLabel(item: AnimeCardItem): string | null {
   return item.episode || null;
 }
 
-export function AnimeCard({ item, priority = false, className }: AnimeCardProps) {
+function AnimeCardComponent({ item, priority = false, className }: AnimeCardProps) {
   const href = getAnimeItemHref(item);
   const displayTitle = item.seriesTitle || item.title;
   const meta = [item.type, item.status].filter(Boolean).join('  ');
   const ep = episodeLabel(item);
 
   return (
-    <article className={cn('group relative', className)}>
+    <article className={cn('group relative cv-item', className)}>
       <Link
         href={href}
         className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface shadow-md shadow-black/40 transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-xl group-hover:shadow-black/60 group-active:translate-y-0 group-active:scale-[0.96]">
+        {/* Transisi dibatasi ke transform + shadow saja (bukan `transition-all`)
+            supaya browser tidak mengawasi seluruh properti saat hover. */}
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface shadow-md shadow-black/40 transition-[transform,box-shadow] duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-xl group-hover:shadow-black/60 group-active:translate-y-0 group-active:scale-[0.96]">
           <AnimeImage
             src={item.poster}
             alt={displayTitle}
@@ -69,3 +72,7 @@ export function AnimeCard({ item, priority = false, className }: AnimeCardProps)
     </article>
   );
 }
+
+/* Kartu katalog bisa muncul ratusan kali pada halaman infinite scroll.
+   memo mencegah re-render saat state filter/halaman berubah. */
+export const AnimeCard = memo(AnimeCardComponent);

@@ -31,10 +31,12 @@ export default async function HomePage() {
   const home = homeRes.value;
   const ongoing = ongoingRes.status === 'fulfilled' ? ongoingRes.value.results : [];
 
+  // Trailer AniList hanya memperkaya hero. Batas tunggunya dijaga ketat supaya
+  // tidak menahan TTFB/LCP: kalau AniList lambat, hero tetap tampil dengan poster.
   const heroItems = await Promise.all(
     home.featured.slice(0, 6).map(async (f: FeaturedAnime) => ({
       ...f,
-      trailer: await withTimeout(getAniListTrailer(f.title).catch(() => null), 2500, null),
+      trailer: await withTimeout(getAniListTrailer(f.title).catch(() => null), 1200, null),
     }))
   );
 

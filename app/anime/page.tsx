@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: 'Katalog Anime',
   description:
     'Jelajahi katalog lengkap anime subtitle Indonesia berdasarkan genre, status, tipe, dan urutan terbaru dengan infinite scrolling.',
+  alternates: { canonical: '/anime' },
 };
 
 export const dynamic = 'force-dynamic';

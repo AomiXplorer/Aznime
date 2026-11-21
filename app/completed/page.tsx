@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/PageHeader';
 export const metadata: Metadata = {
   title: 'Anime Completed',
   description: 'Koleksi anime completed subtitle Indonesia yang sudah tamat seluruh episodenya.',
+  alternates: { canonical: '/completed' },
 };
 
 export const revalidate = 300;

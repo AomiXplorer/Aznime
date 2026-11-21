@@ -38,15 +38,20 @@ export function InfiniteAnimeCatalog({
   const inFlightRef = useRef(false);
 
   const querySignature = JSON.stringify({ apiPath, queryParams });
+  // Simpan props awal terbaru di ref supaya effect reset hanya bergantung pada
+  // signature query. Tanpa ini, setiap parent re-render (yang membuat referensi
+  // array/objek baru) akan mereset seluruh daftar dan memicu render ulang besar.
+  const initialRef = useRef({ items: initialItems, pagination: initialPagination });
+  initialRef.current = { items: initialItems, pagination: initialPagination };
 
   useEffect(() => {
     abortRef.current?.abort();
     inFlightRef.current = false;
-    setItems(initialItems);
-    setPagination(initialPagination);
+    setItems(initialRef.current.items);
+    setPagination(initialRef.current.pagination);
     setLoadingMore(false);
     setError(null);
-  }, [querySignature, initialItems, initialPagination]);
+  }, [querySignature]);
 
   const loadNextPage = useCallback(async () => {
     if (inFlightRef.current || !pagination.hasNextPage) return;

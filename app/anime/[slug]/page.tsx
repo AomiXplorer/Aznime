@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: AnimeDetailPageProps): Promis
     return {
       title: detail.title,
       description,
+      alternates: { canonical: `/anime/${encodeURIComponent(decodedSlug)}` },
       openGraph: {
         type: 'video.tv_show',
         title: `${detail.title} | Aznime`,
@@ -114,7 +115,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
               alt=""
               priority
               sizes="100vw"
-              className="scale-110 object-cover object-top opacity-40 blur-2xl"
+              className="object-cover object-top opacity-30"
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/70 to-canvas/30" />
@@ -180,7 +181,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
               {latestEpisode?.slug && latestEpisode.slug !== firstEpisode?.slug ? (
                 <Link
                   href={`/watch/${encodeURIComponent(latestEpisode.slug)}`}
-                  className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white backdrop-blur transition-all hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white transition-colors hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   Episode terbaru{epSuffix(latestEpisode.number)}
                 </Link>

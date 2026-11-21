@@ -11,9 +11,20 @@ interface AnimeRowProps {
   items: AnimeCardItem[];
   viewAllHref?: string;
   viewAllLabel?: string;
+  /**
+   * Jumlah gambar pertama yang di-preload. Default 0: baris ini selalu berada
+   * di bawah fold, dan preload di sini bersaing dengan LCP hero.
+   */
+  priorityCount?: number;
 }
 
-export function AnimeRow({ title, items, viewAllHref, viewAllLabel = 'Lihat semua' }: AnimeRowProps) {
+export function AnimeRow({
+  title,
+  items,
+  viewAllHref,
+  viewAllLabel = 'Lihat semua',
+  priorityCount = 0,
+}: AnimeRowProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const scrollByAmount = (dir: 'left' | 'right') => {
@@ -67,7 +78,7 @@ export function AnimeRow({ title, items, viewAllHref, viewAllLabel = 'Lihat semu
               key={`${item.kind}-${item.slug || item.url || idx}`}
               className="w-[118px] shrink-0 snap-start sm:w-[140px] lg:w-[164px]"
             >
-              <AnimeCard item={item} priority={idx < 4} />
+              <AnimeCard item={item} priority={idx < priorityCount} />
             </div>
           ))}
         </div>

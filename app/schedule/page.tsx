@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: 'Jadwal Tayang Anime',
   description:
     'Jadwal rilis anime subtitle Indonesia harian dari Senin sampai Minggu beserta jam tayang.',
+  alternates: { canonical: '/schedule' },
 };
 
 export const revalidate = 300;

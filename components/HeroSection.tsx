@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Info, Play, Youtube } from 'lucide-react';
@@ -23,7 +23,27 @@ export function HeroSection({ items }: HeroSectionProps) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [trailerOpen, setTrailerOpen] = useState(false);
+
+  /* Slide pertama harus langsung terlihat. Sebelumnya gambar hero memulai dari
+     opacity 0 lalu dianimasikan setelah hydration, sehingga Largest Contentful
+     Paint tertunda sampai JS selesai (~3,2 s di mobile). Sekarang fade-in hanya
+     berlaku untuk pergantian slide, bukan untuk paint pertama. */
+  const isFirstPaint = useRef(true);
+  useEffect(() => {
+    isFirstPaint.current = false;
+  }, []);
   const reduce = useReducedMotion();
+
+  const go = useCallback(
+    (n: number) => {
+      if (slides.length === 0) return;
+      setIndex(((n % slides.length) + slides.length) % slides.length);
+    },
+    [slides.length]
+  );
+
+  const autoplay = !reduce && slides.length > 1;
+  const paused = hovered || trailerOpen;
 
   if (slides.length === 0) return null;
 
@@ -31,10 +51,6 @@ export function HeroSection({ items }: HeroSectionProps) {
   const detailHref = current.slug ? `/anime/${encodeURIComponent(current.slug)}` : '/anime';
   const banner = current.trailer?.bannerImage || null;
   const hasTrailer = Boolean(current.trailer?.id && current.trailer?.site === 'youtube');
-  const autoplay = !reduce && slides.length > 1;
-  const paused = hovered || trailerOpen;
-
-  const go = (n: number) => setIndex(((n % slides.length) + slides.length) % slides.length);
 
   return (
     <section
@@ -51,20 +67,24 @@ export function HeroSection({ items }: HeroSectionProps) {
           <motion.div
             key={`bg-${index}`}
             className="absolute inset-0"
-            initial={{ opacity: 0, scale: reduce ? 1 : 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
+            /* Hanya opacity: animasi scale pada gambar selebar viewport
+               memaksa rasterisasi ulang layer besar tiap frame. */
+            initial={isFirstPaint.current || reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.8, ease: 'easeOut' }}
+            transition={{ duration: reduce ? 0 : 0.45, ease: 'easeOut' }}
           >
             {banner ? (
               <AnimeImage src={banner} alt="" priority sizes="100vw" className="object-cover object-center" />
             ) : (
+              /* Tanpa filter blur: blur 2xl pada gambar selebar layar adalah
+                 salah satu operasi paint termahal dan selalu aktif. */
               <AnimeImage
                 src={current.poster}
                 alt=""
                 priority
                 sizes="100vw"
-                className="scale-110 object-cover object-top opacity-60 blur-2xl"
+                className="object-cover object-top opacity-30"
               />
             )}
           </motion.div>
@@ -77,7 +97,7 @@ export function HeroSection({ items }: HeroSectionProps) {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`txt-${index}`}
-            initial={reduce ? false : { opacity: 0, y: 14 }}
+            initial={isFirstPaint.current || reduce ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -110,7 +130,7 @@ export function HeroSection({ items }: HeroSectionProps) {
               </Link>
               <Link
                 href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white backdrop-blur transition-all duration-150 hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white transition-colors duration-150 hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <Info className="h-4 w-4" aria-hidden="true" />
                 Info lainnya
@@ -159,6 +179,9 @@ export function HeroSection({ items }: HeroSectionProps) {
                     {i === index ? (
                       <span
                         key={`bar-${index}`}
+                        /* Autoplay dijalankan oleh CSS animation di compositor:
+                           tidak ada setInterval/setTimeout yang membangunkan
+                           main thread, dan progres otomatis berhenti saat hover. */
                         onAnimationEnd={autoplay ? () => go(index + 1) : undefined}
                         className="block h-full origin-left rounded-full bg-white"
                         style={
@@ -181,7 +204,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index - 1)}
                 aria-label="Anime unggulan sebelumnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-all hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -189,7 +212,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index + 1)}
                 aria-label="Anime unggulan berikutnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-all hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>
