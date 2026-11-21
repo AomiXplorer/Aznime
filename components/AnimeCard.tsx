@@ -32,6 +32,9 @@ function AnimeCardComponent({ item, priority = false, className }: AnimeCardProp
     <article className={cn('group relative cv-item', className)}>
       <Link
         href={href}
+        /* Prefetch tiap kartu membuat puluhan permintaan RSC saat grid digulir.
+           Dimatikan supaya scroll di HP tetap ringan; halaman tetap cepat dibuka. */
+        prefetch={false}
         className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
         {/* Transisi dibatasi ke transform + shadow saja (bukan `transition-all`)

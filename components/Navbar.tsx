@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Menu, Search, X } from 'lucide-react';
-import { CreditList } from './CreditList';
 
 /* Dialog pencarian membawa motion + logika pencarian. Tidak dibutuhkan pada
    render awal, jadi dimuat terpisah dan baru dipasang saat pertama dibuka. */
@@ -186,10 +185,6 @@ export function Navbar() {
                 );
               })}
             </ul>
-
-            <div className="mt-3 border-t border-white/[0.06] pt-3">
-              <CreditList variant="panel" />
-            </div>
           </nav>
         ) : null}
       </header>

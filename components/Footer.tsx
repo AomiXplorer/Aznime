@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { CreditList } from './CreditList';
 
 const LINKS = [
   { href: '/', label: 'Beranda' },
@@ -8,6 +7,7 @@ const LINKS = [
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
   { href: '/search', label: 'Cari' },
+  { href: '/credit', label: 'Kredit' },
 ];
 
 export function Footer() {
@@ -29,10 +29,6 @@ export function Footer() {
             </Link>
           ))}
         </nav>
-      </div>
-
-      <div className="mx-auto mt-6 max-w-7xl border-t border-white/[0.06] px-4 pt-5 sm:px-6 lg:px-8">
-        <CreditList variant="inline" />
       </div>
     </footer>
   );

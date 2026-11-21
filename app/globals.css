@@ -119,6 +119,36 @@ h3,
   }
 }
 
+
+/* Panel filter katalog: masuk dari bawah di HP, muncul halus di desktop.
+   Hanya opacity/transform supaya tetap jalan di compositor. */
+.picker-backdrop {
+  animation: picker-fade 180ms ease-out;
+}
+.picker-sheet {
+  animation: picker-rise 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+@keyframes picker-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes picker-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.985);
+  }
+}
+@media (min-width: 640px) {
+  @keyframes picker-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0) scale(0.98);
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

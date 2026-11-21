@@ -23,12 +23,18 @@ function getParam(val: string | string[] | undefined): string {
   return val || '';
 }
 
+/** Genre boleh lebih dari satu; duplikat dan nilai kosong dibuang. */
+function getGenres(val: string | string[] | undefined): string[] {
+  const raw = Array.isArray(val) ? val : val ? [val] : [];
+  return Array.from(new Set(raw.map((item) => item.trim()).filter(Boolean)));
+}
+
 export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPageProps) {
   const sp = await searchParams;
   const status = getParam(sp.status);
   const type = getParam(sp.type);
   const order = getParam(sp.order) || 'update';
-  const genre = getParam(sp.genre);
+  const genres = getGenres(sp.genre);
 
   const [listRes, filterRes] = await Promise.allSettled([
     getAnimeList({
@@ -36,7 +42,7 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
       status: status || undefined,
       type: type || undefined,
       order: order || undefined,
-      genre: genre || undefined,
+      genre: genres.length ? genres : undefined,
     }),
     getFilterOptions(),
   ]);
@@ -46,10 +52,17 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader title="Katalog" description="Saring berdasarkan status, format, genre, atau popularitas." />
+      <PageHeader
+        title="Katalog"
+        description="Pilih status, tipe, genre, atau urutan. Bisa pilih beberapa genre sekaligus."
+      />
 
       <div className="mb-7">
-        <CatalogFilters options={options} current={{ status, type, order, genre }} basePath="/anime" />
+        <CatalogFilters
+          options={options}
+          current={{ status, type, order, genres }}
+          basePath="/anime"
+        />
       </div>
 
       {data ? (
@@ -61,7 +74,7 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
             status: status || undefined,
             type: type || undefined,
             order: order || undefined,
-            genre: genre || undefined,
+            genre: genres.length ? genres : undefined,
           }}
         />
       ) : (

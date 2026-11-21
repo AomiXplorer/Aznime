@@ -7,6 +7,14 @@ export interface ResolvedStreamInfo {
   playableServers: MirrorServer[];
 }
 
+/** Server yang dipakai lebih dulu di pemutar. */
+const DEFAULT_SERVER = 'vastads';
+
+const normalizeServerName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, '');
+
+const isDefaultServer = (server: MirrorServer) =>
+  normalizeServerName(server.name).startsWith(DEFAULT_SERVER);
+
 export function selectPlayableServers(
   servers: MirrorServer[],
   defaultEmbed: string | null
@@ -27,14 +35,20 @@ export function selectPlayableServers(
     };
   }
 
-  // Prefer direct HLS/MP4 video when available, otherwise first available iframe mirror
-  const directPreferred = playableServers.find(
-    (s) => s.type === 'hls' || s.type === 'video'
-  );
+  // vastads selalu jadi pilihan pertama; kalau tidak ada, pakai video direct.
+  const preferred =
+    playableServers.find(isDefaultServer) ||
+    playableServers.find((s) => s.type === 'hls' || s.type === 'video') ||
+    playableServers[0] ||
+    null;
+
+  const orderedServers = preferred
+    ? [preferred, ...servers.filter((s) => s !== preferred)]
+    : servers;
 
   return {
-    servers,
-    primaryServer: directPreferred || playableServers[0] || null,
+    servers: orderedServers,
+    primaryServer: preferred,
     playableServers,
   };
 }

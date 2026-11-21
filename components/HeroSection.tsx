@@ -23,6 +23,9 @@ export function HeroSection({ items }: HeroSectionProps) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [trailerOpen, setTrailerOpen] = useState(false);
+  const [inView, setInView] = useState(true);
+  const [pageHidden, setPageHidden] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
 
   /* Slide pertama harus langsung terlihat. Sebelumnya gambar hero memulai dari
      opacity 0 lalu dianimasikan setelah hydration, sehingga Largest Contentful
@@ -42,7 +45,27 @@ export function HeroSection({ items }: HeroSectionProps) {
     [slides.length]
   );
 
-  const autoplay = !reduce && slides.length > 1;
+  /* Autoplay berhenti saat hero keluar layar atau tab disembunyikan. Pergantian
+     banner besar yang terus jalan di latar belakang bikin scroll di HP tersendat. */
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.15 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onVisibility = () => setPageHidden(document.hidden);
+    onVisibility();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  const autoplay = !reduce && slides.length > 1 && inView && !pageHidden;
   const paused = hovered || trailerOpen;
 
   if (slides.length === 0) return null;
@@ -54,6 +77,7 @@ export function HeroSection({ items }: HeroSectionProps) {
 
   return (
     <section
+      ref={sectionRef}
       aria-label="Anime unggulan"
       aria-roledescription="carousel"
       onMouseEnter={() => setHovered(true)}
