@@ -154,7 +154,7 @@ function EpisodeNavCard({ link, direction, seriesTitle }: EpisodeNavCardProps) {
     : link
       ? cleanEpisodeTitle(link.title)
       : 'Tidak tersedia';
-  const secondary = seriesTitle || (link ? cleanEpisodeTitle(link.title) : null);
+  const secondary = link ? seriesTitle || cleanEpisodeTitle(link.title) : null;
 
   const content = (
     <>
