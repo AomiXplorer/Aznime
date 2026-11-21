@@ -200,6 +200,8 @@ export interface EpisodeNavLink {
   title: string;
   slug: string | null;
   url: string;
+  /** Nomor episode kalau bisa dibaca dari daftar seri. */
+  number?: string | null;
 }
 
 export interface EpisodeData {
