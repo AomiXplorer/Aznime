@@ -15,9 +15,9 @@ const TITLE = 'Aznime – Streaming Anime Subtitle Indonesia';
 const DESCRIPTION =
   'Watch anime with Indonesian subtitles. Fresh episodes, a daily airing schedule, AniList trailers, and a player that picks the fastest server for you.';
 
-/** 1200x630, dibuat khusus untuk preview WhatsApp/Discord/Telegram/X. */
-const OG_IMAGE = `${SITE_URL}/og/aznime-og-v2.png`;
-const OG_IMAGE_ALT = 'Aznime banner – anime streaming with Indonesian subtitles';
+/** 1200x630 key visual, dibuat khusus untuk preview WhatsApp/Discord/Telegram/X. */
+const OG_IMAGE = `${SITE_URL}/og/aznime-og-v3.jpg`;
+const OG_IMAGE_ALT = 'Aznime key visual – anime girl with pink hair and a white high-neck sweater';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         alt: OG_IMAGE_ALT,
-        type: 'image/png',
+        type: 'image/jpeg',
       },
     ],
   },
