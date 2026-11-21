@@ -24,6 +24,18 @@ export function EpisodeList({ episodes }: EpisodeListProps) {
     );
   }, [episodes, filterText, reverseOrder]);
 
+  // Rentang nomor episode yang benar-benar tersedia di sumber.
+  const { minEp, maxEp } = useMemo(() => {
+    const numbers = episodes
+      .map((ep) => Number((ep.number || '').trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (numbers.length === 0) return { minEp: null, maxEp: null };
+    return { minEp: Math.min(...numbers), maxEp: Math.max(...numbers) };
+  }, [episodes]);
+
+  const hasRange = minEp !== null && maxEp !== null && minEp !== maxEp;
+  const startsLate = minEp !== null && minEp > 1;
+
   if (episodes.length === 0) {
     return (
       <div className="rounded-lg border border-white/10 bg-[#12141a] p-6 text-center text-sm text-zinc-400">
@@ -63,18 +75,35 @@ export function EpisodeList({ episodes }: EpisodeListProps) {
         </button>
       </div>
 
+      {hasRange ? (
+        <p className="text-[12px] text-zinc-500">
+          Tersedia episode {minEp}–{maxEp} ({episodes.length} episode).
+        </p>
+      ) : null}
+
+      {startsLate ? (
+        <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[12px] leading-relaxed text-amber-200/90">
+          Sumber baru menyediakan episode {minEp} ke atas, jadi episode sebelumnya belum bisa
+          diputar di sini.
+        </p>
+      ) : null}
+
       {visibleEpisodes.length === 0 ? (
         <p className="rounded-lg border border-white/10 bg-[#12141a] p-6 text-center text-sm text-zinc-400">
           Tidak ada episode yang cocok dengan &ldquo;{filterText}&rdquo;.
         </p>
       ) : (
-        <ul className="grid max-h-[520px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+        <ul
+          aria-label="Daftar episode"
+          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {visibleEpisodes.map((ep, idx) => {
             const href = ep.slug ? `/watch/${encodeURIComponent(ep.slug)}` : '/anime';
             return (
-              <li key={`${ep.slug || idx}`}>
+              <li key={`${ep.slug || idx}`} className="ep-item">
                 <Link
                   href={href}
+                  prefetch={false}
                   className="group flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-[#12141a] p-3 transition-colors duration-150 hover:border-rose-400/50 hover:bg-[#181b23] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                 >
                   <div className="min-w-0 flex-1">

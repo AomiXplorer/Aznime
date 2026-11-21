@@ -162,3 +162,11 @@ h3,
     display: none;
   }
 }
+
+/* Item episode panjang (ratusan judul) tidak dilayout sampai mendekati viewport.
+   Semua episode tetap ada di halaman, jadi tidak ada lagi daftar yang tersembunyi
+   di dalam kotak scroll kecil. */
+.ep-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
