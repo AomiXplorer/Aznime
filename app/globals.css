@@ -70,6 +70,14 @@ h3,
   -webkit-text-stroke-color: #e11d48;
 }
 
+/* Tingkat kepentingan nomor: runner-up lebih tegas, peringkat 4-5 lebih redup. */
+.rank-numeral-strong {
+  -webkit-text-stroke-color: rgba(255, 255, 255, 0.55);
+}
+.rank-numeral-soft {
+  -webkit-text-stroke-color: rgba(255, 255, 255, 0.22);
+}
+
 /* Transisi halaman: hanya opacity (compositor-only), tanpa transform pada
    seluruh dokumen yang memaksa layer besar dibuat ulang. */
 @keyframes page-enter {
