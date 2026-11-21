@@ -1,0 +1,209 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { ChevronLeft, ChevronRight, Info, Play, Youtube } from 'lucide-react';
+import type { AniListTrailer, FeaturedAnime } from '@/lib/scraper/types';
+import { AnimeImage } from './AnimeImage';
+import { TrailerModal } from './TrailerModal';
+
+interface FeaturedWithTrailer extends FeaturedAnime {
+  trailer?: AniListTrailer | null;
+}
+
+interface HeroSectionProps {
+  items: FeaturedWithTrailer[];
+}
+
+const AUTOPLAY_MS = 8000;
+
+export function HeroSection({ items }: HeroSectionProps) {
+  const slides = items.slice(0, 6);
+  const [index, setIndex] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [trailerOpen, setTrailerOpen] = useState(false);
+  const reduce = useReducedMotion();
+
+  if (slides.length === 0) return null;
+
+  const current = slides[index] || slides[0];
+  const detailHref = current.slug ? `/anime/${encodeURIComponent(current.slug)}` : '/anime';
+  const banner = current.trailer?.bannerImage || null;
+  const hasTrailer = Boolean(current.trailer?.id && current.trailer?.site === 'youtube');
+  const autoplay = !reduce && slides.length > 1;
+  const paused = hovered || trailerOpen;
+
+  const go = (n: number) => setIndex(((n % slides.length) + slides.length) % slides.length);
+
+  return (
+    <section
+      aria-label="Anime unggulan"
+      aria-roledescription="carousel"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      className="relative -mt-16 w-full overflow-hidden bg-canvas"
+    >
+      <div className="absolute inset-0" aria-hidden="true">
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={`bg-${index}`}
+            className="absolute inset-0"
+            initial={{ opacity: 0, scale: reduce ? 1 : 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.8, ease: 'easeOut' }}
+          >
+            {banner ? (
+              <AnimeImage src={banner} alt="" priority sizes="100vw" className="object-cover object-center" />
+            ) : (
+              <AnimeImage
+                src={current.poster}
+                alt=""
+                priority
+                sizes="100vw"
+                className="scale-110 object-cover object-top opacity-60 blur-2xl"
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+        <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-canvas to-transparent" />
+      </div>
+
+      <div className="relative mx-auto flex min-h-[68vh] max-w-7xl items-end gap-10 px-4 pb-20 pt-32 sm:px-6 lg:min-h-[78vh] lg:px-8">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={`txt-${index}`}
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="max-w-xl flex-1 space-y-3.5"
+          >
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-zinc-300">
+              {current.status ? (
+                <span className="rounded bg-accent px-2 py-0.5 text-xs font-bold text-white">{current.status}</span>
+              ) : null}
+              {current.releaseYear ? <span>{current.releaseYear}</span> : null}
+              {current.type ? <span>{current.type}</span> : null}
+              {current.genres.length > 0 ? <span>{current.genres.slice(0, 3).join(', ')}</span> : null}
+            </div>
+
+            <h1 className="line-clamp-3 text-[1.9rem] font-extrabold leading-[1.1] text-white [text-wrap:balance] sm:text-[2.2rem] lg:text-[2.6rem]">
+              {current.title}
+            </h1>
+
+            {current.synopsis ? (
+              <p className="line-clamp-3 max-w-prose text-sm leading-relaxed text-zinc-300">{current.synopsis}</p>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
+              <Link
+                href={detailHref}
+                className="inline-flex h-11 items-center gap-2 rounded-md bg-white px-5 text-sm font-bold text-black transition-all duration-150 hover:bg-white/85 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+              >
+                <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+                Tonton
+              </Link>
+              <Link
+                href={detailHref}
+                className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white backdrop-blur transition-all duration-150 hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <Info className="h-4 w-4" aria-hidden="true" />
+                Info lainnya
+              </Link>
+              {hasTrailer ? (
+                <button
+                  type="button"
+                  onClick={() => setTrailerOpen(true)}
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-zinc-200 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <Youtube className="h-4 w-4" aria-hidden="true" />
+                  Trailer
+                </button>
+              ) : null}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {!banner ? (
+          <Link
+            href={detailHref}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="relative ml-auto hidden aspect-[2/3] w-[210px] shrink-0 overflow-hidden rounded-lg shadow-2xl shadow-black/70 ring-1 ring-white/10 lg:block"
+          >
+            <AnimeImage src={current.poster} alt={current.title} priority sizes="210px" />
+          </Link>
+        ) : null}
+      </div>
+
+      {slides.length > 1 ? (
+        <div className="absolute inset-x-0 bottom-6 z-10">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2" role="tablist" aria-label="Pilih anime unggulan">
+              {slides.map((item, i) => (
+                <button
+                  key={item.slug || i}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === index}
+                  aria-label={`Unggulan ${i + 1}: ${item.title}`}
+                  onClick={() => go(i)}
+                  className="group relative h-6 w-9 cursor-pointer focus-visible:outline-none sm:w-12"
+                >
+                  <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/25 transition-colors group-hover:bg-white/40 group-focus-visible:ring-2 group-focus-visible:ring-white">
+                    {i === index ? (
+                      <span
+                        key={`bar-${index}`}
+                        onAnimationEnd={autoplay ? () => go(index + 1) : undefined}
+                        className="block h-full origin-left rounded-full bg-white"
+                        style={
+                          autoplay
+                            ? {
+                                animation: `hero-progress ${AUTOPLAY_MS}ms linear forwards`,
+                                animationPlayState: paused ? 'paused' : 'running',
+                              }
+                            : undefined
+                        }
+                      />
+                    ) : null}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="hidden items-center gap-2 sm:flex">
+              <button
+                type="button"
+                onClick={() => go(index - 1)}
+                aria-label="Anime unggulan sebelumnya"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-all hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => go(index + 1)}
+                aria-label="Anime unggulan berikutnya"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-all hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <TrailerModal
+        open={trailerOpen}
+        onClose={() => setTrailerOpen(false)}
+        title={current.title}
+        trailer={current.trailer || null}
+      />
+    </section>
+  );
+}
