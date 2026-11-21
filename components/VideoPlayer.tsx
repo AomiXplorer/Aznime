@@ -112,94 +112,75 @@ async function probeServer(url: string, signal: AbortSignal): Promise<number> {
   }
 }
 
-interface ToolbarButtonProps {
+interface IconButtonProps {
   icon: LucideIcon;
   label: string;
   onClick: () => void;
   active?: boolean;
-  ariaLabel?: string;
 }
 
-function ToolbarButton({ icon: Icon, label, onClick, active, ariaLabel }: ToolbarButtonProps) {
+/** Tombol ikon tanpa teks: aria-label wajib supaya tetap terbaca pembaca layar. */
+function IconButton({ icon: Icon, label, onClick, active }: IconButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={ariaLabel || label}
+      aria-label={label}
       aria-pressed={active}
+      title={label}
       className={cn(
-        'inline-flex h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:h-9 sm:min-w-9 sm:px-2.5',
-        active
-          ? 'bg-white/[0.1] text-white'
-          : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+        'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+        active ? 'bg-white/[0.12] text-white' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
       )}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
-      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }
 
-interface EpisodeNavCardProps {
+interface EpisodeNavButtonProps {
   link: EpisodeNavLink | null;
   direction: 'prev' | 'next';
   seriesTitle?: string | null;
 }
 
-function EpisodeNavCard({ link, direction, seriesTitle }: EpisodeNavCardProps) {
-  const label = direction === 'prev' ? 'Sebelumnya' : 'Berikutnya';
+function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProps) {
   const number = link?.number || (link ? episodeNumberFromTitle(link.title) : null);
-  const primary = number
-    ? `Episode ${number}`
-    : link
-      ? cleanEpisodeTitle(link.title)
-      : 'Tidak tersedia';
-  const secondary = link ? seriesTitle || cleanEpisodeTitle(link.title) : null;
+  const text = number ? `Ep ${number}` : link ? cleanEpisodeTitle(link.title) : 'Tidak ada';
+  const hint = link
+    ? [direction === 'prev' ? 'Episode sebelumnya' : 'Episode berikutnya', seriesTitle, number ? `Episode ${number}` : cleanEpisodeTitle(link.title)]
+        .filter(Boolean)
+        .join(' · ')
+    : direction === 'prev'
+      ? 'Tidak ada episode sebelumnya'
+      : 'Tidak ada episode berikutnya';
+
+  const className = cn(
+    'inline-flex h-8 min-w-0 items-center gap-1 rounded-md px-2 text-[12px] font-medium transition-colors duration-150',
+    direction === 'next' && 'justify-end',
+    link
+      ? 'text-zinc-300 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60'
+      : 'cursor-default text-zinc-600'
+  );
 
   const content = (
     <>
-      <span
-        className={cn(
-          'flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600',
-          direction === 'next' && 'justify-end'
-        )}
-      >
-        {direction === 'prev' ? <ChevronLeft className="h-3 w-3" aria-hidden="true" /> : null}
-        {label}
-        {direction === 'next' ? <ChevronRight className="h-3 w-3" aria-hidden="true" /> : null}
-      </span>
-      <span className={cn('mt-0.5 truncate text-[13px] font-semibold', link ? 'text-zinc-200' : 'text-zinc-600')}>
-        {primary}
-      </span>
-      {secondary ? (
-        <span
-          className={cn(
-            'truncate text-[11px] text-zinc-500',
-            direction === 'next' && 'text-right'
-          )}
-        >
-          {secondary}
-        </span>
-      ) : null}
+      {direction === 'prev' ? <ChevronLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
+      <span className="truncate">{text}</span>
+      {direction === 'next' ? <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
     </>
-  );
-
-  const className = cn(
-    'flex min-w-0 flex-1 flex-col justify-center rounded-lg px-3 py-2 transition-colors duration-150',
-    direction === 'next' ? 'items-end text-right' : 'items-start',
-    link ? 'hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60' : 'cursor-default'
   );
 
   if (!link?.slug) {
     return (
-      <span className={className} aria-disabled="true">
+      <span className={className} aria-disabled="true" title={hint}>
         {content}
       </span>
     );
   }
 
   return (
-    <Link href={`/watch/${encodeURIComponent(link.slug)}`} prefetch={false} className={className}>
+    <Link href={`/watch/${encodeURIComponent(link.slug)}`} prefetch={false} className={className} title={hint}>
       {content}
     </Link>
   );
@@ -648,50 +629,48 @@ export function VideoPlayer({
         <div
           className={
             theater
-              ? 'mx-auto flex min-h-full w-full max-w-[min(1500px,calc((100vh-220px)*16/9))] flex-col justify-center px-2 py-3 sm:px-4'
+              ? 'mx-auto flex min-h-full w-full max-w-[min(1500px,calc((100vh-190px)*16/9))] flex-col justify-center px-2 py-3 sm:px-4'
               : ''
           }
         >
-          <div
-            ref={frameRef}
-            className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0c0e13] shadow-xl shadow-black/40"
-          >
+          <div ref={frameRef} className="overflow-hidden bg-black sm:rounded-lg">
             <div className="relative aspect-video w-full bg-black">
               {racing ? (
                 <div
                   role="status"
                   aria-live="polite"
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#08090c] text-center"
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-[#07080b] text-center"
                 >
-                  <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/70 motion-reduce:animate-none" />
-                  <div>
-                    <p className="text-[13px] font-medium text-zinc-200">Mencari server tercepat</p>
-                    <p className="mt-0.5 text-[11px] text-zinc-500">
-                      {Object.keys(latencies).length} dari {playable.length} server merespons
-                    </p>
-                  </div>
+                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/15 border-t-white/80 motion-reduce:animate-none" />
+                  <p className="text-[12.5px] font-medium text-zinc-300">Memilih server tercepat</p>
+                  <p className="text-[11px] tabular-nums text-zinc-500">
+                    {Object.keys(latencies).length} dari {playable.length} server menjawab
+                  </p>
                 </div>
               ) : !activeServer || !activeServer.available || !activeServer.url ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
-                  <AlertCircle className="h-7 w-7 text-zinc-500" aria-hidden="true" />
-                  <p className="text-[13px] font-semibold text-zinc-200">
+                  <AlertCircle className="h-6 w-6 text-zinc-500" aria-hidden="true" />
+                  <p className="text-[12.5px] font-semibold text-zinc-200">
                     {activeServer?.message || 'Sumber video belum tersedia'}
                   </p>
-                  <p className="max-w-sm text-[11px] text-zinc-500">
+                  <p className="max-w-sm text-[11px] leading-relaxed text-zinc-500">
                     Coba server lain di bawah, atau pakai tautan unduhan episode ini.
                   </p>
                 </div>
               ) : mediaError ? (
-                <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-                  <AlertCircle className="h-7 w-7 text-rose-400" aria-hidden="true" />
+                <div
+                  role="alert"
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
+                >
+                  <AlertCircle className="h-6 w-6 text-rose-400" aria-hidden="true" />
                   <div>
-                    <p className="text-[13px] font-semibold text-zinc-100">Video gagal dimuat</p>
-                    <p className="mt-1 max-w-md text-[11px] text-zinc-500">{mediaError}</p>
+                    <p className="text-[12.5px] font-semibold text-zinc-100">Video gagal dimuat</p>
+                    <p className="mt-1 max-w-md text-[11px] leading-relaxed text-zinc-500">{mediaError}</p>
                   </div>
                   <button
                     type="button"
                     onClick={retryActive}
-                    className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3.5 text-[12px] font-semibold text-black transition-colors hover:bg-white/85"
+                    className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                   >
                     <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
                     Coba lagi
@@ -742,85 +721,69 @@ export function VideoPlayer({
                 <div
                   role="status"
                   aria-live="polite"
-                  className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50"
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45"
                 >
-                  <div className="flex items-center gap-2 rounded-md bg-[#111319] px-3 py-2 text-[11px] font-medium text-zinc-300 ring-1 ring-white/10">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400 motion-reduce:animate-none" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-2 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300">
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin text-zinc-400 motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
                     Memuat {activeServer ? displayServerName(activeServer) : 'server'}
-                  </div>
+                  </span>
                 </div>
               ) : null}
 
               {copyState !== 'idle' ? (
                 <div
                   role="status"
-                  className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-black/85 px-3 py-1.5 text-[11px] font-medium text-white ring-1 ring-white/10"
+                  className="pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 rounded-md bg-black/85 px-2.5 py-1.5 text-[11px] font-medium text-white"
                 >
                   {copyState === 'ok' ? 'Tautan episode disalin' : 'Gagal menyalin tautan'}
                 </div>
               ) : null}
             </div>
 
-            <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] px-2 py-1.5">
-              <div className="flex items-center gap-0.5">
-                <ToolbarButton
-                  icon={Monitor}
-                  label={theater ? 'Keluar theater' : 'Theater'}
-                  ariaLabel={theater ? 'Keluar dari mode theater' : 'Mode theater'}
-                  active={theater}
-                  onClick={() => setTheater((value) => !value)}
-                />
-                <ToolbarButton icon={Maximize2} label="Layar penuh" onClick={handleFullscreen} />
-              </div>
-              <div className="flex items-center gap-0.5">
-                <ToolbarButton icon={Flag} label="Laporkan" onClick={openReport} />
-                <ToolbarButton
-                  icon={copyState === 'ok' ? Check : Copy}
-                  label={copyState === 'ok' ? 'Tersalin' : 'Salin tautan'}
-                  onClick={() => void copyEpisodeUrl()}
-                />
-              </div>
-            </div>
-
-            {notice ? (
-              <p
-                role="status"
-                className="border-t border-amber-500/10 bg-amber-500/[0.07] px-3 py-2 text-[11px] text-amber-200/90"
-              >
-                {notice}
-              </p>
-            ) : null}
-
-            <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-1 border-t border-white/[0.06] p-1.5">
-              <EpisodeNavCard link={navigation.prev} direction="prev" seriesTitle={seriesTitle} />
-              <Link
-                href={allSeriesHref}
-                prefetch={false}
-                aria-label="Daftar episode"
-                className="inline-flex h-full min-h-11 items-center justify-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:px-3"
-              >
-                <List className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Daftar episode</span>
-              </Link>
-              <EpisodeNavCard link={navigation.next} direction="next" seriesTitle={seriesTitle} />
-            </div>
-
-            {effectiveServers.length > 0 ? (
-              <div className="border-t border-white/[0.06] p-3">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                    Server
-                  </h2>
-                  <span className="text-[10px] text-zinc-600">
-                    Otomatis pilih yang tercepat
+            {/* Satu strip kendali: server di kiri (bisa digeser), aksi di kanan. */}
+            <div className="flex items-stretch gap-1 bg-[#0a0c11] py-1.5 pl-1 pr-1 sm:pl-1.5">
+              <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-0.5">
+                {racing ? (
+                  <span
+                    role="status"
+                    aria-live="polite"
+                    className="inline-flex h-8 shrink-0 items-center gap-1.5 px-1.5 text-[11.5px] text-zinc-400"
+                  >
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                    Mengukur
+                    <span className="tabular-nums text-zinc-500">
+                      {Object.keys(latencies).length}/{playable.length}
+                    </span>
                   </span>
-                </div>
+                ) : null}
 
-                <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Server video">
+                <div
+                  role="radiogroup"
+                  aria-label="Server video"
+                  className="flex items-center gap-1"
+                >
                   {effectiveServers.map((server, idx) => {
                     const active = idx === selectedIdx;
                     const status = serverStatus(idx, server);
                     const isFastest = autoIdx === idx;
+                    // Hanya tampilkan angka/keadaan yang informatif; "Embed"/"Direct"
+                    // cuma mengulang nama server dan bikin strip berisik.
+                    const latency =
+                      typeof latencies[idx] === 'number'
+                        ? `${latencies[idx]} ms`
+                        : status.tone === 'error'
+                          ? 'gagal'
+                          : status.tone === 'loading'
+                            ? 'memuat'
+                            : status.tone === 'off'
+                              ? 'offline'
+                              : null;
                     return (
                       <button
                         key={`${server.name}-${idx}`}
@@ -829,53 +792,83 @@ export function VideoPlayer({
                         aria-checked={active}
                         disabled={!server.available}
                         onClick={() => pickManually(idx)}
+                        title={`${displayServerName(server)} · ${status.label}`}
                         className={cn(
-                          'group flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-40',
+                          'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-40',
                           active
-                            ? 'border-accent/50 bg-accent/[0.08]'
-                            : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.05]'
+                            ? 'bg-white/[0.1] text-white ring-1 ring-inset ring-white/[0.14]'
+                            : 'text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100'
                         )}
                       >
-                        <span className="flex min-w-0 items-center gap-2.5">
-                          <span
-                            className={cn('h-1.5 w-1.5 shrink-0 rounded-full', toneClass[status.tone])}
-                            aria-hidden="true"
-                          />
-                          <span className="min-w-0">
-                            <span className="flex items-center gap-1.5">
-                              <span className="truncate text-[13px] font-semibold text-zinc-100">
-                                {displayServerName(server)}
-                              </span>
-                              {isFastest ? (
-                                <span className="inline-flex items-center gap-0.5 rounded bg-white/[0.08] px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-300">
-                                  <Zap className="h-2.5 w-2.5" aria-hidden="true" />
-                                  Tercepat
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="mt-0.5 block truncate text-[11px] text-zinc-500">
-                              {status.label}
-                            </span>
+                        <span
+                          className={cn('h-1.5 w-1.5 shrink-0 rounded-full', toneClass[status.tone])}
+                          aria-hidden="true"
+                        />
+                        <span className="whitespace-nowrap">{displayServerName(server)}</span>
+                        {latency ? (
+                          <span className="whitespace-nowrap tabular-nums text-[10.5px] text-zinc-500">
+                            {latency}
                           </span>
-                        </span>
-                        {active ? (
-                          <Check className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
-                        ) : (
-                          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-600 transition-colors group-hover:text-zinc-400">
-                            Pilih
-                          </span>
-                        )}
+                        ) : null}
+                        {isFastest ? (
+                          <>
+                            <Zap className="h-3 w-3 shrink-0 text-amber-300/80" aria-hidden="true" />
+                            <span className="sr-only">tercepat</span>
+                          </>
+                        ) : null}
+                        {active ? <Check className="h-3 w-3 shrink-0 text-accent" aria-hidden="true" /> : null}
                       </button>
                     );
                   })}
                 </div>
               </div>
+
+              <div className="flex shrink-0 items-center gap-0.5 border-l border-white/[0.08] pl-1">
+                <IconButton
+                  icon={Monitor}
+                  label={theater ? 'Keluar mode theater' : 'Mode theater'}
+                  active={theater}
+                  onClick={() => setTheater((value) => !value)}
+                />
+                <IconButton icon={Maximize2} label="Layar penuh" onClick={handleFullscreen} />
+                <IconButton
+                  icon={copyState === 'ok' ? Check : Copy}
+                  label={copyState === 'ok' ? 'Tautan tersalin' : 'Salin tautan episode'}
+                  onClick={() => void copyEpisodeUrl()}
+                />
+                <IconButton icon={Flag} label="Laporkan masalah pemutar" onClick={openReport} />
+              </div>
+            </div>
+
+            {/* Navigasi episode: satu baris, tinggi tetap, state kosong tetap terlihat. */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-white/[0.08] bg-[#0a0c11] px-1 py-1 sm:px-1.5">
+              <EpisodeNavButton link={navigation.prev} direction="prev" seriesTitle={seriesTitle} />
+              <Link
+                href={allSeriesHref}
+                prefetch={false}
+                title={seriesTitle ? `Semua episode ${seriesTitle}` : 'Semua episode'}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                <List className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Semua episode</span>
+                <span className="sr-only sm:hidden">Semua episode</span>
+              </Link>
+              <EpisodeNavButton link={navigation.next} direction="next" seriesTitle={seriesTitle} />
+            </div>
+
+            {notice ? (
+              <p
+                role="status"
+                className="border-t border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-zinc-400"
+              >
+                {notice}
+              </p>
             ) : null}
           </div>
 
           {theater ? (
-            <p className="py-2 text-center text-[10px] text-zinc-600">
-              Tekan Esc atau tombol Theater untuk keluar
+            <p className="py-2 text-center text-[10.5px] text-zinc-500">
+              Tekan Esc atau tombol theater untuk keluar
             </p>
           ) : null}
         </div>
@@ -883,7 +876,7 @@ export function VideoPlayer({
 
       {reportOpen ? (
         <div
-          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
+          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="report-title"
@@ -895,13 +888,13 @@ export function VideoPlayer({
             onClick={() => setReportOpen(false)}
             tabIndex={-1}
           />
-          <div className="relative w-full max-w-md rounded-t-xl border border-white/[0.1] bg-[#101218] p-4 shadow-2xl sm:rounded-xl">
+          <div className="relative w-full max-w-md rounded-t-xl bg-[#101218] p-4 sm:rounded-xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 id="report-title" className="text-sm font-semibold text-white">
+                <h2 id="report-title" className="text-[13.5px] font-semibold text-white">
                   Laporkan masalah pemutar
                 </h2>
-                <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+                <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
                   Salin detail di bawah, lalu kirim ke channel WhatsApp pengelola supaya bisa dicek.
                 </p>
               </div>
@@ -909,7 +902,7 @@ export function VideoPlayer({
                 type="button"
                 onClick={() => setReportOpen(false)}
                 aria-label="Tutup"
-                className="-mr-1 -mt-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+                className="-mr-1 -mt-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors duration-150 hover:bg-white/[0.06] hover:text-zinc-200"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -923,16 +916,20 @@ export function VideoPlayer({
               <button
                 type="button"
                 onClick={() => void copyReport()}
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-semibold text-black transition-colors hover:bg-white/85"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-semibold text-black transition-colors duration-150 hover:bg-white/85"
               >
-                {reportCopied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+                {reportCopied ? (
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
                 {reportCopied ? 'Detail tersalin' : 'Salin detail'}
               </button>
               <a
                 href={CREDITS[0]?.channelUrl || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-white/[0.1] px-3 text-[12px] font-medium text-zinc-200 transition-colors hover:bg-white/[0.06]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium text-zinc-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white"
               >
                 <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
                 Buka WhatsApp
@@ -940,7 +937,7 @@ export function VideoPlayer({
               <button
                 type="button"
                 onClick={() => setReportOpen(false)}
-                className="ml-auto inline-flex h-9 cursor-pointer items-center rounded-md px-3 text-[12px] font-medium text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+                className="ml-auto inline-flex h-8 cursor-pointer items-center rounded-md px-3 text-[12px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-zinc-200"
               >
                 Tutup
               </button>

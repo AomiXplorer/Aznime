@@ -1,12 +1,50 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Download, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowUpRight, Loader2 } from 'lucide-react';
 import type { DownloadBox } from '@/lib/scraper/types';
 
 interface DownloadBoxesProps {
   boxes: DownloadBox[];
   heading?: string;
+}
+
+/**
+ * Nama provider dari sumber datang dengan kapitalisasi campur (googledrive,
+ * GOOGLEDRIVE, terabox). Disamakan di sini supaya daftar tidak terlihat acak,
+ * tanpa mengubah tautan apa pun.
+ */
+const HOST_LABEL: Record<string, string> = {
+  googledrive: 'Google Drive',
+  terabox: 'TeraBox',
+  buzzheavier: 'BuzzHeavier',
+  acefile: 'AceFile',
+  hidodrive: 'HidoDrive',
+  teledrive: 'TeleDrive',
+  mirrored: 'Mirrored',
+  pixeldrain: 'Pixeldrain',
+  krakenfiles: 'KrakenFiles',
+  mega: 'MEGA',
+};
+
+/** Sumber kadang menulis 1080P / 720P; disamakan jadi huruf kecil. */
+function qualityLabel(quality: string): string {
+  return quality.trim().replace(/p$/i, 'p');
+}
+
+function qualityWeight(quality: string): number {
+  const n = Number(quality.replace(/[^0-9]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function hostLabel(host: string): string {
+  const key = host.trim().toLowerCase().replace(/\s+/g, '');
+  if (HOST_LABEL[key]) return HOST_LABEL[key];
+  const cleaned = host.trim().replace(/\s+/g, ' ');
+  if (cleaned === cleaned.toUpperCase() || cleaned === cleaned.toLowerCase()) {
+    return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+  return cleaned;
 }
 
 export function DownloadBoxes({ boxes, heading = 'Tautan unduhan' }: DownloadBoxesProps) {
@@ -26,85 +64,88 @@ export function DownloadBoxes({ boxes, heading = 'Tautan unduhan' }: DownloadBox
     timer.current = window.setTimeout(() => setOpening(null), 2200);
   };
 
-  const linkCount = boxes.reduce(
+  // Resolusi tanpa tautan tidak ditampilkan supaya tidak ada baris kosong.
+  const groups = boxes
+    .map((box) => ({
+      ...box,
+      qualities: [...box.qualities]
+        .filter((quality) => quality.links.length > 0)
+        .sort((a, b) => qualityWeight(a.quality) - qualityWeight(b.quality)),
+    }))
+    .filter((box) => box.qualities.length > 0);
+
+  const linkCount = groups.reduce(
     (total, box) => total + box.qualities.reduce((sum, q) => sum + q.links.length, 0),
     0
   );
-  const qualityCount = boxes.reduce((total, box) => total + box.qualities.length, 0);
+  const qualityCount = groups.reduce((total, box) => total + box.qualities.length, 0);
 
   return (
-    <section
-      id="download"
-      aria-label={heading}
-      className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0c0e13]"
-    >
-      <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Download className="h-4 w-4 text-zinc-500" aria-hidden="true" />
+    <section id="download" aria-label={heading} className="scroll-mt-20">
+      <div className="flex items-baseline justify-between gap-3 border-b border-white/[0.08] pb-2">
+        <h2 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-zinc-200">
           {heading}
         </h2>
         {linkCount > 0 ? (
-          <span className="text-[11px] text-zinc-500">
+          <span className="text-[11px] tabular-nums text-zinc-500">
             {qualityCount} resolusi · {linkCount} tautan
           </span>
         ) : null}
       </div>
 
-      {boxes.length === 0 || linkCount === 0 ? (
-        <p className="px-4 py-6 text-center text-[13px] text-zinc-500">
+      {groups.length === 0 || linkCount === 0 ? (
+        <p className="py-5 text-[12.5px] text-zinc-500">
           Belum ada tautan unduhan untuk episode ini.
         </p>
       ) : (
         <div>
-          {boxes.map((box, boxIdx) => (
-            <div key={`${box.title}-${boxIdx}`} className="border-b border-white/[0.05] last:border-b-0">
-              {boxes.length > 1 && box.title ? (
-                <p className="px-4 pt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
+          {groups.map((box, boxIdx) => (
+            <div key={`${box.title}-${boxIdx}`}>
+              {groups.length > 1 && box.title ? (
+                <p className="pt-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
                   {box.title}
                 </p>
               ) : null}
 
-              <div className="divide-y divide-white/[0.04]">
-                {box.qualities.map((quality, qIdx) => (
-                  <div
-                    key={`${quality.quality}-${qIdx}`}
-                    className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:gap-4"
-                  >
-                    <span className="inline-flex w-16 shrink-0 items-center gap-1.5 font-mono text-[11px] font-semibold text-zinc-300">
-                      <span className="h-1 w-1 rounded-full bg-zinc-600" aria-hidden="true" />
-                      {quality.quality}
-                    </span>
+              {box.qualities.map((quality, qIdx) => (
+                <div
+                  key={`${quality.quality}-${qIdx}`}
+                  className="grid gap-x-4 gap-y-1.5 border-b border-white/[0.06] py-2.5 last:border-b-0 sm:grid-cols-[56px_1fr] sm:items-start"
+                >
+                  <span className="font-mono text-[11.5px] font-semibold tabular-nums text-zinc-300 sm:pt-1.5">
+                    {qualityLabel(quality.quality)}
+                  </span>
 
-                    <div className="flex flex-wrap gap-1.5">
-                      {quality.links.map((link, lIdx) => {
-                        const key = `${boxIdx}-${qIdx}-${lIdx}`;
-                        const isOpening = opening === key;
-                        return (
-                          <a
-                            key={`${link.host}-${lIdx}`}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => handleOpen(key)}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 text-[11px] font-medium text-zinc-300 transition-colors duration-150 hover:border-white/[0.16] hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                          >
-                            {isOpening ? (
-                              <Loader2
-                                className="h-3 w-3 animate-spin text-zinc-400 motion-reduce:animate-none"
-                                aria-hidden="true"
-                              />
-                            ) : (
-                              <Download className="h-3 w-3 text-zinc-500" aria-hidden="true" />
-                            )}
-                            <span>{link.host}</span>
-                            <ExternalLink className="h-2.5 w-2.5 text-zinc-600" aria-hidden="true" />
-                          </a>
-                        );
-                      })}
-                    </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {quality.links.map((link, lIdx) => {
+                      const key = `${boxIdx}-${qIdx}-${lIdx}`;
+                      const isOpening = opening === key;
+                      return (
+                        <a
+                          key={`${link.host}-${lIdx}`}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleOpen(key)}
+                          className="group inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11.5px] font-medium text-zinc-300 transition-colors duration-150 hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                        >
+                          {isOpening ? (
+                            <Loader2
+                              className="h-3 w-3 animate-spin text-zinc-400 motion-reduce:animate-none"
+                              aria-hidden="true"
+                            />
+                          ) : null}
+                          <span className="whitespace-nowrap">{hostLabel(link.host)}</span>
+                          <ArrowUpRight
+                            className="h-3 w-3 shrink-0 text-zinc-600 transition-colors duration-150 group-hover:text-zinc-400"
+                            aria-hidden="true"
+                          />
+                        </a>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           ))}
         </div>

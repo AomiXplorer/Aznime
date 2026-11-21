@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CalendarDays, Captions, ChevronRight, CircleDot, Hash } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { getDetail, getEpisode, UpstreamError } from '@/lib/scraper';
 import type { EpisodeNavLink, EpisodeSummary } from '@/lib/scraper/types';
 import { cleanEpisodeTitle, episodeNumberFromTitle } from '@/lib/episode-format';
@@ -72,7 +72,7 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
 
   if (upstreamError) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <ErrorState title="Gagal memuat pemutar episode" message={upstreamError} />
       </div>
     );
@@ -109,75 +109,94 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
   const status = translateStatus(seriesDetail?.info['Status']);
   const cleanTitle = cleanEpisodeTitle(episode.title);
 
-  const chips = [
-    episodeNumber ? { icon: Hash, label: `Episode ${episodeNumber}` } : null,
-    season ? { icon: CalendarDays, label: season } : null,
-    { icon: Captions, label: 'Sub Indo' },
-    status ? { icon: CircleDot, label: status } : null,
-  ].filter(Boolean) as Array<{ icon: typeof Hash; label: string }>;
+  // Metadata sebagai satu baris teks, bukan deretan badge: lebih ringkas dan
+  // hierarkinya tidak bersaing dengan judul.
+  const meta: Array<{ label: string; dot?: string }> = [
+    episodeNumber
+      ? { label: /^\d/.test(episodeNumber) ? `Episode ${episodeNumber}` : episodeNumber }
+      : null,
+    season ? { label: season } : null,
+    { label: 'Sub Indo' },
+    status ? { label: status, dot: status === 'Sedang tayang' ? 'bg-emerald-400' : 'bg-zinc-500' } : null,
+  ].filter(Boolean) as Array<{ label: string; dot?: string }>;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-      <header className="mb-4 space-y-2.5">
-        <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
-          <Link href="/" className="transition-colors hover:text-zinc-300">
+    <div className="mx-auto max-w-6xl px-4 pb-14 pt-4 sm:px-6 sm:pt-6 lg:px-8">
+      <header className="mb-3 sm:mb-4">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1 text-[11px] text-zinc-500"
+        >
+          <Link href="/" className="shrink-0 transition-colors duration-150 hover:text-zinc-300">
             Beranda
           </Link>
-          <ChevronRight className="h-3 w-3" aria-hidden="true" />
+          <ChevronRight className="h-3 w-3 shrink-0" aria-hidden="true" />
           {seriesSlug ? (
             <Link
               href={`/anime/${encodeURIComponent(seriesSlug)}`}
-              className="truncate transition-colors hover:text-zinc-300"
+              className="min-w-0 truncate transition-colors duration-150 hover:text-zinc-300"
             >
               {seriesTitle}
             </Link>
           ) : (
-            <Link href="/anime" className="transition-colors hover:text-zinc-300">
+            <Link href="/anime" className="transition-colors duration-150 hover:text-zinc-300">
               Anime
             </Link>
           )}
         </nav>
 
-        <h1 className="line-clamp-2 text-lg font-bold leading-snug text-white [text-wrap:balance] sm:text-xl">
+        <h1 className="mt-1.5 text-[18px] font-bold leading-snug tracking-tight text-white [text-wrap:balance] sm:text-[22px]">
           {cleanTitle}
         </h1>
 
-        <ul className="flex flex-wrap items-center gap-1.5">
-          {chips.map((chip) => (
-            <li
-              key={chip.label}
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.03] px-2.5 text-[11px] font-medium text-zinc-400"
-            >
-              <chip.icon className="h-3 w-3 text-zinc-500" aria-hidden="true" />
-              {chip.label}
-            </li>
-          ))}
-        </ul>
+        {meta.length > 0 ? (
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] leading-none text-zinc-400">
+            {meta.map((item, idx) => (
+              <span key={item.label} className="inline-flex items-center gap-2">
+                {idx > 0 ? (
+                  <span aria-hidden="true" className="text-zinc-600">
+                    ·
+                  </span>
+                ) : null}
+                <span className="inline-flex items-center gap-1.5">
+                  {item.dot ? (
+                    <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} aria-hidden="true" />
+                  ) : null}
+                  {item.label}
+                </span>
+              </span>
+            ))}
+          </p>
+        ) : null}
       </header>
 
-      <VideoPlayer
-        key={decodedSlug}
-        title={cleanTitle}
-        servers={episode.servers}
-        defaultEmbed={episode.defaultEmbed}
-        navigation={navigation}
-        seriesSlug={seriesSlug}
-        seriesTitle={seriesTitle}
-      />
+      {/* Di HP pemutar menyentuh tepi layar supaya area tonton maksimal. */}
+      <div className="-mx-4 sm:mx-0">
+        <VideoPlayer
+          key={decodedSlug}
+          title={cleanTitle}
+          servers={episode.servers}
+          defaultEmbed={episode.defaultEmbed}
+          navigation={navigation}
+          seriesSlug={seriesSlug}
+          seriesTitle={seriesTitle}
+        />
+      </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-7 space-y-9 sm:mt-8 sm:space-y-10">
         <DownloadBoxes boxes={episode.downloads} heading="Unduh episode" />
 
         {seriesDetail && seriesDetail.episodes.length > 0 ? (
-          <section
-            aria-label="Semua episode dalam seri ini"
-            className="space-y-4 border-t border-white/[0.07] pt-6"
-          >
-            <div className="flex items-baseline justify-between gap-4">
-              <h2 className="text-base font-bold text-white">Episode lainnya</h2>
-              <span className="text-[11px] text-zinc-500">{seriesDetail.totalEpisodes} episode</span>
+          <section aria-label="Semua episode dalam seri ini" id="episode-lainnya" className="scroll-mt-20">
+            <div className="flex items-baseline justify-between gap-3 border-b border-white/[0.08] pb-2">
+              <h2 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-zinc-200">
+                Episode lainnya
+              </h2>
+              <span className="text-[11px] tabular-nums text-zinc-500">
+                {seriesDetail.totalEpisodes} episode
+              </span>
             </div>
-            <EpisodeList episodes={seriesDetail.episodes} />
+            <EpisodeList episodes={seriesDetail.episodes} currentSlug={decodedSlug} />
           </section>
         ) : null}
       </div>

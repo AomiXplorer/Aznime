@@ -4,12 +4,15 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDownUp, Play, Search } from 'lucide-react';
 import type { EpisodeSummary } from '@/lib/scraper/types';
+import { cn } from '@/lib/cn';
 
 interface EpisodeListProps {
   episodes: EpisodeSummary[];
+  /** Slug episode yang sedang diputar, dipakai untuk menandai baris aktif. */
+  currentSlug?: string | null;
 }
 
-export function EpisodeList({ episodes }: EpisodeListProps) {
+export function EpisodeList({ episodes, currentSlug }: EpisodeListProps) {
   const [filterText, setFilterText] = useState('');
   const [reverseOrder, setReverseOrder] = useState(false);
 
@@ -37,22 +40,18 @@ export function EpisodeList({ episodes }: EpisodeListProps) {
   const startsLate = minEp !== null && minEp > 1;
 
   if (episodes.length === 0) {
-    return (
-      <div className="rounded-lg border border-white/10 bg-[#12141a] p-6 text-center text-sm text-zinc-400">
-        Belum ada episode yang tersedia untuk judul ini.
-      </div>
-    );
+    return <p className="py-5 text-[12.5px] text-zinc-500">Belum ada episode untuk judul ini.</p>;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
+    <div>
+      <div className="flex items-center gap-2 py-2.5">
+        <div className="relative min-w-0 flex-1">
           <label htmlFor="episode-filter-input" className="sr-only">
-            Filter nomor atau judul episode
+            Cari nomor atau judul episode
           </label>
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500"
             aria-hidden="true"
           />
           <input
@@ -60,70 +59,76 @@ export function EpisodeList({ episodes }: EpisodeListProps) {
             type="search"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            placeholder="Cari episode (misal: 12)..."
-            className="h-9 w-full rounded-md border border-white/15 bg-[#12141a] pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-400"
+            placeholder="Cari episode"
+            className="h-8 w-full rounded-md bg-white/[0.04] pl-8 pr-2.5 text-[12.5px] text-zinc-100 placeholder:text-zinc-500 transition-colors duration-150 focus:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-accent/60"
           />
         </div>
 
         <button
           type="button"
           onClick={() => setReverseOrder((prev) => !prev)}
-          className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-white/15 bg-[#12141a] px-3 text-xs font-medium text-zinc-200 transition-colors duration-150 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+          aria-pressed={reverseOrder}
+          title={reverseOrder ? 'Urutan: terlama dahulu' : 'Urutan: terbaru dahulu'}
+          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           <ArrowDownUp className="h-3.5 w-3.5" aria-hidden="true" />
-          {reverseOrder ? 'Urutkan: Terlama dahulu' : 'Urutkan: Terbaru dahulu'}
+          <span className="hidden sm:inline">{reverseOrder ? 'Terlama' : 'Terbaru'}</span>
         </button>
       </div>
 
-      {hasRange ? (
-        <p className="text-[12px] text-zinc-500">
-          Tersedia episode {minEp}–{maxEp} ({episodes.length} episode).
-        </p>
-      ) : null}
-
-      {startsLate ? (
-        <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[12px] leading-relaxed text-amber-200/90">
-          Sumber baru menyediakan episode {minEp} ke atas, jadi episode sebelumnya belum bisa
-          diputar di sini.
+      {hasRange || startsLate ? (
+        <p className="pb-2 text-[11.5px] leading-relaxed text-zinc-500">
+          {hasRange ? `Tersedia episode ${minEp}–${maxEp} (${episodes.length} episode).` : null}
+          {hasRange && startsLate ? ' ' : null}
+          {startsLate
+            ? `Sumber baru menyediakan episode ${minEp} ke atas, episode sebelumnya belum bisa diputar di sini.`
+            : null}
         </p>
       ) : null}
 
       {visibleEpisodes.length === 0 ? (
-        <p className="rounded-lg border border-white/10 bg-[#12141a] p-6 text-center text-sm text-zinc-400">
+        <p className="py-5 text-[12.5px] text-zinc-500">
           Tidak ada episode yang cocok dengan &ldquo;{filterText}&rdquo;.
         </p>
       ) : (
         <ul
           aria-label="Daftar episode"
-          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3"
         >
           {visibleEpisodes.map((ep, idx) => {
             const href = ep.slug ? `/watch/${encodeURIComponent(ep.slug)}` : '/anime';
+            const isActive = Boolean(currentSlug && ep.slug === currentSlug);
             return (
-              <li key={`${ep.slug || idx}`} className="ep-item">
+              <li key={`${ep.slug || idx}`} className="ep-item border-b border-white/[0.06]">
                 <Link
                   href={href}
                   prefetch={false}
-                  className="group flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-[#12141a] p-3 transition-colors duration-150 hover:border-rose-400/50 hover:bg-[#181b23] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                  aria-current={isActive ? 'page' : undefined}
+                  title={ep.title}
+                  className={cn(
+                    'group flex h-10 items-center gap-2.5 pr-1 text-[12.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+                    isActive ? 'text-white' : 'text-zinc-300 hover:text-white'
+                  )}
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      {ep.number ? (
-                        <span className="font-mono text-xs font-semibold tabular-nums text-rose-400">
-                          EP {ep.number}
-                        </span>
-                      ) : null}
-                      {ep.date ? (
-                        <span className="text-xs text-zinc-500">{ep.date}</span>
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 truncate text-sm font-medium text-zinc-100 group-hover:text-white">
-                      {ep.title}
-                    </p>
-                  </div>
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/[0.05] text-zinc-300 transition-colors duration-150 group-hover:bg-[#be123c] group-hover:text-white">
-                    <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                  <span
+                    className={cn(
+                      'w-8 shrink-0 font-mono text-[11.5px] font-semibold tabular-nums',
+                      isActive ? 'text-accent' : 'text-zinc-500 group-hover:text-zinc-400'
+                    )}
+                  >
+                    {ep.number || '—'}
                   </span>
+                  <span className="min-w-0 flex-1 truncate">{ep.title}</span>
+                  {isActive ? (
+                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
+                      Diputar
+                    </span>
+                  ) : (
+                    <Play
+                      className="h-3 w-3 shrink-0 text-zinc-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                      aria-hidden="true"
+                    />
+                  )}
                 </Link>
               </li>
             );
