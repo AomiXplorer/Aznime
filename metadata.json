@@ -1,6 +1,8 @@
 {
   "name": "Aznime – Platform Streaming Anime Subtitle Indonesia",
-  "description": "Platform streaming anime subtitle Indonesia dengan katalog lengkap, rilis terbaru, jadwal tayang harian, trailer AniList, dan pemutar yang otomatis memilih server tercepat.",
+  "description": "Stream anime with Indonesian subtitles, a fast catalog, daily airing schedules, AniList trailers, and a player that picks the fastest server.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

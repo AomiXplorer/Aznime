@@ -13,11 +13,11 @@ const figtree = Figtree({
 
 const TITLE = 'Aznime – Streaming Anime Subtitle Indonesia';
 const DESCRIPTION =
-  'Tonton anime subtitle Indonesia terbaru, ongoing, dan completed dengan katalog cepat, jadwal tayang harian, trailer AniList, serta pemutar yang otomatis memilih server tercepat.';
+  'Watch anime with Indonesian subtitles. Fresh episodes, a daily airing schedule, AniList trailers, and a player that picks the fastest server for you.';
 
 /** 1200x630, dibuat khusus untuk preview WhatsApp/Discord/Telegram/X. */
-const OG_IMAGE = `${SITE_URL}/og/aznime-og.png`;
-const OG_IMAGE_ALT = 'Aznime – streaming anime subtitle Indonesia';
+const OG_IMAGE = `${SITE_URL}/og/aznime-og-v2.png`;
+const OG_IMAGE_ALT = 'Aznime banner – anime streaming with Indonesian subtitles';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
