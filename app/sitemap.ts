@@ -1,18 +1,9 @@
 import type { MetadataRoute } from 'next';
 import { getAnimeList, getHome, getOngoing } from '@/lib/scraper';
+import { SITE_URL } from '@/lib/site';
 
 /** Sitemap di-cache dan diregenerasi tiap jam agar mengikuti konten dinamis. */
 export const revalidate = 3600;
-
-const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.APP_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000')
-).replace(/\/+$/, '');
 
 /** Batas aman ukuran sitemap (protokol: maks 50.000 URL / 50 MB). */
 const MAX_URLS = 500;

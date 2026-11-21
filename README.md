@@ -21,10 +21,14 @@ Platform streaming anime berbasis **Next.js App Router**, **TypeScript**, dan **
 
 ## Environment Variables
 
-Lihat `.env.example`:
+Lihat `.env.example`. Domain produksi sudah **https://aznime.web.id** dan menjadi
+default di `lib/site.ts`, jadi tidak perlu env apa pun untuk deploy normal.
 
-- `APP_URL` / `NEXT_PUBLIC_SITE_URL` — URL publik untuk metadata, Open Graph, dan `sitemap.xml`.
+- `NEXT_PUBLIC_SITE_URL` *(opsional)* — override URL publik untuk metadata, Open Graph,
+  `robots.txt`, dan `sitemap.xml` (mis. saat staging di domain lain).
 - `HIDORISTREAM_BASE_URL` *(opsional)* — override domain upstream scraper.
+
+Variabel `VERCEL_URL` / `VERCEL_PROJECT_PRODUCTION_URL` tidak lagi dipakai.
 
 ## Pengembangan Lokal
 

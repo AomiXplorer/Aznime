@@ -3,6 +3,7 @@ import { Figtree } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { SITE_NAME, SITE_URL } from '@/lib/site';
 
 const figtree = Figtree({
   subsets: ['latin'],
@@ -10,29 +11,16 @@ const figtree = Figtree({
   display: 'swap',
 });
 
-const SITE_NAME = 'Aznime';
-
-/** URL publik kanonik. Urutan prioritas mengikuti lingkungan deploy (Vercel). */
-const siteUrl = (
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.APP_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000')
-).replace(/\/+$/, '');
-
 const TITLE = 'Aznime – Streaming Anime Subtitle Indonesia';
 const DESCRIPTION =
   'Tonton anime subtitle Indonesia terbaru, ongoing, dan completed dengan katalog cepat, jadwal tayang harian, trailer AniList, serta pemutar yang otomatis memilih server tercepat.';
 
 /** 1200x630, dibuat khusus untuk preview WhatsApp/Discord/Telegram/X. */
-const OG_IMAGE = `${siteUrl}/og/aznime-og.png`;
+const OG_IMAGE = `${SITE_URL}/og/aznime-og.png`;
 const OG_IMAGE_ALT = 'Aznime – streaming anime subtitle Indonesia';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   applicationName: SITE_NAME,
   title: {
     default: TITLE,
@@ -66,7 +54,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'id_ID',
     siteName: SITE_NAME,
-    url: siteUrl,
+    url: SITE_URL,
     title: TITLE,
     description: DESCRIPTION,
     images: [
@@ -104,12 +92,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     '@type': 'WebSite',
     name: SITE_NAME,
     alternateName: 'Aznime Streaming Anime',
-    url: siteUrl,
+    url: SITE_URL,
     inLanguage: 'id-ID',
     description: DESCRIPTION,
     potentialAction: {
       '@type': 'SearchAction',
-      target: `${siteUrl}/search?q={search_term_string}`,
+      target: `${SITE_URL}/search?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
   };
