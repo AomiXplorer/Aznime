@@ -10,7 +10,7 @@ interface PageHeaderProps {
  */
 export function PageHeader({ title, description, children }: PageHeaderProps) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-white/[0.08] pb-4">
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-[#2b2222] pb-4">
       <div>
         <h1 className="font-display text-[27px] font-semibold leading-none tracking-[-0.03em] text-white sm:text-[33px]">
           {title}

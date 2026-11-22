@@ -18,14 +18,14 @@ export default function WatchLoading() {
             <div className="shimmer h-8 w-24 rounded-md" />
             <div className="shimmer h-8 w-24 rounded-md" />
           </div>
-          <div className="flex gap-1 border-l border-white/[0.08] pl-1">
+          <div className="flex gap-1 border-l border-[#2b2222] pl-1">
             <div className="shimmer h-8 w-8 rounded-md" />
             <div className="shimmer h-8 w-8 rounded-md" />
             <div className="shimmer h-8 w-8 rounded-md" />
             <div className="shimmer h-8 w-8 rounded-md" />
           </div>
         </div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-white/[0.08] bg-[#0a0c11] px-1 py-1">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-[#2b2222] bg-[#0a0c11] px-1 py-1">
           <div className="shimmer h-8 w-16 rounded-md" />
           <div className="shimmer h-8 w-20 rounded-md" />
           <div className="shimmer ml-auto h-8 w-16 rounded-md" />
@@ -34,7 +34,7 @@ export default function WatchLoading() {
 
       <div className="mt-7 space-y-9 sm:mt-8 sm:space-y-10">
         <div>
-          <div className="flex items-baseline justify-between border-b border-white/[0.08] pb-2">
+          <div className="flex items-baseline justify-between border-b border-[#2b2222] pb-2">
             <div className="shimmer h-2.5 w-28 rounded" />
             <div className="shimmer h-2.5 w-24 rounded" />
           </div>
@@ -54,13 +54,13 @@ export default function WatchLoading() {
         </div>
 
         <div>
-          <div className="flex items-baseline justify-between border-b border-white/[0.08] pb-2">
+          <div className="flex items-baseline justify-between border-b border-[#2b2222] pb-2">
             <div className="shimmer h-2.5 w-32 rounded" />
             <div className="shimmer h-2.5 w-16 rounded" />
           </div>
           <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="flex h-10 items-center gap-2.5 border-b border-white/[0.06]">
+              <div key={i} className="flex h-10 items-center gap-2.5 border-b border-[#241d1d]">
                 <div className="shimmer h-3 w-6 rounded" />
                 <div className="shimmer h-3 flex-1 rounded" />
               </div>

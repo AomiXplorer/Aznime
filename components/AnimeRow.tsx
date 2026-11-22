@@ -42,7 +42,7 @@ export function AnimeRow({
 
   return (
     <section aria-label={title} className="group/row">
-      <div className="mb-3 flex items-end justify-between gap-4 border-b border-white/[0.08] pb-2">
+      <div className="mb-3 flex items-end justify-between gap-4 border-b border-[#2b2222] pb-2">
         <div className="flex items-baseline gap-2.5">
           <h2 className="font-display text-[17px] font-semibold tracking-[-0.02em] text-white">{title}</h2>
           <span className="text-[11px] tabular-nums text-zinc-500">{items.length} judul</span>
@@ -63,7 +63,7 @@ export function AnimeRow({
           type="button"
           onClick={() => scrollByAmount('left')}
           aria-label={`Geser ${title} ke kiri`}
-          className="absolute left-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-[calc(50%+1.5rem)] cursor-pointer items-center justify-center rounded-[4px] border border-white/15 bg-[#0f1116] text-white opacity-0 transition-opacity duration-150 hover:border-white/35 group-hover/row:opacity-100 focus-visible:opacity-100 md:flex"
+          className="absolute left-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-[calc(50%+1.5rem)] cursor-pointer items-center justify-center rounded-[4px] border border-white/15 bg-[#131010] text-white opacity-0 transition-opacity duration-150 hover:border-white/35 group-hover/row:opacity-100 focus-visible:opacity-100 md:flex"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -71,7 +71,7 @@ export function AnimeRow({
           type="button"
           onClick={() => scrollByAmount('right')}
           aria-label={`Geser ${title} ke kanan`}
-          className="absolute right-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-[calc(50%+1.5rem)] cursor-pointer items-center justify-center rounded-[4px] border border-white/15 bg-[#0f1116] text-white opacity-0 transition-opacity duration-150 hover:border-white/35 group-hover/row:opacity-100 focus-visible:opacity-100 md:flex"
+          className="absolute right-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-[calc(50%+1.5rem)] cursor-pointer items-center justify-center rounded-[4px] border border-white/15 bg-[#131010] text-white opacity-0 transition-opacity duration-150 hover:border-white/35 group-hover/row:opacity-100 focus-visible:opacity-100 md:flex"
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </button>

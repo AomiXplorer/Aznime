@@ -157,9 +157,9 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-[10px] border border-white/[0.09] bg-[#0f1116] shadow-2xl shadow-black/60"
+            className="relative w-full max-w-2xl overflow-hidden rounded-[10px] border border-white/[0.09] bg-[#131010] shadow-2xl shadow-black/60"
           >
-            <form onSubmit={handleSubmit} className="flex items-center gap-3 border-b border-white/[0.07] px-4">
+            <form onSubmit={handleSubmit} className="flex items-center gap-3 border-b border-[#241d1d] px-4">
               <Search className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
               <label htmlFor="quick-search-input" className="sr-only">
                 {adult ? 'Judul hentai' : 'Judul anime'}

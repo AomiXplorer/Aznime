@@ -50,7 +50,7 @@ export default async function HentaiIndexPage({ searchParams }: HentaiPageProps)
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 pt-7 sm:px-6 lg:px-8">
-      <header className="border-b border-white/[0.07] pb-5">
+      <header className="border-b border-[#241d1d] pb-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
           <div>
             <p className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
@@ -106,7 +106,7 @@ export default async function HentaiIndexPage({ searchParams }: HentaiPageProps)
         )}
       </div>
 
-      <p className="mt-12 border-t border-white/[0.07] pt-4 text-[11px] leading-relaxed text-zinc-600">
+      <p className="mt-12 border-t border-[#241d1d] pt-4 text-[11px] leading-relaxed text-zinc-600">
         Sumber data Nekopoi. Bagian ini tidak muncul di katalog, pencarian utama, maupun sitemap
         Aznime.
       </p>

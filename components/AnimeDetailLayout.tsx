@@ -165,7 +165,7 @@ export function AnimeDetailLayout({
         {infoEntries.length > 0 ? (
           <section aria-label="Informasi anime">
             <h2 className="mb-4 text-lg font-bold text-white">Informasi</h2>
-            <dl className="grid gap-4 rounded-[6px] border border-white/[0.06] bg-surface p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="grid gap-4 rounded-[6px] border border-[#241d1d] bg-surface p-5 sm:grid-cols-2 lg:grid-cols-4">
               {infoEntries.map(([key, val]) => (
                 <div key={key} className="space-y-0.5">
                   <dt className="text-xs text-muted">{key}</dt>

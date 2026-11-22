@@ -58,7 +58,7 @@ export default function CreditPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${credit.channelLabel} (dibuka di tab baru)`}
-                className="group flex h-full flex-col justify-between gap-4 rounded-[6px] border border-white/[0.08] bg-surface p-4 transition-colors duration-150 hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="group flex h-full flex-col justify-between gap-4 rounded-[6px] border border-[#2b2222] bg-surface p-4 transition-colors duration-150 hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 <div>
                   <span
@@ -82,7 +82,7 @@ export default function CreditPage() {
         </ul>
       </section>
 
-      <section className="mt-10 rounded-[6px] border border-white/[0.08] bg-surface p-5">
+      <section className="mt-10 rounded-[6px] border border-[#2b2222] bg-surface p-5">
         <h2 className="text-[15px] font-bold text-white">Sedikit titip pesan</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-zinc-300">
           Kami suka anime, dan kami senang kalau kamu juga suka. Jadi kalau ada yang kurang pas,

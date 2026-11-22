@@ -184,7 +184,7 @@ export function InfiniteAnimeCatalog({
           <button
             type="button"
             onClick={() => void loadNextPage()}
-            className="inline-flex cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#12141a] px-4 py-2 text-xs font-medium text-zinc-300 transition-colors duration-150 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+            className="inline-flex cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#131010] px-4 py-2 text-xs font-medium text-zinc-300 transition-colors duration-150 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
           >
             Muat lebih banyak
           </button>

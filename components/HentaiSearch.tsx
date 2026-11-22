@@ -169,7 +169,7 @@ export function HentaiSearch({ initialQuery }: HentaiSearchProps) {
       </form>
 
       {showPanel ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-[6px] border border-white/12 bg-[#0f1116] shadow-2xl shadow-black/60">
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-[6px] border border-white/12 bg-[#131010] shadow-2xl shadow-black/60">
           <div className="max-h-[min(60vh,420px)] overflow-y-auto">
             {loading && items.length === 0 ? (
               <p className="flex items-center gap-2 px-3 py-4 text-[12.5px] text-zinc-400">
@@ -199,7 +199,7 @@ export function HentaiSearch({ initialQuery }: HentaiSearchProps) {
                           selected ? 'bg-white/[0.08]' : 'hover:bg-white/[0.05]'
                         )}
                       >
-                        <span className="relative h-14 w-10 shrink-0 overflow-hidden rounded-[3px] bg-[#181b23]">
+                        <span className="relative h-14 w-10 shrink-0 overflow-hidden rounded-[3px] bg-[#1b1515]">
                           <AnimeImage src={item.poster} alt={item.title} unoptimized sizes="40px" />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -224,7 +224,7 @@ export function HentaiSearch({ initialQuery }: HentaiSearchProps) {
             <button
               type="button"
               onClick={goToResults}
-              className="flex w-full cursor-pointer items-center justify-between gap-2 border-t border-white/[0.08] px-3 py-2.5 text-left text-[12px] font-semibold text-zinc-300 transition-colors hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40"
+              className="flex w-full cursor-pointer items-center justify-between gap-2 border-t border-[#2b2222] px-3 py-2.5 text-left text-[12px] font-semibold text-zinc-300 transition-colors hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40"
             >
               Semua hasil untuk “{trimmed}”
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

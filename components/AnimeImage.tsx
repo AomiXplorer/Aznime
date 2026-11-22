@@ -38,7 +38,7 @@ function AnimeImageComponent({
     return (
       <div
         className={cn(
-          'flex h-full w-full flex-col items-center justify-center bg-[#12141a] p-4 text-center',
+          'flex h-full w-full flex-col items-center justify-center bg-[#131010] p-4 text-center',
           fallbackClassName
         )}
       >

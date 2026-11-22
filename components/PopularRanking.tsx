@@ -77,7 +77,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
           <Link
             href={itemHref(champion)}
             prefetch={false}
-            className="group flex overflow-hidden rounded-[6px] border border-white/[0.08] bg-surface transition-colors duration-200 hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="group flex overflow-hidden rounded-[6px] border border-[#2b2222] bg-surface transition-colors duration-200 hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             <div className="relative aspect-[2/3] w-[42%] max-w-[260px] shrink-0 overflow-hidden">
               <AnimeImage
@@ -126,7 +126,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
                   <Link
                     href={itemHref(item)}
                     prefetch={false}
-                    className="group flex h-full items-center gap-3 rounded-[6px] border border-white/[0.06] bg-[#0f1116] px-2.5 py-2.5 transition-colors duration-150 hover:border-white/[0.16] hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:gap-4 sm:px-3"
+                    className="group flex h-full items-center gap-3 rounded-[6px] border border-[#241d1d] bg-[#131010] px-2.5 py-2.5 transition-colors duration-150 hover:border-white/[0.16] hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:gap-4 sm:px-3"
                   >
                     <span className="sr-only">Peringkat {rank}: </span>
                     <span
@@ -179,7 +179,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
           </ol>
         </div>
       ) : (
-        <p className="rounded-[6px] border border-white/[0.07] bg-surface p-6 text-center text-[13px] text-zinc-400">
+        <p className="rounded-[6px] border border-[#241d1d] bg-surface p-6 text-center text-[13px] text-zinc-400">
           Belum ada data peringkat untuk periode ini.
         </p>
       )}

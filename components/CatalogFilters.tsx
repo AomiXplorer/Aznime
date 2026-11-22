@@ -278,7 +278,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
       'inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-[4px] border px-3.5 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-[0.98]',
       active
         ? 'border-accent/50 bg-accent/15 text-white'
-        : 'border-white/[0.08] bg-white/[0.04] text-zinc-200 hover:bg-white/[0.09]'
+        : 'border-[#2b2222] bg-white/[0.04] text-zinc-200 hover:bg-white/[0.09]'
     );
 
   const triggerLabelClass = 'text-[11px] font-medium uppercase tracking-wide text-zinc-500';
@@ -337,7 +337,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
                         'inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border px-3 py-2 text-[13px] font-medium transition-colors duration-150 active:scale-[0.97]',
                         selected
                           ? 'border-accent/60 bg-accent/20 text-white'
-                          : 'border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08]'
+                          : 'border-[#2b2222] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08]'
                       )}
                     >
                       {selected ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -349,7 +349,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-white/[0.07] px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-[#241d1d] px-4 py-3">
             <button
               type="button"
               onClick={() => setDraftGenres([])}
@@ -401,7 +401,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
   };
 
   return (
-    <div className="rounded-[6px] border border-white/[0.08] bg-[#0f1116] p-3">
+    <div className="rounded-[6px] border border-[#2b2222] bg-[#131010] p-3">
       <div className="no-scrollbar flex items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
         <button
           type="button"
@@ -479,7 +479,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
       </div>
 
       {current.genres.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5 border-t border-white/[0.06] pt-3">
+        <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#241d1d] pt-3">
           {current.genres.map((value) => {
             const item = genreItems.find((entry) => entry.value === value);
             return (
@@ -520,7 +520,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
                 aria-modal="true"
                 aria-labelledby="filter-panel-title"
                 tabIndex={-1}
-                className="picker-sheet relative flex max-h-[82vh] w-full flex-col overflow-hidden rounded-t-[10px] border border-white/[0.09] bg-[#0f1116] shadow-2xl shadow-black/60 outline-none sm:max-w-md sm:rounded-[10px]"
+                className="picker-sheet relative flex max-h-[82vh] w-full flex-col overflow-hidden rounded-t-[10px] border border-white/[0.09] bg-[#131010] shadow-2xl shadow-black/60 outline-none sm:max-w-md sm:rounded-[10px]"
               >
                 <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4">
                   <div>

@@ -15,6 +15,8 @@ interface AnimeCardProps {
   badge?: string;
   /** Baris genre/status di bawah judul; dimatikan di daftar yang seragam. */
   showMeta?: boolean;
+  /** Kartu di atas permukaan gelap (bawaan) atau pita terang warna tulang. */
+  tone?: 'dark' | 'light';
 }
 
 export function getAnimeItemHref(item: Pick<AnimeCardItem, 'slug' | 'kind'>): string {
@@ -40,7 +42,9 @@ function AnimeCardComponent({
   href: hrefOverride,
   badge,
   showMeta = true,
+  tone = 'dark',
 }: AnimeCardProps) {
+  const light = tone === 'light';
   const href = hrefOverride || getAnimeItemHref(item);
   const displayTitle = item.seriesTitle || item.title;
   const meta = [item.type, item.status].filter(Boolean).join(' · ');
@@ -53,21 +57,41 @@ function AnimeCardComponent({
         /* Prefetch tiap kartu membuat puluhan permintaan RSC saat grid digulir.
            Dimatikan supaya scroll di HP tetap ringan; halaman tetap cepat dibuka. */
         prefetch={false}
-        className="block rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        className={cn(
+          'block rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+          light
+            ? 'focus-visible:ring-ink focus-visible:ring-offset-bone'
+            : 'focus-visible:ring-white/70 focus-visible:ring-offset-canvas'
+        )}
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[6px] bg-surface ring-1 ring-inset ring-white/[0.09] transition-shadow duration-200 group-hover:ring-white/30">
+        <div
+          className={cn(
+            'relative aspect-[2/3] w-full overflow-hidden rounded-[6px] ring-1 ring-inset transition-shadow duration-200',
+            light
+              ? 'bg-[#ded5cc] ring-black/15 group-hover:ring-black/40'
+              : 'bg-surface ring-white/[0.09] group-hover:ring-white/30'
+          )}
+        >
           <AnimeImage
             src={item.poster}
             alt={displayTitle}
             priority={priority}
             unoptimized={item.source === 'malz' || item.source === 'nekopoi'}
             sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 170px"
+            fallbackClassName={
+              light ? 'bg-[#ded5cc] [&_svg]:text-[#a8968c] [&_span]:text-[#6f625d]' : undefined
+            }
           />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-white text-black">
+            <span
+              className={cn(
+                'flex h-9 w-9 items-center justify-center rounded-[4px]',
+                light ? 'bg-ink text-bone' : 'bg-white text-black'
+              )}
+            >
               <Play className="ml-0.5 h-4 w-4 fill-current" />
             </span>
           </div>
@@ -92,10 +116,19 @@ function AnimeCardComponent({
           ) : null}
         </div>
 
-        <h3 className="mt-1.5 line-clamp-2 min-h-[2.4rem] text-[12.5px] font-medium leading-[1.4] text-zinc-200 transition-colors duration-150 group-hover:text-white">
+        <h3
+          className={cn(
+            'mt-1.5 line-clamp-2 min-h-[2.4rem] text-[12.5px] font-medium leading-[1.4] transition-colors duration-150',
+            light ? 'text-ink group-hover:text-black' : 'text-zinc-200 group-hover:text-white'
+          )}
+        >
           {displayTitle}
         </h3>
-        {showMeta ? <p className="mt-0.5 h-4 truncate text-[11px] text-zinc-500">{meta}</p> : null}
+        {showMeta ? (
+          <p className={cn('mt-0.5 h-4 truncate text-[11px]', light ? 'text-[#6f625d]' : 'text-zinc-500')}>
+            {meta}
+          </p>
+        ) : null}
       </Link>
     </article>
   );

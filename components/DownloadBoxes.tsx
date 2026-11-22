@@ -82,7 +82,7 @@ export function DownloadBoxes({ boxes, heading = 'Tautan unduhan' }: DownloadBox
 
   return (
     <section id="download" aria-label={heading} className="scroll-mt-20">
-      <div className="flex items-baseline justify-between gap-3 border-b border-white/[0.08] pb-2">
+      <div className="flex items-baseline justify-between gap-3 border-b border-[#2b2222] pb-2">
         <h2 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-zinc-200">
           {heading}
         </h2>
@@ -110,7 +110,7 @@ export function DownloadBoxes({ boxes, heading = 'Tautan unduhan' }: DownloadBox
               {box.qualities.map((quality, qIdx) => (
                 <div
                   key={`${quality.quality}-${qIdx}`}
-                  className="grid gap-x-4 gap-y-1.5 border-b border-white/[0.06] py-2.5 last:border-b-0 sm:grid-cols-[56px_1fr] sm:items-start"
+                  className="grid gap-x-4 gap-y-1.5 border-b border-[#241d1d] py-2.5 last:border-b-0 sm:grid-cols-[56px_1fr] sm:items-start"
                 >
                   <span className="font-mono text-[11.5px] font-semibold tabular-nums text-zinc-300 sm:pt-1.5">
                     {qualityLabel(quality.quality)}
@@ -127,7 +127,7 @@ export function DownloadBoxes({ boxes, heading = 'Tautan unduhan' }: DownloadBox
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => handleOpen(key)}
-                          className="group inline-flex h-8 items-center gap-1 rounded-md border border-white/[0.08] px-2 text-[11.5px] font-medium text-zinc-300 transition-colors duration-150 hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                          className="group inline-flex h-8 items-center gap-1 rounded-md border border-[#2b2222] px-2 text-[11.5px] font-medium text-zinc-300 transition-colors duration-150 hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                         >
                           {isOpening ? (
                             <Loader2

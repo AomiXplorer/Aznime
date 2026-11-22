@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Info, Play, Youtube } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Youtube } from 'lucide-react';
 import type { AniListTrailer, FeaturedAnime } from '@/lib/scraper/types';
 import { AnimeImage } from './AnimeImage';
 import { TrailerModal } from './TrailerModal';
@@ -186,18 +186,11 @@ export function HeroSection({ items }: HeroSectionProps) {
                 <Play className="h-4 w-4 fill-current" aria-hidden="true" />
                 Tonton
               </Link>
-              <Link
-                href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-[4px] border border-white/25 px-5 text-[13px] font-semibold text-white transition-colors duration-150 hover:border-white/50 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <Info className="h-4 w-4" aria-hidden="true" />
-                Info lainnya
-              </Link>
               {hasTrailer ? (
                 <button
                   type="button"
                   onClick={() => setTrailerOpen(true)}
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-zinc-200 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 px-1 text-[13px] font-medium text-zinc-300 underline decoration-white/25 underline-offset-4 transition-colors duration-150 hover:text-white hover:decoration-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <Youtube className="h-4 w-4" aria-hidden="true" />
                   Trailer
@@ -222,7 +215,11 @@ export function HeroSection({ items }: HeroSectionProps) {
       {slides.length > 1 ? (
         <div className="absolute inset-x-0 bottom-6 z-10">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2" role="tablist" aria-label="Pilih anime unggulan">
+            <div className="flex items-center gap-3" role="tablist" aria-label="Pilih anime unggulan">
+              <span className="font-display text-[12px] tabular-nums text-zinc-200">
+                {String(index + 1).padStart(2, '0')}
+                <span className="text-zinc-500"> / {String(slides.length).padStart(2, '0')}</span>
+              </span>
               {slides.map((item, i) => (
                 <button
                   key={item.slug || i}
@@ -233,7 +230,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                   onClick={() => go(i)}
                   className="group relative h-6 w-9 cursor-pointer focus-visible:outline-none sm:w-12"
                 >
-                  <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/25 transition-colors group-hover:bg-white/40 group-focus-visible:ring-2 group-focus-visible:ring-white">
+                  <span className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 overflow-hidden bg-white/25 transition-colors group-hover:bg-white/45 group-focus-visible:ring-2 group-focus-visible:ring-white">
                     {i === index ? (
                       <span
                         key={`bar-${index}`}
@@ -241,7 +238,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                            tidak ada setInterval/setTimeout yang membangunkan
                            main thread, dan progres otomatis berhenti saat hover. */
                         onAnimationEnd={autoplay ? () => go(index + 1) : undefined}
-                        className="block h-full origin-left rounded-full bg-white"
+                        className="block h-full origin-left bg-accent"
                         style={
                           autoplay
                             ? {
@@ -262,7 +259,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index - 1)}
                 aria-label="Anime unggulan sebelumnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -270,7 +267,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index + 1)}
                 aria-label="Anime unggulan berikutnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>

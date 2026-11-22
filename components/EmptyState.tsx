@@ -15,7 +15,7 @@ export function EmptyState({
   actionHref,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-start rounded-[6px] border border-white/[0.08] bg-surface px-6 py-10">
+    <div className="flex flex-col items-start rounded-[6px] border border-[#2b2222] bg-surface px-6 py-10">
       <Film className="h-5 w-5 text-zinc-600" aria-hidden="true" />
       <h2 className="mt-4 font-display text-[17px] font-semibold tracking-[-0.02em] text-white">{title}</h2>
       <p className="mt-1.5 max-w-[52ch] text-[13px] leading-relaxed text-zinc-400">{description}</p>

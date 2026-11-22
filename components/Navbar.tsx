@@ -100,7 +100,7 @@ export function Navbar() {
             saat scroll, dan itu penyebab utama scroll tersendat di Android. */}
         <div
           aria-hidden="true"
-          className={`absolute inset-0 -z-10 border-b border-white/[0.06] bg-canvas/95 transition-opacity duration-300 ${
+          className={`absolute inset-0 -z-10 border-b border-[#241d1d] bg-canvas/95 transition-opacity duration-300 ${
             transparent ? 'opacity-0' : 'opacity-100'
           }`}
         />
@@ -171,7 +171,7 @@ export function Navbar() {
           <nav
             id="mobile-nav-panel"
             aria-label="Navigasi mobile"
-            className="page-enter border-t border-white/[0.06] bg-canvas px-4 pb-4 pt-3 md:hidden"
+            className="page-enter border-t border-[#241d1d] bg-canvas px-4 pb-4 pt-3 md:hidden"
           >
             <ul className="space-y-1">
               {NAV_LINKS.map((link) => {

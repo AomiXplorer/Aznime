@@ -42,7 +42,7 @@ export function AdultNotice({
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       className={cn(
-        'w-full rounded-[10px] border border-white/[0.09] bg-[#12141a] shadow-2xl shadow-black/70',
+        'w-full rounded-[10px] border border-white/[0.09] bg-[#131010] shadow-2xl shadow-black/70',
         size === 'page' ? 'max-w-md p-6' : 'max-w-sm p-5'
       )}
     >
@@ -78,7 +78,7 @@ export function AdultNotice({
           ref={confirmRef}
           type="button"
           onClick={onConfirm}
-          className="inline-flex h-10 flex-1 cursor-pointer items-center justify-center rounded-md bg-white px-4 text-[13px] font-bold text-black transition-colors duration-150 hover:bg-white/85 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#12141a]"
+          className="inline-flex h-10 flex-1 cursor-pointer items-center justify-center rounded-md bg-white px-4 text-[13px] font-bold text-black transition-colors duration-150 hover:bg-white/85 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#131010]"
         >
           {confirmLabel}
         </button>

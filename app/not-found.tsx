@@ -19,7 +19,7 @@ export default function NotFound() {
         </Link>
         <Link
           href="/anime"
-          className="rounded-md border border-white/15 bg-[#12141a] px-4 py-2 text-sm font-medium text-zinc-200 transition-colors duration-150 hover:border-white/30 hover:text-white"
+          className="rounded-md border border-white/15 bg-[#131010] px-4 py-2 text-sm font-medium text-zinc-200 transition-colors duration-150 hover:border-white/30 hover:text-white"
         >
           Jelajahi Katalog
         </Link>

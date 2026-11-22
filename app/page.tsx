@@ -80,25 +80,32 @@ export default async function HomePage() {
         <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
         <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
         <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
-        {/* Satu bagian sengaja bukan baris geser: grid arsip memberi jeda
-            ritme di antara baris-baris poster yang bentuknya sama. */}
+        {/* Pita terang warna tulang: satu-satunya blok terang di halaman, jadi
+            mata berhenti di sini sebelum lanjut ke baris berikutnya. */}
         {archiveRow.length > 0 ? (
-          <section aria-label="Dari arsip">
-            <div className="mb-3 flex items-end justify-between gap-4 border-b border-white/[0.08] pb-2">
-              <div className="flex items-baseline gap-2.5">
-                <h2 className="font-display text-[17px] font-semibold tracking-[-0.02em] text-white">
-                  Dari arsip
-                </h2>
-                <span className="text-[11px] tabular-nums text-zinc-500">{archiveRow.length} judul</span>
+          <section
+            aria-label="Dari arsip"
+            className="relative left-1/2 w-screen -translate-x-1/2 border-y border-[#241d1d] bg-bone py-10 text-ink"
+          >
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mb-5 flex items-end justify-between gap-4 border-b border-ink/15 pb-2.5">
+                <div className="flex items-baseline gap-2.5">
+                  <h2 className="font-display text-[19px] font-semibold tracking-[-0.02em] text-ink">
+                    Dari arsip
+                  </h2>
+                  <span className="text-[11px] tabular-nums text-[#6f625d]">
+                    {archiveRow.length} judul
+                  </span>
+                </div>
+                <Link
+                  href="/anime"
+                  className="inline-flex items-center gap-0.5 text-[12px] font-medium text-[#6f625d] transition-colors duration-150 hover:text-ink"
+                >
+                  Semua
+                </Link>
               </div>
-              <Link
-                href="/anime"
-                className="inline-flex items-center gap-0.5 text-[12px] font-medium text-zinc-400 transition-colors duration-150 hover:text-white"
-              >
-                Semua
-              </Link>
+              <AnimeGrid items={archiveRow.slice(0, 14)} tone="light" className="xl:grid-cols-7" />
             </div>
-            <AnimeGrid items={archiveRow.slice(0, 14)} className="xl:grid-cols-7" />
           </section>
         ) : null}
         <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />

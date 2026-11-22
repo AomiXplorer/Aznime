@@ -129,7 +129,7 @@ export function NekopoiPlayer({
   const showHelp = Boolean(started && active?.url && (helpOpen || stuck));
 
   return (
-    <div className="overflow-hidden rounded-[8px] border border-white/[0.08] bg-black">
+    <div className="overflow-hidden rounded-[8px] border border-[#2b2222] bg-black">
       <div className="relative aspect-video w-full overflow-hidden bg-black">
         {!active?.url ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
@@ -255,7 +255,7 @@ export function NekopoiPlayer({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.08] bg-surface px-2.5 py-2">
+      <div className="flex flex-wrap items-center gap-2 border-t border-[#2b2222] bg-surface px-2.5 py-2">
         {navigation.prev ? (
           <Link
             href={navigation.prev.href}
@@ -314,7 +314,7 @@ export function NekopoiPlayer({
       </div>
 
       {active?.url ? (
-        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] bg-surface px-3 py-2">
+        <div className="flex items-center justify-between gap-3 border-t border-[#241d1d] bg-surface px-3 py-2">
           <p className="text-[11px] leading-snug text-zinc-500">
             {sandboxed
               ? 'Mode aman: pop-up dan pengalihan iklan diblokir.'
