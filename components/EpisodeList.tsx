@@ -10,9 +10,11 @@ interface EpisodeListProps {
   episodes: EpisodeSummary[];
   /** Slug episode yang sedang diputar, dipakai untuk menandai baris aktif. */
   currentSlug?: string | null;
+  /** Awalan rute pemutar; halaman /hentai memakai /hentai/watch. */
+  hrefBase?: string;
 }
 
-export function EpisodeList({ episodes, currentSlug }: EpisodeListProps) {
+export function EpisodeList({ episodes, currentSlug, hrefBase = '/watch' }: EpisodeListProps) {
   const [filterText, setFilterText] = useState('');
   const [reverseOrder, setReverseOrder] = useState(false);
 
@@ -96,7 +98,7 @@ export function EpisodeList({ episodes, currentSlug }: EpisodeListProps) {
           className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3"
         >
           {visibleEpisodes.map((ep, idx) => {
-            const href = ep.slug ? `/watch/${encodeURIComponent(ep.slug)}` : '/anime';
+            const href = ep.slug ? `${hrefBase}/${encodeURIComponent(ep.slug)}` : '/anime';
             const isActive = Boolean(currentSlug && ep.slug === currentSlug);
             return (
               <li key={`${ep.slug || idx}`} className="ep-item border-b border-white/[0.06]">

@@ -1,7 +1,10 @@
 export type LinkKind = 'anime' | 'episode';
 
-/** Sumber data: Hidori (utama) atau arsip Malz (pelengkap judul lama). */
-export type AnimeSource = 'hidori' | 'malz';
+/**
+ * Sumber data: Hidori (utama), arsip Malz (pelengkap judul lama), atau Nekopoi
+ * (konten 18+, hanya dipakai halaman /hentai).
+ */
+export type AnimeSource = 'hidori' | 'malz' | 'nekopoi';
 
 export interface AnimeCardItem {
   postId: string | null;

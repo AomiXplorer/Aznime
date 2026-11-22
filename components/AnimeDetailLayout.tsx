@@ -26,6 +26,8 @@ export interface AnimeDetailView {
   recommendations: AnimeCardItem[];
   jsonLd: Record<string, unknown>;
   episodesSlot: React.ReactNode;
+  /** Awalan rute pemutar untuk tombol "Mulai menonton" (default /watch). */
+  episodeHrefBase?: string;
 }
 
 function epSuffix(number: string | null): string {
@@ -51,6 +53,7 @@ export function AnimeDetailLayout({
   recommendations,
   jsonLd,
   episodesSlot,
+  episodeHrefBase = '/watch',
 }: AnimeDetailView) {
   const infoEntries = Object.entries(info).filter(([, val]) => Boolean(val));
 
@@ -137,7 +140,7 @@ export function AnimeDetailLayout({
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
               {startEpisode?.slug ? (
                 <Link
-                  href={`/watch/${encodeURIComponent(startEpisode.slug)}`}
+                  href={`${episodeHrefBase}/${encodeURIComponent(startEpisode.slug)}`}
                   className="inline-flex h-11 items-center gap-2 rounded-md bg-white px-5 text-sm font-bold text-black transition-colors hover:bg-white/85 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                 >
                   <Play className="h-4 w-4 fill-current" aria-hidden="true" />
@@ -147,7 +150,7 @@ export function AnimeDetailLayout({
 
               {latestEpisode?.slug && latestEpisode.slug !== startEpisode?.slug ? (
                 <Link
-                  href={`/watch/${encodeURIComponent(latestEpisode.slug)}`}
+                  href={`${episodeHrefBase}/${encodeURIComponent(latestEpisode.slug)}`}
                   className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white transition-colors hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   Episode terbaru{epSuffix(latestEpisode.number)}

@@ -9,6 +9,10 @@ interface AnimeCardProps {
   item: AnimeCardItem;
   priority?: boolean;
   className?: string;
+  /** Tujuan kartu bila berbeda dari rute katalog biasa (mis. halaman /hentai). */
+  href?: string;
+  /** Label kecil di sudut kanan atas, mis. "18+". */
+  badge?: string;
 }
 
 export function getAnimeItemHref(item: Pick<AnimeCardItem, 'slug' | 'kind'>): string {
@@ -22,8 +26,8 @@ function episodeLabel(item: AnimeCardItem): string | null {
   return item.episode || null;
 }
 
-function AnimeCardComponent({ item, priority = false, className }: AnimeCardProps) {
-  const href = getAnimeItemHref(item);
+function AnimeCardComponent({ item, priority = false, className, href: hrefOverride, badge }: AnimeCardProps) {
+  const href = hrefOverride || getAnimeItemHref(item);
   const displayTitle = item.seriesTitle || item.title;
   const meta = [item.type, item.status].filter(Boolean).join('  ');
   const ep = episodeLabel(item);
@@ -44,7 +48,7 @@ function AnimeCardComponent({ item, priority = false, className }: AnimeCardProp
             src={item.poster}
             alt={displayTitle}
             priority={priority}
-            unoptimized={item.source === 'malz'}
+            unoptimized={item.source === 'malz' || item.source === 'nekopoi'}
             sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 170px"
             className="transition-transform duration-500 ease-out group-hover:scale-[1.06]"
           />
@@ -61,9 +65,18 @@ function AnimeCardComponent({ item, priority = false, className }: AnimeCardProp
               {ep}
             </span>
           ) : null}
-          {item.isHot ? (
-            <span className="absolute right-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-amber-300">
-              Hot
+          {badge || item.isHot ? (
+            <span className="absolute right-1.5 top-1.5 flex flex-col items-end gap-1">
+              {badge ? (
+                <span className="rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-bold leading-none text-rose-300 ring-1 ring-inset ring-rose-400/40">
+                  {badge}
+                </span>
+              ) : null}
+              {item.isHot ? (
+                <span className="rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-amber-300">
+                  Hot
+                </span>
+              ) : null}
             </span>
           ) : null}
         </div>
