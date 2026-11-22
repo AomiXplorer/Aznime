@@ -1,4 +1,5 @@
 import { getHome, getOngoing } from '@/lib/scraper';
+import { withoutAdult } from '@/lib/adult';
 import type { FeaturedAnime } from '@/lib/scraper';
 import { getAniListTrailer } from '@/lib/anilist';
 import {
@@ -47,37 +48,40 @@ export default async function HomePage() {
 
   // Trailer AniList hanya memperkaya hero. Batas tunggunya dijaga ketat supaya
   // tidak menahan TTFB/LCP: kalau AniList lambat, hero tetap tampil dengan poster.
+  // Beranda bersih dari judul 18+; bagian itu hanya hidup di /hentai.
   const heroItems = await Promise.all(
-    home.featured.slice(0, 6).map(async (f: FeaturedAnime) => ({
-      ...f,
-      trailer: await withTimeout(getAniListTrailer(f.title).catch(() => null), 1200, null),
-    }))
+    withoutAdult(home.featured)
+      .slice(0, 6)
+      .map(async (f: FeaturedAnime) => ({
+        ...f,
+        trailer: await withTimeout(getAniListTrailer(f.title).catch(() => null), 1200, null),
+      }))
   );
 
   const [weekly, monthly, alltime] = await Promise.all([
-    topUpPopularRanking(home.popular.weekly),
-    topUpPopularRanking(home.popular.monthly),
-    topUpPopularRanking(home.popular.alltime),
+    topUpPopularRanking(home.popular.weekly).then(withoutAdult),
+    topUpPopularRanking(home.popular.monthly).then(withoutAdult),
+    topUpPopularRanking(home.popular.alltime).then(withoutAdult),
   ]);
 
-  const ongoingWithArchive = mergeAnimeCards(
-    ongoing,
-    archiveByStatus(archive, 'Ongoing', 8),
-    hidoriIndex
+  const ongoingWithArchive = withoutAdult(
+    mergeAnimeCards(ongoing, archiveByStatus(archive, 'Ongoing', 8), hidoriIndex)
   );
-  const archiveRow = archive.slice(0, 14);
+  const archiveRow = withoutAdult(archive).slice(0, 14);
+  const latestRelease = withoutAdult(home.latestRelease);
+  const completedLatest = withoutAdult(home.completedLatest);
 
   return (
     <>
-      <HeroSection items={heroItems} />
+      {heroItems.length > 0 ? <HeroSection items={heroItems} /> : null}
       <div className="relative z-10 mx-auto max-w-7xl space-y-10 px-4 pt-6 sm:px-6 lg:px-8">
         <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
-        <AnimeRow title="Episode terbaru" items={home.latestRelease} viewAllHref="/anime?order=update" />
+        <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
         <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
         {archiveRow.length > 0 ? (
           <AnimeRow title="Dari arsip" items={archiveRow} viewAllHref="/anime" />
         ) : null}
-        <AnimeRow title="Baru tamat" items={home.completedLatest} viewAllHref="/completed" />
+        <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />
       </div>
     </>
   );

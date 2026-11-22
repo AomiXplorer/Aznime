@@ -19,8 +19,6 @@ const NAV_LINKS = [
   { href: '/ongoing', label: 'Ongoing' },
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
-  /* Bagian 18+ dipisah dari katalog utama dan punya gerbang usia sendiri. */
-  { href: '/hentai', label: 'Hentai', adult: true },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -126,16 +124,11 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                  className={`whitespace-nowrap text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
                     active ? 'font-bold text-white' : 'font-medium text-zinc-300 hover:text-white'
                   }`}
                 >
                   {link.label}
-                  {'adult' in link && link.adult ? (
-                    <span className="rounded-sm bg-rose-500/15 px-1 py-px text-[9.5px] font-bold uppercase leading-tight tracking-[0.06em] text-rose-300">
-                      18+
-                    </span>
-                  ) : null}
                 </Link>
               );
             })}
@@ -182,16 +175,11 @@ export function Navbar() {
                     <Link
                       href={link.href}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors ${
+                      className={`block rounded-md px-3 py-2.5 text-sm transition-colors ${
                         active ? 'bg-white/10 font-bold text-white' : 'font-medium text-zinc-300 hover:bg-white/[0.06] hover:text-white'
                       }`}
                     >
                       {link.label}
-                      {'adult' in link && link.adult ? (
-                        <span className="rounded-sm bg-rose-500/15 px-1 py-px text-[9.5px] font-bold uppercase leading-tight tracking-[0.06em] text-rose-300">
-                          18+
-                        </span>
-                      ) : null}
                     </Link>
                   </li>
                 );

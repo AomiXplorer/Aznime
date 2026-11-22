@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Archive } from 'lucide-react';
 import { getAnimeList, getFilterOptions } from '@/lib/scraper';
-import type { PaginationInfo } from '@/lib/scraper/types';
+import type { FilterOptionsMap, PaginationInfo } from '@/lib/scraper/types';
 import {
   MALZ_PAGE_BASE,
   getMalzArchivePool,
@@ -24,6 +25,34 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 const ARCHIVE_PAGE_SIZE = 24;
+
+/**
+ * Bagian hentai sengaja disembunyikan: tidak ada tautan di navbar, beranda,
+ * footer, maupun sitemap. Satu-satunya jalan masuk adalah memilih genre
+ * "Hentai" di panel filter katalog, yang langsung mengarah ke /hentai.
+ */
+const HENTAI_GENRE = 'hentai';
+const HENTAI_GENRE_OPTION = { label: 'Hentai (18+)', value: HENTAI_GENRE };
+
+/**
+ * Genre Hentai bisa datang dari sumber utama atau belum ada sama sekali. Kedua
+ * kasus dirapikan di sini supaya pilihannya selalu ada dan berlabel 18+.
+ */
+function withHentaiGenre(options: FilterOptionsMap): FilterOptionsMap {
+  const genre = options.genre || [];
+  const isHentai = (value: string) => value.trim().toLowerCase() === HENTAI_GENRE;
+
+  if (!genre.some((item) => isHentai(item.value))) {
+    return { ...options, genre: [...genre, HENTAI_GENRE_OPTION] };
+  }
+
+  return {
+    ...options,
+    genre: genre.map((item) =>
+      isHentai(item.value) ? { ...item, label: HENTAI_GENRE_OPTION.label } : item
+    ),
+  };
+}
 
 interface AnimeCatalogPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -61,6 +90,11 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
   const genres = getGenres(sp.genre);
   const archiveMode = order === 'archive';
 
+  // Memilih genre Hentai membuka bagian khusus 18+ (dengan gerbang usianya).
+  if (genres.some((genre) => genre.toLowerCase() === HENTAI_GENRE)) {
+    redirect('/hentai');
+  }
+
   const [listRes, filterRes, poolRes] = await Promise.allSettled([
     archiveMode
       ? Promise.resolve(null)
@@ -75,7 +109,8 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
     archiveMode ? getMalzArchivePool() : Promise.resolve([]),
   ]);
 
-  const options = filterRes.status === 'fulfilled' ? filterRes.value : {};
+  const options =
+    filterRes.status === 'fulfilled' ? withHentaiGenre(filterRes.value) : withHentaiGenre({});
   const pool = poolRes.status === 'fulfilled' ? poolRes.value : [];
   const archiveItems = pool.slice(0, ARCHIVE_PAGE_SIZE);
 
