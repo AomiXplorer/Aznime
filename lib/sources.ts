@@ -37,6 +37,25 @@ export function toVirtualMalzPage(poolPage: number): number {
 const ORDINAL_SEASON = /\b(\d+)(?:st|nd|rd|th)\s+season\b/g;
 
 /**
+ * Sebagian arsip menulis musim dengan angka Romawi ("Mushoku Tensei III")
+ * sementara Hidori memakai "Season 3". Huruf tunggal (I, V, X) sengaja tidak
+ * diubah karena sering muncul sebagai bagian judul, bukan angka musim.
+ */
+const ROMAN_SEASON: Record<string, string> = {
+  ii: '2',
+  iii: '3',
+  iv: '4',
+  vi: '6',
+  vii: '7',
+  viii: '8',
+  ix: '9',
+  xi: '11',
+  xii: '12',
+};
+
+const ROMAN_SEASON_PATTERN = /\b(ii|iii|iv|vi|vii|viii|ix|xi|xii)\b/g;
+
+/**
  * Penanda rilis/pencarian yang ditempel situs sumber di judul. Kalau tidak
  * dibuang, "BATCH Gachiakuta Subtitle Indonesia" dianggap judul berbeda dari
  * "Gachiakuta" milik arsip Malz, sehingga anime yang sama tampil dua kali
@@ -101,6 +120,7 @@ function normalize(raw: string, keepParenthetical: boolean): string {
   // terbaca sebagai dua kata dan ikut tersapu.
   text = text.replace(/[^a-z0-9]+/g, ' ');
   text = stripReleaseNoise(text);
+  text = text.replace(ROMAN_SEASON_PATTERN, (match) => ROMAN_SEASON[match] || match);
   text = text.replace(ORDINAL_SEASON, (_m, n: string) => `season ${n}`);
   text = text.replace(/([a-z])\1+/g, '$1');
   text = text.replace(/^the\s+/, '');
@@ -203,38 +223,80 @@ export function isKnownTitle(item: TitleBearing, keys: Set<string>): boolean {
 
 /**
  * Judul Hidori sering menempelkan judul Inggris di depan judul aslinya
- * ("Solo Leveling Ore dake Level Up na Ken Season 2 ..."), sedangkan arsip
- * memakai judul aslinya saja. Kalau semua kata judul arsip muncul di judul
- * Hidori yang lebih panjang, keduanya anime yang sama.
+ * ("Solo Leveling Ore dake Level Up na Ken Season 2 ...") atau menulis musim
+ * yang tidak disebut arsip ("Kimetsu no Yaiba Season 4 Hashira Geiko-hen").
  *
- * Minimal empat kata dan harus berakhiran kata yang sama, supaya judul pendek
- * seperti "Berserk" atau "Monster" tidak ikut menelan seri lain.
+ * Aturan pencocokan:
+ * - seluruh kata judul arsip harus muncul di judul Hidori,
+ * - kata tambahan tidak boleh menandai isi berbeda (part/cour/movie/special),
+ * - kata tambahan hanya boleh seputar musim, dan hanya kalau arsip memang tidak
+ *   menyebut angka musim sama sekali,
+ * - selain itu, kata tambahan harus tercakup sinonim arsip (judul bilingual).
+ *
+ * Dengan begitu "Sword Art Online II" tidak ikut menelan
+ * "Sword Art Online Alternative: Gun Gale Online Season 2".
  */
 const SPLIT_MARKERS = new Set(['part', 'cour', 'movie', 'film', 'special', 'ova', 'ona', 'recap']);
 
-function isTitleWordSubset(shortKey: string, longKey: string): boolean {
-  const shortTokens = shortKey.split(' ').filter(Boolean);
-  if (shortTokens.length < 4) return false;
-
-  // Saringan murah dulu: judul Hidori harus berakhiran kata yang sama.
-  if (!longKey.endsWith(` ${shortTokens[shortTokens.length - 1]}`)) return false;
-
-  const longTokens = longKey.split(' ').filter(Boolean);
-  if (longTokens.length <= shortTokens.length) return false;
-
-  const longSet = new Set(longTokens);
-  if (!shortTokens.every((token) => longSet.has(token))) return false;
-
-  // Kata tambahan yang memecah isi seri (part/cour/movie/special) berarti
-  // entri itu memang berbeda, bukan sekadar judul yang lebih panjang.
-  const extra = longTokens.filter((token) => !shortTokens.includes(token));
-  return !extra.some((token) => SPLIT_MARKERS.has(token));
+function tokenCounts(text: string): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const token of text.split(' ')) {
+    if (!token) continue;
+    counts.set(token, (counts.get(token) || 0) + 1);
+  }
+  return counts;
 }
 
-function matchesKnownByWordSubset(key: string, keys: Set<string>): boolean {
-  if (!key) return false;
+function totalTokens(counts: Map<string, number>): number {
+  let total = 0;
+  for (const value of counts.values()) total += value;
+  return total;
+}
+
+function isSameSeriesAcrossSources(item: TitleBearing, hidoriKey: string): boolean {
+  const own = tokenCounts(normalizeTitle(item.title || ''));
+  const hidori = tokenCounts(hidoriKey);
+  const ownTotal = totalTokens(own);
+  if (ownTotal < 4) return false;
+  if (totalTokens(hidori) <= ownTotal) return false;
+
+  for (const [token, count] of own) {
+    if ((hidori.get(token) || 0) < count) return false;
+  }
+
+  const extra: string[] = [];
+  for (const [token, count] of hidori) {
+    const surplus = count - (own.get(token) || 0);
+    for (let i = 0; i < surplus; i += 1) extra.push(token);
+  }
+  if (extra.some((token) => SPLIT_MARKERS.has(token))) return false;
+
+  const extraDigits = extra.filter((token) => /^\d+$/.test(token));
+  const extraOnlySeason = extra.every((token) => token === 'season' || /^\d+$/.test(token));
+  if (extraOnlySeason) {
+    if (extraDigits.length === 0) return true;
+    const ownHasDigit = [...own.keys()].some((token) => /^\d+$/.test(token));
+    if (!ownHasDigit) return true;
+  }
+
+  // Judul bilingual: kata tambahan harus muncul di sinonim arsip.
+  const covered = new Map(own);
+  for (const alt of item.altTitles || []) {
+    for (const [token, count] of tokenCounts(normalizeTitle(alt))) {
+      covered.set(token, Math.max(covered.get(token) || 0, count));
+    }
+  }
+  for (const [token, count] of hidori) {
+    if ((covered.get(token) || 0) < count) return false;
+  }
+  return true;
+}
+
+function matchesKnownAcrossSources(item: MergeableItem, keys: Set<string>): boolean {
+  const primary = normalizeTitle(item.title || '');
+  if (!primary) return false;
   for (const known of keys) {
-    if (isTitleWordSubset(key, known)) return true;
+    if (isSameSeriesAcrossSources(item, known)) return true;
   }
   return false;
 }
@@ -340,7 +402,7 @@ function mergeWithArchive<T extends MergeableItem>(
 
     if (primary && addedPrimary.has(primary)) continue;
     if (isKnownTitle(item, blockingKeys)) continue;
-    if (primary && matchesKnownByWordSubset(primary, blockingKeys)) continue;
+    if (matchesKnownAcrossSources(item, blockingKeys)) continue;
 
     if (primary) {
       slotByKey.set(primary, merged.length);

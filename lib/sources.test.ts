@@ -242,6 +242,7 @@ test('judul bilingual Hidori tetap dianggap anime yang sama dengan arsip', () =>
       title: 'Ore dake Level Up na Ken Season 2: Arise from the Shadow',
       slug: 'malz-5565',
       source: 'malz',
+      altTitles: ['Solo Leveling Season 2: Arise from the Shadow', 'Solo Leveling Second Season'],
     }),
   ];
 
@@ -273,4 +274,23 @@ test('musim yang dipecah jadi part tidak digabung dengan musim penuh', () => {
   ];
 
   assert.equal(mergeAnimeCards(hidori, malz, new Set()).length, 2);
+});
+
+test('judul yang hanya mirip awalan tidak digabung tanpa sinonim pendukung', () => {
+  const hidori = [
+    card({
+      title: 'Sword Art Online Alternative: Gun Gale Online Season 2 Subtitle Indonesia',
+      seriesTitle: 'Sword Art Online Alternative: Gun Gale Online Season 2',
+    }),
+  ];
+  const malz = [card({ title: 'Sword Art Online II', slug: 'malz-3', source: 'malz', altTitles: ['SAO II'] })];
+
+  assert.equal(mergeAnimeCards(hidori, malz, new Set()).length, 2);
+});
+
+test('musim berangka Romawi tetap menyatu dengan musim berangka biasa', () => {
+  const hidori = [card({ title: 'One Punch Man Season 3 Subtitle Indonesia', seriesTitle: 'One Punch Man Season 3' })];
+  const malz = [card({ title: 'One Punch Man 3', slug: 'malz-4', source: 'malz' })];
+
+  assert.equal(mergeAnimeCards(hidori, malz, new Set()).length, 1);
 });
