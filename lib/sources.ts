@@ -201,6 +201,44 @@ export function isKnownTitle(item: TitleBearing, keys: Set<string>): boolean {
   return titleMatchKeys(item).some((key) => keys.has(key));
 }
 
+/**
+ * Judul Hidori sering menempelkan judul Inggris di depan judul aslinya
+ * ("Solo Leveling Ore dake Level Up na Ken Season 2 ..."), sedangkan arsip
+ * memakai judul aslinya saja. Kalau semua kata judul arsip muncul di judul
+ * Hidori yang lebih panjang, keduanya anime yang sama.
+ *
+ * Minimal empat kata dan harus berakhiran kata yang sama, supaya judul pendek
+ * seperti "Berserk" atau "Monster" tidak ikut menelan seri lain.
+ */
+const SPLIT_MARKERS = new Set(['part', 'cour', 'movie', 'film', 'special', 'ova', 'ona', 'recap']);
+
+function isTitleWordSubset(shortKey: string, longKey: string): boolean {
+  const shortTokens = shortKey.split(' ').filter(Boolean);
+  if (shortTokens.length < 4) return false;
+
+  // Saringan murah dulu: judul Hidori harus berakhiran kata yang sama.
+  if (!longKey.endsWith(` ${shortTokens[shortTokens.length - 1]}`)) return false;
+
+  const longTokens = longKey.split(' ').filter(Boolean);
+  if (longTokens.length <= shortTokens.length) return false;
+
+  const longSet = new Set(longTokens);
+  if (!shortTokens.every((token) => longSet.has(token))) return false;
+
+  // Kata tambahan yang memecah isi seri (part/cour/movie/special) berarti
+  // entri itu memang berbeda, bukan sekadar judul yang lebih panjang.
+  const extra = longTokens.filter((token) => !shortTokens.includes(token));
+  return !extra.some((token) => SPLIT_MARKERS.has(token));
+}
+
+function matchesKnownByWordSubset(key: string, keys: Set<string>): boolean {
+  if (!key) return false;
+  for (const known of keys) {
+    if (isTitleWordSubset(key, known)) return true;
+  }
+  return false;
+}
+
 interface MergeableItem extends TitleBearing {
   title: string;
   kind?: string;
@@ -302,6 +340,7 @@ function mergeWithArchive<T extends MergeableItem>(
 
     if (primary && addedPrimary.has(primary)) continue;
     if (isKnownTitle(item, blockingKeys)) continue;
+    if (primary && matchesKnownByWordSubset(primary, blockingKeys)) continue;
 
     if (primary) {
       slotByKey.set(primary, merged.length);

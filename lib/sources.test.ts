@@ -229,3 +229,48 @@ test('mergeQuickSearchResults menghormati jatah arsip', () => {
   const merged = mergeQuickSearchResults([], malz, new Set(), 2);
   assert.equal(merged.length, 2);
 });
+
+test('judul bilingual Hidori tetap dianggap anime yang sama dengan arsip', () => {
+  const hidori = [
+    card({
+      title: 'Solo Leveling Ore dake Level Up na Ken Season 2 : Arise from the Shadow Subtitle Indonesia',
+      seriesTitle: 'Solo Leveling Ore dake Level Up na Ken Season 2',
+    }),
+  ];
+  const malz = [
+    card({
+      title: 'Ore dake Level Up na Ken Season 2: Arise from the Shadow',
+      slug: 'malz-5565',
+      source: 'malz',
+    }),
+  ];
+
+  const merged = mergeAnimeCards(hidori, malz, new Set());
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].source, 'hidori');
+});
+
+test('judul pendek tidak menelan seri lain yang mirip', () => {
+  const hidori = [card({ title: 'Boushoku no Berserk Subtitle Indonesia', seriesTitle: 'Boushoku no Berserk' })];
+  const malz = [card({ title: 'Berserk', slug: 'malz-1', source: 'malz' })];
+
+  assert.equal(mergeAnimeCards(hidori, malz, new Set()).length, 2);
+});
+
+test('musim yang dipecah jadi part tidak digabung dengan musim penuh', () => {
+  const hidori = [
+    card({
+      title: 'Mushoku Tensei Isekai Ittara Honki Dasu Season 2 Part 2 Subtitle Indonesia',
+      seriesTitle: 'Mushoku Tensei Isekai Ittara Honki Dasu Season 2 Part 2',
+    }),
+  ];
+  const malz = [
+    card({
+      title: 'Mushoku Tensei: Isekai Ittara Honki Dasu 2nd Season',
+      slug: 'malz-2',
+      source: 'malz',
+    }),
+  ];
+
+  assert.equal(mergeAnimeCards(hidori, malz, new Set()).length, 2);
+});
