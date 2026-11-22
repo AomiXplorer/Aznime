@@ -9,6 +9,7 @@ import {
   getMalzStream,
   malzAnimeSlug,
   malzEpisodeIdFromSlug,
+  malzImageUrl,
   malzEpisodeSlug,
   malzServersToMirrors,
   malzStatusLabel,
@@ -20,6 +21,10 @@ import { EpisodeList } from '@/components/EpisodeList';
 import { MalzEpisodeList } from '@/components/MalzEpisodeList';
 import { WatchLayout, type WatchMetaItem } from '@/components/WatchLayout';
 import { ErrorState } from '@/components/ErrorState';
+import { getSessionUser } from '@/lib/auth/session';
+import { isEpisodeLocked } from '@/lib/auth/episode-policy';
+import { AuthGate } from '@/components/auth/AuthGate';
+import { WatchRecorder } from '@/components/history/WatchRecorder';
 
 export const revalidate = 120;
 
@@ -92,6 +97,7 @@ interface MalzWatchData {
   loadedPage: number;
   perPage: number;
   totalEpisodes: number;
+  poster: string | null;
 }
 
 async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
@@ -169,6 +175,7 @@ async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
     episodes: summaries,
     loadedPage,
     perPage: perHalaman,
+    poster: malzImageUrl(detail?.anime.poster || detail?.anime.cover || null),
     totalEpisodes: totalEpisodes || summaries.length,
   };
 }
@@ -221,6 +228,10 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
     );
   }
 
+  const user = await getSessionUser();
+  const locked = isEpisodeLocked(data.episodeNumber, Boolean(user));
+  const episodeSlug = malzEpisodeSlug(episodeId);
+
   return (
     <WatchLayout
       seriesTitle={data.seriesTitle}
@@ -242,15 +253,33 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
         ) : null
       }
       player={
-        <VideoPlayer
-          key={episodeId}
-          title={data.title}
-          servers={data.servers}
-          defaultEmbed={data.defaultEmbed}
-          navigation={data.navigation}
-          seriesSlug={data.seriesSlug}
-          seriesTitle={data.seriesTitle}
-        />
+        locked ? (
+          <AuthGate
+            seriesTitle={data.seriesTitle}
+            episodeNumber={data.episodeNumber}
+            returnTo={`/watch/${encodeURIComponent(episodeSlug)}`}
+          />
+        ) : (
+          <>
+            <WatchRecorder
+              animeId={data.seriesSlug}
+              title={data.seriesTitle}
+              poster={data.poster}
+              episodeNumber={data.episodeNumber}
+              episodeSlug={episodeSlug}
+              episodeTitle={data.title}
+            />
+            <VideoPlayer
+              key={episodeId}
+              title={data.title}
+              servers={data.servers}
+              defaultEmbed={data.defaultEmbed}
+              navigation={data.navigation}
+              seriesSlug={data.seriesSlug}
+              seriesTitle={data.seriesTitle}
+            />
+          </>
+        )
       }
     />
   );
@@ -312,6 +341,8 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
   const season = seriesDetail?.info['Season'] || null;
   const status = translateStatus(seriesDetail?.info['Status']);
   const cleanTitle = cleanEpisodeTitle(episode.title);
+  const user = await getSessionUser();
+  const locked = isEpisodeLocked(episodeNumber, Boolean(user));
 
   return (
     <WatchLayout
@@ -319,7 +350,7 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
       seriesHref={seriesSlug ? `/anime/${encodeURIComponent(seriesSlug)}` : null}
       title={cleanTitle}
       meta={episodeMeta(episodeNumber, season, status)}
-      downloadBoxes={episode.downloads}
+      downloadBoxes={locked ? [] : episode.downloads}
       downloadHeading="Unduh episode"
       episodeCount={seriesDetail?.totalEpisodes ?? episodes.length}
       episodesSlot={
@@ -328,15 +359,33 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
         ) : null
       }
       player={
-        <VideoPlayer
-          key={decodedSlug}
-          title={cleanTitle}
-          servers={episode.servers}
-          defaultEmbed={episode.defaultEmbed}
-          navigation={navigation}
-          seriesSlug={seriesSlug}
-          seriesTitle={seriesTitle}
-        />
+        locked ? (
+          <AuthGate
+            seriesTitle={seriesTitle}
+            episodeNumber={episodeNumber}
+            returnTo={`/watch/${encodeURIComponent(decodedSlug)}`}
+          />
+        ) : (
+          <>
+            <WatchRecorder
+              animeId={seriesSlug || decodedSlug}
+              title={seriesTitle}
+              poster={seriesDetail?.poster || null}
+              episodeNumber={episodeNumber}
+              episodeSlug={decodedSlug}
+              episodeTitle={cleanTitle}
+            />
+            <VideoPlayer
+              key={decodedSlug}
+              title={cleanTitle}
+              servers={episode.servers}
+              defaultEmbed={episode.defaultEmbed}
+              navigation={navigation}
+              seriesSlug={seriesSlug}
+              seriesTitle={seriesTitle}
+            />
+          </>
+        )
       }
     />
   );

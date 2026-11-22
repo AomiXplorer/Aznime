@@ -1,0 +1,67 @@
+import { RedisError } from './redis';
+import type { FieldError } from './validation';
+
+export function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+export function jsonError(status: number, message: string, extra: Record<string, unknown> = {}): Response {
+  return jsonResponse({ error: message, ...extra }, status);
+}
+
+export function validationResponse(errors: FieldError[]): Response {
+  const first = errors[0];
+  return jsonResponse({ error: first?.message || 'Data tidak valid.', errors }, 422);
+}
+
+export function clientIp(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return request.headers.get('x-real-ip') || 'unknown';
+}
+
+/**
+ * CSRF: setiap POST/DELETE harus datang dari origin yang sama dengan situs.
+ * Cookie session juga SameSite=Lax, jadi dua lapis.
+ */
+export function isSameOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin');
+  if (!origin) return true; // permintaan non-browser (curl, cron) tanpa cookie lintas situs
+  const allowed = new Set<string>();
+  const authUrl = process.env.AUTH_URL || '';
+  if (authUrl) {
+    try {
+      allowed.add(new URL(authUrl).origin);
+    } catch {
+      /* AUTH_URL tidak valid, abaikan */
+    }
+  }
+  try {
+    allowed.add(new URL(request.url).origin);
+  } catch {
+    /* abaikan */
+  }
+  return allowed.has(origin);
+}
+
+export async function readJsonBody<T = Record<string, unknown>>(request: Request): Promise<T | null> {
+  try {
+    return (await request.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function handleRouteError(error: unknown): Response {
+  if (error instanceof RedisError) {
+    return jsonError(503, 'Layanan akun sedang tidak tersedia. Coba lagi sebentar lagi.');
+  }
+  console.error('[auth]', error);
+  return jsonError(500, 'Terjadi kesalahan di server.');
+}

@@ -18,6 +18,7 @@ import { AnimeDetailLayout, type AnimeDetailView } from '@/components/AnimeDetai
 import { EpisodeList } from '@/components/EpisodeList';
 import { MalzEpisodeList } from '@/components/MalzEpisodeList';
 import { ErrorState } from '@/components/ErrorState';
+import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 
 export const revalidate = 300;
 
@@ -227,7 +228,12 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   if (malzId) {
     try {
       const view = await buildMalzDetail(malzId);
-      return <AnimeDetailLayout {...view} />;
+      return (
+        <AnimeDetailLayout
+          {...view}
+          favoriteSlot={<FavoriteButton animeId={decodedSlug} title={view.title} poster={view.poster} />}
+        />
+      );
     } catch (err) {
       if (err instanceof UpstreamError && err.isNotFound) notFound();
       const message = err instanceof Error ? err.message : 'Gagal memuat detail anime dari arsip.';
@@ -263,5 +269,10 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   }
 
   const view = await buildHidoriDetail(detail);
-  return <AnimeDetailLayout {...view} />;
+  return (
+    <AnimeDetailLayout
+      {...view}
+      favoriteSlot={<FavoriteButton animeId={decodedSlug} title={view.title} poster={view.poster} />}
+    />
+  );
 }

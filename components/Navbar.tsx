@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Menu, Search, X } from 'lucide-react';
 import { Wordmark } from './Wordmark';
+import { useAuth } from './auth/AuthProvider';
 
 /* Dialog pencarian membawa motion + logika pencarian. Tidak dibutuhkan pada
    render awal, jadi dimuat terpisah dan baru dipasang saat pertama dibuka. */
@@ -28,6 +29,7 @@ function isActive(pathname: string, href: string) {
 
 export function Navbar() {
   const pathname = usePathname();
+  const { user, loading: authLoading, openAuth } = useAuth();
   // Di bagian dewasa, tombol cari ikut mencari katalog Nekopoi.
   const adult = pathname === '/hentai' || pathname.startsWith('/hentai/');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -121,6 +123,28 @@ export function Navbar() {
           </Link>
 
           <nav aria-label="Navigasi utama" className="hidden flex-1 items-center gap-6 md:flex">
+            {user
+              ? [
+                  { href: '/history', label: 'Riwayat' },
+                  { href: '/favorites', label: 'Favorit' },
+                ].map((link) => {
+                  const active = isActive(pathname, link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={`relative whitespace-nowrap text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                        active
+                          ? 'font-semibold text-white after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-full after:bg-accent'
+                          : 'font-medium text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })
+              : null}
             {NAV_LINKS.map((link) => {
               const active = isActive(pathname, link.href);
               return (
@@ -141,6 +165,37 @@ export function Navbar() {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
+            {authLoading ? (
+              <span
+                aria-hidden="true"
+                className="h-9 w-9 animate-pulse rounded-[4px] border border-white/10 bg-white/[0.03]"
+              />
+            ) : user ? (
+              <Link
+                href="/profile"
+                aria-label={`Akun ${user.username}`}
+                className="inline-flex h-9 items-center gap-2 rounded-[4px] border border-white/10 bg-white/[0.03] px-2 text-[12.5px] font-medium text-zinc-200 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-elevated text-[10px] font-semibold text-zinc-200">
+                  {user.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    user.username.slice(0, 1).toUpperCase()
+                  )}
+                </span>
+                <span className="hidden max-w-[92px] truncate sm:inline">{user.username}</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAuth('login', pathname)}
+                className="inline-flex h-9 cursor-pointer items-center rounded-[4px] bg-white/[0.08] px-3 text-[12.5px] font-semibold text-white transition-colors duration-150 hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                Masuk
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
@@ -174,7 +229,29 @@ export function Navbar() {
             className="page-enter border-t border-[#241d1d] bg-canvas px-4 pb-4 pt-3 md:hidden"
           >
             <ul className="space-y-1">
-              {NAV_LINKS.map((link) => {
+              {user
+              ? [
+                  { href: '/history', label: 'Riwayat' },
+                  { href: '/favorites', label: 'Favorit' },
+                ].map((link) => {
+                  const active = isActive(pathname, link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={`relative whitespace-nowrap text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                        active
+                          ? 'font-semibold text-white after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-full after:bg-accent'
+                          : 'font-medium text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })
+              : null}
+            {NAV_LINKS.map((link) => {
                 const active = isActive(pathname, link.href);
                 return (
                   <li key={link.href}>
@@ -193,6 +270,35 @@ export function Navbar() {
                 );
               })}
             </ul>
+
+            <div className="mt-3 grid gap-1 border-t border-[#241d1d] pt-3">
+              {user ? (
+                [
+                  { href: '/history', label: 'Riwayat tontonan' },
+                  { href: '/favorites', label: 'Favorit' },
+                  { href: '/profile', label: 'Profil' },
+                ].map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-[4px] px-3 py-2.5 text-[13.5px] font-medium text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                ))
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    openAuth('login', pathname);
+                  }}
+                  className="rounded-[4px] px-3 py-2.5 text-left text-[13.5px] font-semibold text-white transition-colors hover:bg-white/[0.04]"
+                >
+                  Masuk atau daftar
+                </button>
+              )}
+            </div>
           </nav>
         ) : null}
       </header>

@@ -28,6 +28,8 @@ export interface AnimeDetailView {
   episodesSlot: React.ReactNode;
   /** Awalan rute pemutar untuk tombol "Mulai menonton" (default /watch). */
   episodeHrefBase?: string;
+  /** Tombol favorit (client component) di baris aksi. */
+  favoriteSlot?: React.ReactNode;
 }
 
 function epSuffix(number: string | null): string {
@@ -54,6 +56,7 @@ export function AnimeDetailLayout({
   jsonLd,
   episodesSlot,
   episodeHrefBase = '/watch',
+  favoriteSlot,
 }: AnimeDetailView) {
   const infoEntries = Object.entries(info).filter(([, val]) => Boolean(val));
 
@@ -156,6 +159,8 @@ export function AnimeDetailLayout({
                   Episode terbaru{epSuffix(latestEpisode.number)}
                 </Link>
               ) : null}
+
+              {favoriteSlot ? <div className="inline-flex h-11 items-center">{favoriteSlot}</div> : null}
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Figtree } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
 /* Dua peran, dua wajah: Figtree untuk teks dan kontrol, Bricolage Grotesque
@@ -122,11 +123,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Langsung ke konten utama
         </a>
-        <Navbar />
-        <main id="main-content" className="flex-1">
-          {children}
-        </main>
-        <Footer />
+        <AuthProvider>
+          <Navbar />
+          <main id="main-content" className="flex-1">
+            {children}
+          </main>
+          <Footer />
+        </AuthProvider>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
