@@ -28,30 +28,25 @@ const ARCHIVE_PAGE_SIZE = 24;
 
 /**
  * Bagian hentai sengaja disembunyikan: tidak ada tautan di navbar, beranda,
- * footer, maupun sitemap. Satu-satunya jalan masuk adalah memilih genre
- * "Hentai" di panel filter katalog, yang langsung mengarah ke /hentai.
+ * footer, maupun sitemap. Jalan masuknya hanya panel "Pilih tipe" di filter
+ * katalog, yang langsung mengarah ke /hentai.
  */
-const HENTAI_GENRE = 'hentai';
-const HENTAI_GENRE_OPTION = { label: 'Hentai (18+)', value: HENTAI_GENRE };
+const HENTAI_VALUE = 'hentai';
+const HENTAI_OPTION = { label: 'Hentai (18+)', value: HENTAI_VALUE };
 
-/**
- * Genre Hentai bisa datang dari sumber utama atau belum ada sama sekali. Kedua
- * kasus dirapikan di sini supaya pilihannya selalu ada dan berlabel 18+.
- */
-function withHentaiGenre(options: FilterOptionsMap): FilterOptionsMap {
+const isHentaiValue = (value: string) => value.trim().toLowerCase() === HENTAI_VALUE;
+
+/** Hentai dipasang sebagai tipe, bukan genre. */
+function withHentaiType(options: FilterOptionsMap): FilterOptionsMap {
+  const type = (options.type || []).filter((item) => !isHentaiValue(item.value));
+  return { ...options, type: [...type, HENTAI_OPTION] };
+}
+
+/** Genre Hentai bawaan sumber dibuang supaya jalan masuknya tetap satu. */
+function withoutHentaiGenre(options: FilterOptionsMap): FilterOptionsMap {
   const genre = options.genre || [];
-  const isHentai = (value: string) => value.trim().toLowerCase() === HENTAI_GENRE;
-
-  if (!genre.some((item) => isHentai(item.value))) {
-    return { ...options, genre: [...genre, HENTAI_GENRE_OPTION] };
-  }
-
-  return {
-    ...options,
-    genre: genre.map((item) =>
-      isHentai(item.value) ? { ...item, label: HENTAI_GENRE_OPTION.label } : item
-    ),
-  };
+  const filtered = genre.filter((item) => !isHentaiValue(item.value));
+  return filtered.length === genre.length ? options : { ...options, genre: filtered };
 }
 
 interface AnimeCatalogPageProps {
@@ -90,8 +85,8 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
   const genres = getGenres(sp.genre);
   const archiveMode = order === 'archive';
 
-  // Memilih genre Hentai membuka bagian khusus 18+ (dengan gerbang usianya).
-  if (genres.some((genre) => genre.toLowerCase() === HENTAI_GENRE)) {
+  // Memilih tipe Hentai membuka bagian khusus 18+ (dengan gerbang usianya).
+  if (isHentaiValue(type) || genres.some(isHentaiValue)) {
     redirect('/hentai');
   }
 
@@ -109,8 +104,8 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
     archiveMode ? getMalzArchivePool() : Promise.resolve([]),
   ]);
 
-  const options =
-    filterRes.status === 'fulfilled' ? withHentaiGenre(filterRes.value) : withHentaiGenre({});
+  const baseOptions = filterRes.status === 'fulfilled' ? filterRes.value : {};
+  const options = withHentaiType(withoutHentaiGenre(baseOptions));
   const pool = poolRes.status === 'fulfilled' ? poolRes.value : [];
   const archiveItems = pool.slice(0, ARCHIVE_PAGE_SIZE);
 
