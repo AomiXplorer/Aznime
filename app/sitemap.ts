@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getAnimeList, getHome, getOngoing } from '@/lib/scraper';
+import { getMalzArchivePool } from '@/lib/sources';
 import { SITE_URL } from '@/lib/site';
 
 /** Sitemap di-cache dan diregenerasi tiap jam agar mengikuti konten dinamis. */
@@ -65,6 +66,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     } catch {
       break;
     }
+  }
+
+  // Arsip sumber kedua ikut dipetakan supaya judul lama tetap terindeks.
+  try {
+    const pool = await getMalzArchivePool();
+    for (const item of pool) addSlug(item.slug, 0.6);
+  } catch {
+    /* diabaikan */
   }
 
   const remaining = Math.max(0, MAX_URLS - staticRoutes.length);

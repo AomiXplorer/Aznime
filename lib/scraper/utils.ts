@@ -231,27 +231,6 @@ function safeDecodeSlug(value: string): string {
   }
 }
 
-/**
- * Bersihkan sufiks dimensi thumbnail WordPress (-214x300.jpg) dan parameter
- * query pengecil gambar (?resize=..., ?w=..., ?fit=...) agar poster tampil tajam.
- */
-export function stripImageDownscaleParams(rawUrl: string): string {
-  try {
-    const parsed = new URL(rawUrl);
-    parsed.pathname = parsed.pathname.replace(
-      /-\d{2,4}x\d{2,4}(?=\.(jpe?g|png|webp|avif)$)/i,
-      ''
-    );
-    parsed.searchParams.delete('resize');
-    parsed.searchParams.delete('w');
-    parsed.searchParams.delete('h');
-    parsed.searchParams.delete('fit');
-    return parsed.toString();
-  } catch {
-    return rawUrl.replace(/-\d{2,4}x\d{2,4}(?=\.(jpe?g|png|webp|avif))/i, '');
-  }
-}
-
 export function parseImgSrc($: CheerioAPI, container: AnyNode | string): string | null {
   const root = $(container);
   const img = root.find('img').not('noscript img').first();
@@ -260,7 +239,7 @@ export function parseImgSrc($: CheerioAPI, container: AnyNode | string): string 
   for (const candidate of candidates) {
     if (candidate && !candidate.startsWith('data:image/svg+xml')) {
       const normalized = normalizeUrl(candidate);
-      if (normalized) return stripImageDownscaleParams(normalized);
+      if (normalized) return normalized;
     }
   }
 
@@ -270,11 +249,24 @@ export function parseImgSrc($: CheerioAPI, container: AnyNode | string): string 
     const nsSrc = $ns('img').attr('src');
     if (nsSrc) {
       const normalized = normalizeUrl(nsSrc);
-      if (normalized) return stripImageDownscaleParams(normalized);
+      if (normalized) return normalized;
     }
   }
 
   return null;
+}
+
+/**
+ * Judul Hidori membawa penanda rilis di teksnya ("BATCH Gachiakuta Subtitle
+ * Indonesia"). Penanda itu tidak berguna di UI dan membuat anime yang sama
+ * terlihat berbeda dari sumber lain, jadi dibuang dari judul tampilan.
+ */
+export function cleanAnimeTitle(raw: string): string {
+  if (!raw) return '';
+  let text = raw.replace(/\s+/g, ' ').trim();
+  text = text.replace(/^(?:batch|full\s+batch|batch\s+anime)\s+/i, '');
+  text = text.replace(/\s*[-–—]\s*batch$/i, '');
+  return text.replace(/\s+/g, ' ').trim();
 }
 
 export function parseAnimeCard($: CheerioAPI, article: AnyNode): AnimeCardItem {
@@ -294,11 +286,12 @@ export function parseAnimeCard($: CheerioAPI, article: AnyNode): AnimeCardItem {
   const isHot = $article.find('.hotbadge').length > 0;
   const postId = $a.attr('rel') || null;
   const poster = parseImgSrc($, article);
+  const isBatch = /^batch\b/i.test(rawTitle);
 
   return {
     postId,
-    title: rawTitle.replace(/\s+/g, ' ').trim(),
-    seriesTitle: seriesTitle.replace(/\s+/g, ' ').trim(),
+    title: cleanAnimeTitle(rawTitle),
+    seriesTitle: cleanAnimeTitle(seriesTitle),
     slug: extractSlug(url),
     url,
     kind: inferLinkKind(url),
@@ -309,6 +302,8 @@ export function parseAnimeCard($: CheerioAPI, article: AnyNode): AnimeCardItem {
     episode: episodeText,
     episodeNumber: epMatch ? parseFloat(epMatch[1]) : null,
     isHot,
+    source: 'hidori',
+    isBatch,
   };
 }
 

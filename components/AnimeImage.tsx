@@ -13,6 +13,8 @@ interface AnimeImageProps {
   height?: number;
   sizes?: string;
   priority?: boolean;
+  /** Lewati optimizer Next untuk gambar dari CDN yang menolak permintaan server. */
+  unoptimized?: boolean;
   className?: string;
   fallbackClassName?: string;
 }
@@ -25,6 +27,7 @@ function AnimeImageComponent({
   height,
   sizes = '(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 220px',
   priority = false,
+  unoptimized = false,
   className,
   fallbackClassName,
 }: AnimeImageProps) {
@@ -35,41 +38,37 @@ function AnimeImageComponent({
     return (
       <div
         className={cn(
-          'flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-elevated via-surface to-canvas p-4 text-center',
+          'flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#181b23] via-[#12141a] to-[#0a0b0e] p-4 text-center',
           fallbackClassName
         )}
       >
-        <Film className="mb-2 h-6 w-6 text-faint" aria-hidden="true" />
-        <span className="line-clamp-2 text-xs font-medium text-muted">{alt}</span>
+        <Film className="mb-2 h-6 w-6 text-zinc-600" aria-hidden="true" />
+        <span className="line-clamp-2 text-xs font-medium text-zinc-500">{alt}</span>
       </div>
     );
   }
 
   return (
-    <>
-      {!loaded && !priority ? (
-        <span aria-hidden="true" className="shimmer pointer-events-none absolute inset-0" />
-      ) : null}
-      <Image
-        src={src}
-        alt={alt}
-        fill={fill}
-        width={fill ? undefined : width}
-        height={fill ? undefined : height}
-        sizes={sizes}
-        priority={priority}
-        loading={priority ? undefined : 'lazy'}
-        decoding="async"
-        referrerPolicy="no-referrer"
-        onLoad={() => setLoaded(true)}
-        onError={() => setHasError(true)}
-        className={cn(
-          'object-cover transition-opacity duration-200 ease-out',
-          loaded || priority ? 'opacity-100' : 'opacity-0',
-          className
-        )}
-      />
-    </>
+    <Image
+      src={src}
+      alt={alt}
+      fill={fill}
+      width={fill ? undefined : width}
+      height={fill ? undefined : height}
+      sizes={sizes}
+      priority={priority}
+      unoptimized={unoptimized}
+      loading={priority ? undefined : 'lazy'}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onLoad={() => setLoaded(true)}
+      onError={() => setHasError(true)}
+      className={cn(
+        'object-cover transition-opacity duration-200 ease-out',
+        loaded || priority ? 'opacity-100' : 'opacity-0',
+        className
+      )}
+    />
   );
 }
 

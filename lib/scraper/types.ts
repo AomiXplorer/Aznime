@@ -1,5 +1,11 @@
 export type LinkKind = 'anime' | 'episode';
 
+/**
+ * Sumber data: Hidori (utama), arsip Malz (pelengkap judul lama), atau Nekopoi
+ * (konten 18+, hanya dipakai halaman /hentai).
+ */
+export type AnimeSource = 'hidori' | 'malz' | 'nekopoi';
+
 export interface AnimeCardItem {
   postId: string | null;
   title: string;
@@ -14,6 +20,12 @@ export interface AnimeCardItem {
   episode: string | null;
   episodeNumber: number | null;
   isHot: boolean;
+  source: AnimeSource;
+  /** Postingan "BATCH ..." di sumber: duplikat dari halaman seri, bukan anime lain. */
+  isBatch?: boolean;
+  /** Judul alternatif dari sumber, dipakai untuk dedupe dan pencocokan trailer. */
+  altTitles?: string[];
+  genres?: string[];
 }
 
 export interface FeaturedAnime {
@@ -38,6 +50,7 @@ export interface OngoingSidebarItem {
 
 export interface PopularAnimeItem {
   rank: number;
+  source?: AnimeSource;
   postId: string | null;
   title: string;
   slug: string | null;
@@ -200,6 +213,8 @@ export interface EpisodeNavLink {
   title: string;
   slug: string | null;
   url: string;
+  /** Nomor episode kalau bisa dibaca dari daftar seri. */
+  number?: string | null;
 }
 
 export interface EpisodeData {
@@ -238,6 +253,10 @@ export interface QuickSearchItem {
   type: string | null;
   latestEpisode?: string | null;
   sub?: string | null;
+  source: AnimeSource;
+  /** Postingan "BATCH ..." di sumber, dipakai untuk membuang kartu clone. */
+  isBatch?: boolean;
+  altTitles?: string[];
 }
 
 export interface BlogListResponse {
@@ -259,6 +278,5 @@ export interface AniListTrailer {
   site: string;
   thumbnail: string | null;
   bannerImage: string | null;
-  coverImage?: string | null;
   matchedTitle: string | null;
 }

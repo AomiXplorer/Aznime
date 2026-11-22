@@ -1,31 +1,15 @@
 @import "tailwindcss";
 
-/* Crimson Noir Cinema (Aznime v2.0).
-   Latar Obsidian Warm-Charcoal (#0A090C) berpadu alami dengan spektrum merah
-   crimson (#E11D48). Kedalaman dibangun dari kontras permukaan 4-tingkat,
-   ambient radial glow halus, dan tipografi Outfit + Plus Jakarta Sans + JetBrains Mono. */
 @theme inline {
-  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-outfit), var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  --color-canvas: #0A090C;
-  --color-surface: #121016;
-  --color-elevated: #191620;
-  --color-hover: #221E2B;
-
-  --color-ink: #F4F3F6;
-  --color-muted: #A39EB0;
-  --color-faint: #6D687A;
-
-  --color-accent: #E11D48;
-  --color-accent-hover: #F43F5E;
-  --color-accent-strong: #9F1239;
-  --color-accent-ink: #FB7185;
-  --color-accent-soft: rgb(225 29 72 / 0.14);
-
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-line-accent: rgb(225 29 72 / 0.35);
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: #0a0b0e;
+  --color-surface: #12141a;
+  --color-elevated: #181b23;
+  --color-accent: #e11d48;
+  --color-accent-strong: #be123c;
+  --color-muted: #a1a1aa;
 }
 
 :root {
@@ -34,15 +18,17 @@
 
 html {
   font-size: 15px;
-  background-color: #0A090C;
-  color: #F4F3F6;
+  background-color: #0a0b0e;
+  color: #f4f4f5;
 }
 
 body {
-  background-color: #0A090C;
-  color: #F4F3F6;
+  background-color: #0a0b0e;
+  color: #f4f4f5;
   font-family: var(--font-sans);
-  /* `clip` menjaga sticky navbar tetap bekerja tanpa scroll-container ganda. */
+  /* `clip` (bukan `hidden`) supaya body tidak menjadi scroll container,
+     sehingga `position: sticky` pada navbar tetap bekerja dan tidak memicu
+     repaint tambahan saat scroll. */
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeSpeed;
@@ -54,12 +40,7 @@ h2,
 h3,
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.025em;
-}
-
-:focus-visible {
-  outline: 2px solid var(--color-accent-ink);
-  outline-offset: 2px;
+  letter-spacing: -0.015em;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -70,18 +51,35 @@ h3,
   scrollbar-width: none;
 }
 
-/* Pola titik halus 3% untuk latar panggung hero mode split showcase. */
-.stage-pattern {
-  background-image: radial-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* Item grid jauh dari viewport tidak dirender sampai mendekati layar. */
+/* Item grid yang jauh dari viewport tidak dirender/dilayout sampai dibutuhkan.
+   `auto` pada contain-intrinsic-size membuat browser mengingat ukuran nyata
+   setelah render pertama, jadi tidak menimbulkan layout shift. */
 .cv-item {
   content-visibility: auto;
   contain-intrinsic-size: auto 240px;
 }
 
+/* Angka peringkat Top 10 (outline) */
+.rank-numeral {
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.3);
+  transition: -webkit-text-stroke-color 200ms ease;
+}
+.group:hover .rank-numeral,
+.group:focus-visible .rank-numeral {
+  -webkit-text-stroke-color: #e11d48;
+}
+
+/* Tingkat kepentingan nomor: runner-up lebih tegas, peringkat 4-5 lebih redup. */
+.rank-numeral-strong {
+  -webkit-text-stroke-color: rgba(255, 255, 255, 0.55);
+}
+.rank-numeral-soft {
+  -webkit-text-stroke-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Transisi halaman: hanya opacity (compositor-only), tanpa transform pada
+   seluruh dokumen yang memaksa layer besar dibuat ulang. */
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -103,11 +101,12 @@ h3,
   }
 }
 
-/* Shimmer skeleton GPU-only (transform pada pseudo-element). */
+/* Shimmer skeleton: animasi transform pada pseudo-element (GPU) alih-alih
+   menganimasikan background-position yang memicu repaint tiap frame. */
 .shimmer {
   position: relative;
   overflow: hidden;
-  background: rgb(255 255 255 / 0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 .shimmer::after {
   content: "";
@@ -117,7 +116,7 @@ h3,
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgb(255 255 255 / 0.08) 50%,
+    rgba(255, 255, 255, 0.07) 50%,
     transparent 100%
   );
   animation: shimmer 1.4s linear infinite;
@@ -128,7 +127,9 @@ h3,
   }
 }
 
-/* Panel filter katalog (compositor-only). */
+
+/* Panel filter katalog: masuk dari bawah di HP, muncul halus di desktop.
+   Hanya opacity/transform supaya tetap jalan di compositor. */
 .picker-backdrop {
   animation: picker-fade 180ms ease-out;
 }
@@ -169,3 +170,18 @@ h3,
     display: none;
   }
 }
+
+/* Item episode panjang (ratusan judul) tidak dilayout sampai mendekati viewport.
+   Semua episode tetap ada di halaman, jadi tidak ada lagi daftar yang tersembunyi
+   di dalam kotak scroll kecil. */
+.ep-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
+
+/* Sembunyikan navbar dan footer saat layar maintenance dirender lewat rewrite proxy. */
+body:has([data-maintenance-screen]) > header,
+body:has([data-maintenance-screen]) > footer {
+  display: none;
+}
+

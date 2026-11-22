@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getCompleted } from '@/lib/scraper';
+import { supplementWithArchive } from '@/lib/sources';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { ErrorState } from '@/components/ErrorState';
 import { PageHeader } from '@/components/PageHeader';
@@ -17,7 +18,8 @@ export default async function CompletedPage() {
   let errorMsg: string | null = null;
 
   try {
-    data = await getCompleted(1);
+    const completed = await getCompleted(1);
+    data = { ...completed, results: await supplementWithArchive(completed.results, { status: 'completed' }) };
   } catch (err) {
     errorMsg = err instanceof Error ? err.message : 'Gagal memuat daftar completed';
   }

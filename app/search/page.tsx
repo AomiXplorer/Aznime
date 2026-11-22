@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Search } from 'lucide-react';
-import { search } from '@/lib/scraper';
+import { searchAcrossSources } from '@/lib/sources';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
@@ -41,7 +41,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   if (q) {
     try {
-      data = await search(q, 1);
+      data = await searchAcrossSources(q, 1);
     } catch (err) {
       errorMsg = err instanceof Error ? err.message : 'Gagal mencari anime';
     }
@@ -67,12 +67,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             defaultValue={q}
             placeholder="Masukkan judul anime"
             required
-            className="h-11 w-full rounded-lg border border-line bg-surface pl-10 pr-4 text-sm text-ink placeholder:text-faint transition-colors focus:border-accent focus:bg-elevated focus:outline-none focus:ring-1 focus:ring-accent"
+            className="h-11 w-full rounded-full bg-white/[0.08] pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 transition-colors focus:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-white/40"
           />
         </div>
         <button
           type="submit"
-          className="h-11 cursor-pointer rounded-lg bg-accent px-6 text-sm font-bold text-white transition-all hover:bg-accent-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+          className="h-11 cursor-pointer rounded-full bg-accent-strong px-6 text-sm font-bold text-white transition-all hover:bg-accent active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           Cari
         </button>
@@ -90,7 +90,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ) : data ? (
         <div className="space-y-5">
           <p className="text-sm text-muted">
-            Hasil untuk <span className="font-semibold text-ink">&ldquo;{q}&rdquo;</span>
+            Hasil untuk <span className="font-semibold text-white">&ldquo;{q}&rdquo;</span>
           </p>
           <InfiniteAnimeCatalog
             initialItems={data.results}

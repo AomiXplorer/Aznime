@@ -1,28 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { JetBrains_Mono, Outfit, Plus_Jakarta_Sans } from 'next/font/google';
+import { Figtree } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { MaintenanceBypassBanner } from '@/components/MaintenanceBypassBanner';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
-// Tiga keluarga font: Outfit untuk judul & peringkat besar, Plus Jakarta Sans
-// untuk teks antarmuka & sinopsis, JetBrains Mono untuk badge/angka presisi.
-const outfit = Outfit({
+const figtree = Figtree({
   subsets: ['latin'],
-  variable: '--font-outfit',
-  weight: ['600', '700', '800'],
-  display: 'swap',
-});
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  variable: '--font-plus-jakarta',
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-});
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
-  weight: ['500', '700'],
+  variable: '--font-figtree',
   display: 'swap',
 });
 
@@ -95,7 +81,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0A090C',
+  themeColor: '#0a0b0e',
   width: 'device-width',
   initialScale: 1,
   colorScheme: 'dark',
@@ -118,14 +104,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html
-      lang="id"
-      className={`dark ${outfit.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}
-    >
-      <body className="flex min-h-screen flex-col bg-canvas text-ink selection:bg-accent selection:text-white">
+    <html lang="id" className={`dark ${figtree.variable}`}>
+      <body className="flex min-h-screen flex-col bg-canvas text-[#f4f4f5] selection:bg-accent-strong selection:text-white">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-accent-strong focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
         >
           Langsung ke konten utama
         </a>
@@ -134,6 +117,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <Footer />
+        <MaintenanceBypassBanner />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -1,12 +1,17 @@
 import { getHome, getOngoing } from '@/lib/scraper';
+import { withoutAdult } from '@/lib/adult';
 import type { FeaturedAnime } from '@/lib/scraper';
 import { getAniListTrailer } from '@/lib/anilist';
+import {
+  archiveByStatus,
+  getMalzArchivePool,
+  mergeAnimeCards,
+  getHidoriTitleIndex,
+  topUpPopularRanking,
+} from '@/lib/sources';
 import { HeroSection } from '@/components/HeroSection';
 import { PopularRanking } from '@/components/PopularRanking';
 import { AnimeRow } from '@/components/AnimeRow';
-import { AnimeGrid } from '@/components/AnimeGrid';
-import { CompactAnimeList } from '@/components/CompactAnimeList';
-import { SectionHeading } from '@/components/SectionHeading';
 import { ErrorState } from '@/components/ErrorState';
 
 export const revalidate = 180;
@@ -19,7 +24,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 export default async function HomePage() {
-  const [homeRes, ongoingRes] = await Promise.allSettled([getHome(1), getOngoing(1)]);
+  const [homeRes, ongoingRes, poolRes, indexRes] = await Promise.allSettled([
+    getHome(1),
+    getOngoing(1),
+    getMalzArchivePool(),
+    getHidoriTitleIndex(),
+  ]);
 
   if (homeRes.status === 'rejected') {
     const message =
@@ -33,41 +43,45 @@ export default async function HomePage() {
 
   const home = homeRes.value;
   const ongoing = ongoingRes.status === 'fulfilled' ? ongoingRes.value.results : [];
+  const archive = poolRes.status === 'fulfilled' ? poolRes.value : [];
+  const hidoriIndex = indexRes.status === 'fulfilled' ? indexRes.value : new Set<string>();
 
   // Trailer AniList hanya memperkaya hero. Batas tunggunya dijaga ketat supaya
   // tidak menahan TTFB/LCP: kalau AniList lambat, hero tetap tampil dengan poster.
+  // Beranda bersih dari judul 18+; bagian itu hanya hidup di /hentai.
   const heroItems = await Promise.all(
-    home.featured.slice(0, 6).map(async (f: FeaturedAnime) => ({
-      ...f,
-      trailer: await withTimeout(getAniListTrailer(f.title).catch(() => null), 1200, null),
-    }))
+    withoutAdult(home.featured)
+      .slice(0, 6)
+      .map(async (f: FeaturedAnime) => ({
+        ...f,
+        trailer: await withTimeout(getAniListTrailer(f.title).catch(() => null), 1200, null),
+      }))
   );
+
+  const [weekly, monthly, alltime] = await Promise.all([
+    topUpPopularRanking(home.popular.weekly).then(withoutAdult),
+    topUpPopularRanking(home.popular.monthly).then(withoutAdult),
+    topUpPopularRanking(home.popular.alltime).then(withoutAdult),
+  ]);
+
+  const ongoingWithArchive = withoutAdult(
+    mergeAnimeCards(ongoing, archiveByStatus(archive, 'Ongoing', 8), hidoriIndex)
+  );
+  const archiveRow = withoutAdult(archive).slice(0, 14);
+  const latestRelease = withoutAdult(home.latestRelease);
+  const completedLatest = withoutAdult(home.completedLatest);
 
   return (
     <>
-      <HeroSection items={heroItems} />
-      <div className="relative z-10 mx-auto max-w-7xl space-y-14 px-4 pt-10 sm:px-6 lg:px-8">
-        <PopularRanking
-          weekly={home.popular.weekly}
-          monthly={home.popular.monthly}
-          alltime={home.popular.alltime}
-        />
-        {home.latestRelease.length > 0 ? (
-          <section aria-label="Episode terbaru" className="space-y-5">
-            <SectionHeading title="Episode terbaru" href="/anime?order=update" />
-            <AnimeGrid
-              items={home.latestRelease.slice(0, 12)}
-              className="gap-y-7 md:grid-cols-6 xl:grid-cols-6"
-            />
-          </section>
+      {heroItems.length > 0 ? <HeroSection items={heroItems} /> : null}
+      <div className="relative z-10 mx-auto max-w-7xl space-y-10 px-4 pt-6 sm:px-6 lg:px-8">
+        <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
+        <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
+        <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
+        {archiveRow.length > 0 ? (
+          <AnimeRow title="Dari arsip" items={archiveRow} viewAllHref="/anime" />
         ) : null}
-        <AnimeRow title="Sedang tayang" items={ongoing} viewAllHref="/ongoing" />
-        {home.completedLatest.length > 0 ? (
-          <section aria-label="Baru tamat" className="space-y-2">
-            <SectionHeading title="Baru tamat" href="/completed" />
-            <CompactAnimeList items={home.completedLatest.slice(0, 6)} />
-          </section>
-        ) : null}
+        <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />
       </div>
     </>
   );

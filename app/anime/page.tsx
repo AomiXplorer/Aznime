@@ -1,5 +1,15 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { Archive } from 'lucide-react';
 import { getAnimeList, getFilterOptions } from '@/lib/scraper';
+import type { FilterOptionsMap, PaginationInfo } from '@/lib/scraper/types';
+import {
+  MALZ_PAGE_BASE,
+  getMalzArchivePool,
+  supplementWithArchive,
+  toVirtualMalzPage,
+} from '@/lib/sources';
 import { CatalogFilters } from '@/components/CatalogFilters';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { ErrorState } from '@/components/ErrorState';
@@ -8,11 +18,36 @@ import { PageHeader } from '@/components/PageHeader';
 export const metadata: Metadata = {
   title: 'Katalog Anime',
   description:
-    'Jelajahi katalog lengkap anime subtitle Indonesia berdasarkan genre, status, tipe, dan urutan terbaru dengan infinite scrolling.',
+    'Jelajahi katalog lengkap anime subtitle Indonesia berdasarkan genre, status, tipe, dan urutan terbaru, termasuk arsip judul lama, dengan infinite scrolling.',
   alternates: { canonical: '/anime' },
 };
 
 export const dynamic = 'force-dynamic';
+
+const ARCHIVE_PAGE_SIZE = 24;
+
+/**
+ * Bagian hentai sengaja disembunyikan: tidak ada tautan di navbar, beranda,
+ * footer, maupun sitemap. Jalan masuknya hanya panel "Pilih tipe" di filter
+ * katalog, yang langsung mengarah ke /hentai.
+ */
+const HENTAI_VALUE = 'hentai';
+const HENTAI_OPTION = { label: 'Hentai (18+)', value: HENTAI_VALUE };
+
+const isHentaiValue = (value: string) => value.trim().toLowerCase() === HENTAI_VALUE;
+
+/** Hentai dipasang sebagai tipe, bukan genre. */
+function withHentaiType(options: FilterOptionsMap): FilterOptionsMap {
+  const type = (options.type || []).filter((item) => !isHentaiValue(item.value));
+  return { ...options, type: [...type, HENTAI_OPTION] };
+}
+
+/** Genre Hentai bawaan sumber dibuang supaya jalan masuknya tetap satu. */
+function withoutHentaiGenre(options: FilterOptionsMap): FilterOptionsMap {
+  const genre = options.genre || [];
+  const filtered = genre.filter((item) => !isHentaiValue(item.value));
+  return filtered.length === genre.length ? options : { ...options, genre: filtered };
+}
 
 interface AnimeCatalogPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -29,33 +64,81 @@ function getGenres(val: string | string[] | undefined): string[] {
   return Array.from(new Set(raw.map((item) => item.trim()).filter(Boolean)));
 }
 
+function archivePagination(poolLength: number): PaginationInfo {
+  const currentPage = toVirtualMalzPage(1);
+  const hasNextPage = ARCHIVE_PAGE_SIZE < poolLength;
+  return {
+    currentPage,
+    totalPages: Math.ceil(poolLength / ARCHIVE_PAGE_SIZE),
+    hasNextPage,
+    hasPrevPage: false,
+    nextPage: hasNextPage ? toVirtualMalzPage(2) : null,
+    prevPage: null,
+  };
+}
+
 export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPageProps) {
   const sp = await searchParams;
   const status = getParam(sp.status);
   const type = getParam(sp.type);
   const order = getParam(sp.order) || 'update';
   const genres = getGenres(sp.genre);
+  const archiveMode = order === 'archive';
 
-  const [listRes, filterRes] = await Promise.allSettled([
-    getAnimeList({
-      page: 1,
-      status: status || undefined,
-      type: type || undefined,
-      order: order || undefined,
-      genre: genres.length ? genres : undefined,
-    }),
+  // Memilih tipe Hentai membuka bagian khusus 18+ (dengan gerbang usianya).
+  if (isHentaiValue(type) || genres.some(isHentaiValue)) {
+    redirect('/hentai');
+  }
+
+  const [listRes, filterRes, poolRes] = await Promise.allSettled([
+    archiveMode
+      ? Promise.resolve(null)
+      : getAnimeList({
+          page: 1,
+          status: status || undefined,
+          type: type || undefined,
+          order: order || undefined,
+          genre: genres.length ? genres : undefined,
+        }),
     getFilterOptions(),
+    archiveMode ? getMalzArchivePool() : Promise.resolve([]),
   ]);
 
-  const data = listRes.status === 'fulfilled' ? listRes.value : null;
-  const options = filterRes.status === 'fulfilled' ? filterRes.value : {};
+  const baseOptions = filterRes.status === 'fulfilled' ? filterRes.value : {};
+  const options = withHentaiType(withoutHentaiGenre(baseOptions));
+  const pool = poolRes.status === 'fulfilled' ? poolRes.value : [];
+  const archiveItems = pool.slice(0, ARCHIVE_PAGE_SIZE);
+
+  const data =
+    !archiveMode && listRes.status === 'fulfilled' && listRes.value
+      ? {
+          ...listRes.value,
+          results: await supplementWithArchive(listRes.value.results, {
+            status: status || undefined,
+            type: type || undefined,
+            genres,
+          }),
+        }
+      : null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title="Katalog"
-        description="Pilih status, tipe, genre, atau urutan. Bisa pilih beberapa genre sekaligus."
-      />
+        title={archiveMode ? 'Arsip anime' : 'Katalog'}
+        description={
+          archiveMode
+            ? 'Judul dari arsip sumber kedua yang belum ada di katalog utama. Lengkap dengan pemutar dan trailer.'
+            : 'Pilih status, tipe, genre, atau urutan. Bisa pilih beberapa genre sekaligus.'
+        }
+      >
+        <Link
+          href={archiveMode ? '/anime' : '/anime?order=archive'}
+          className="inline-flex h-9 items-center gap-2 rounded-full bg-white/10 px-4 text-[13px] font-semibold text-white transition-colors hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        >
+          <Archive className="h-4 w-4" aria-hidden="true" />
+          {archiveMode ? 'Katalog utama' : 'Arsip anime'}
+        </Link>
+      </PageHeader>
 
       <div className="mb-7">
         <CatalogFilters
@@ -65,7 +148,16 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
         />
       </div>
 
-      {data ? (
+      {archiveMode ? (
+        <InfiniteAnimeCatalog
+          initialItems={archiveItems}
+          initialPagination={archivePagination(pool.length)}
+          apiPath="/api/anime"
+          queryParams={{ order: 'archive' }}
+          emptyTitle="Arsip belum tersedia"
+          emptyDescription="Arsip sumber kedua sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi."
+        />
+      ) : data ? (
         <InfiniteAnimeCatalog
           initialItems={data.results}
           initialPagination={data.pagination}

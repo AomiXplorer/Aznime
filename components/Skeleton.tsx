@@ -1,14 +1,14 @@
 import { cn } from '@/lib/cn';
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden="true" className={cn('shimmer rounded-lg', className)} />;
+  return <div aria-hidden="true" className={cn('shimmer rounded-md', className)} />;
 }
 
 export function AnimeCardSkeleton() {
   return (
     <div aria-hidden="true">
-      <Skeleton className="aspect-[2/3] w-full rounded-xl" />
-      <div className="mt-2.5 space-y-1.5">
+      <Skeleton className="aspect-[2/3] w-full" />
+      <div className="mt-2 space-y-1.5">
         <Skeleton className="h-3.5 w-11/12" />
         <Skeleton className="h-3 w-1/2" />
       </div>

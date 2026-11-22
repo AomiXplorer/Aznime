@@ -137,7 +137,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
           <div
             aria-hidden="true"
             onClick={onClose}
-            className="absolute inset-0 bg-black/80"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
           />
 
           <motion.div
@@ -149,9 +149,9 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl shadow-black/75"
+            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-surface shadow-2xl ring-1 ring-white/10"
           >
-            <form onSubmit={handleSubmit} className="flex items-center gap-3 border-b border-line px-4">
+            <form onSubmit={handleSubmit} className="flex items-center gap-3 border-b border-white/[0.07] px-4">
               <Search className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
               <label htmlFor="quick-search-input" className="sr-only">
                 Judul anime
@@ -164,13 +164,13 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Cari judul anime"
                 autoComplete="off"
-                className="h-14 flex-1 bg-transparent text-[1.05rem] text-ink placeholder:text-faint focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+                className="h-14 flex-1 bg-transparent text-[1.05rem] text-white placeholder:text-zinc-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Tutup pencarian"
-                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-elevated hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -184,8 +184,8 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
               ) : loading ? (
                 <ul aria-label="Memuat hasil" className="space-y-1">
                   {[0, 1, 2, 3].map((i) => (
-                    <li key={i} className="flex items-center gap-3 rounded-xl p-2">
-                      <div className="shimmer h-14 w-10 rounded-lg" />
+                    <li key={i} className="flex items-center gap-3 rounded-lg p-2">
+                      <div className="shimmer h-14 w-10 rounded-md" />
                       <div className="flex-1 space-y-2">
                         <div className="shimmer h-3.5 w-2/3 rounded" />
                         <div className="shimmer h-3 w-1/3 rounded" />
@@ -194,23 +194,23 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                   ))}
                 </ul>
               ) : error ? (
-                <p role="alert" className="px-3 py-8 text-center text-sm text-accent-ink">
+                <p role="alert" className="px-3 py-8 text-center text-sm text-rose-400">
                   {error}
                 </p>
               ) : results.length === 0 ? (
                 <div className="px-3 py-8 text-center">
-                  <p className="text-sm text-muted">Tidak ada hasil untuk &ldquo;{trimmed}&rdquo;.</p>
+                  <p className="text-sm text-zinc-300">Tidak ada hasil untuk &ldquo;{trimmed}&rdquo;.</p>
                   <button
                     type="button"
                     onClick={() => navigateTo(`/search?q=${encodeURIComponent(trimmed)}`)}
-                    className="mt-3 cursor-pointer text-sm font-semibold text-accent-ink hover:underline"
+                    className="mt-3 cursor-pointer text-sm font-semibold text-rose-400 hover:text-rose-300"
                   >
                     Coba pencarian lengkap
                   </button>
                 </div>
               ) : (
                 <>
-                  <ul role="listbox" aria-label="Hasil pencarian cepat" className="space-y-1">
+                  <ul role="listbox" aria-label="Hasil pencarian cepat" className="space-y-0.5">
                     {results.map((item, idx) => {
                       const isSel = idx === activeIndex;
                       return (
@@ -225,25 +225,25 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                           <Link
                             href={hrefFor(item)}
                             onClick={onClose}
-                            className={`flex items-center gap-3 rounded-xl border p-2 transition-colors active:scale-[0.99] ${
-                              isSel
-                                ? 'border-line-accent bg-elevated'
-                                : 'border-transparent hover:bg-elevated/70'
+                            className={`flex items-center gap-3 rounded-lg p-2 transition-colors active:scale-[0.99] ${
+                              isSel ? 'bg-white/10' : 'hover:bg-white/[0.06]'
                             }`}
                           >
-                            <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-elevated ring-1 ring-white/[0.06]">
-                              <AnimeImage src={item.poster} alt={item.title} sizes="40px" />
+                            <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-elevated">
+                              <AnimeImage
+                                src={item.poster}
+                                alt={item.title}
+                                unoptimized={item.source === 'malz'}
+                                sizes="40px"
+                              />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                              <p className="truncate text-sm font-semibold text-white">{item.title}</p>
                               <p className="mt-0.5 truncate text-xs text-muted">
-                                {[item.type, item.genres.slice(0, 3).join(' · ')].filter(Boolean).join(' · ')}
+                                {[item.type, item.genres.slice(0, 3).join(', ')].filter(Boolean).join('  ')}
                               </p>
                             </div>
-                            <ArrowRight
-                              className={`h-4 w-4 shrink-0 ${isSel ? 'text-accent-ink' : 'text-faint'}`}
-                              aria-hidden="true"
-                            />
+                            <ArrowRight className="h-4 w-4 shrink-0 text-zinc-600" aria-hidden="true" />
                           </Link>
                         </motion.li>
                       );
@@ -252,7 +252,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                   <Link
                     href={`/search?q=${encodeURIComponent(trimmed)}`}
                     onClick={onClose}
-                    className="mt-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-elevated"
+                    className="mt-1 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold text-rose-400 transition-colors hover:bg-white/[0.05] hover:text-rose-300"
                   >
                     Lihat semua hasil &ldquo;{trimmed}&rdquo;
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />

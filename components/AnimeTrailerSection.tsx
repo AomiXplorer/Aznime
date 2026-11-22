@@ -19,19 +19,19 @@ export function AnimeTrailerSection({ title, trailer }: AnimeTrailerSectionProps
 
   return (
     <section aria-label="Trailer resmi" className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 font-display text-lg font-bold text-ink">
-          <Youtube className="h-5 w-5 text-accent-ink" aria-hidden="true" />
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-zinc-100">
+          <Youtube className="h-5 w-5 text-rose-400" aria-hidden="true" />
           Trailer Resmi
         </h2>
         {trailer.matchedTitle ? (
-          <span className="text-xs text-muted">
+          <span className="text-xs text-zinc-400">
             Sumber: AniList ({trailer.matchedTitle})
           </span>
         ) : null}
       </div>
 
-      <div className="relative aspect-video w-full max-w-3xl overflow-hidden rounded-2xl border border-line bg-[#050407]">
+      <div className="relative aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-white/10 bg-black">
         {playing ? (
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer.id)}?autoplay=1&rel=0`}
@@ -45,7 +45,7 @@ export function AnimeTrailerSection({ title, trailer }: AnimeTrailerSectionProps
             type="button"
             onClick={() => setPlaying(true)}
             aria-label={`Putar trailer ${title}`}
-            className="group relative flex h-full w-full cursor-pointer items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+            className="group relative flex h-full w-full cursor-pointer items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
           >
             <AnimeImage
               src={trailer.thumbnail || trailer.bannerImage}
@@ -57,7 +57,7 @@ export function AnimeTrailerSection({ title, trailer }: AnimeTrailerSectionProps
               aria-hidden="true"
               className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
             />
-            <span className="relative z-10 inline-flex items-center gap-2.5 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white shadow-[0_12px_32px_rgba(225,29,72,0.4)] transition-transform duration-150 group-hover:scale-105 group-hover:bg-accent-hover">
+            <span className="relative z-10 inline-flex items-center gap-2 rounded-md bg-[#be123c] px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-colors duration-150 group-hover:bg-[#9f1239]">
               <Play className="h-4 w-4 fill-current" aria-hidden="true" />
               Putar Trailer
             </span>

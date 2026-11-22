@@ -97,13 +97,13 @@ export function Navbar() {
             saat scroll, dan itu penyebab utama scroll tersendat di Android. */}
         <div
           aria-hidden="true"
-          className={`absolute inset-0 -z-10 border-b border-line bg-canvas transition-opacity duration-200 ${
+          className={`absolute inset-0 -z-10 border-b border-white/[0.06] bg-canvas/95 transition-opacity duration-300 ${
             transparent ? 'opacity-0' : 'opacity-100'
           }`}
         />
         <div
           aria-hidden="true"
-          className={`absolute inset-0 -z-10 bg-gradient-to-b from-canvas/90 to-transparent transition-opacity duration-200 ${
+          className={`absolute inset-0 -z-10 bg-gradient-to-b from-black/70 to-transparent transition-opacity duration-300 ${
             transparent ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -111,15 +111,12 @@ export function Navbar() {
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5 rounded-sm font-display text-[1.45rem] font-extrabold leading-none tracking-tight text-ink whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+            className="shrink-0 rounded-md text-[1.55rem] font-extrabold tracking-tight text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
-            <span aria-hidden="true" className="h-5 w-1 rounded-full bg-accent" />
-            <span>
-              Aznime<span className="text-accent">.</span>
-            </span>
+            Aznime
           </Link>
 
-          <nav aria-label="Navigasi utama" className="hidden h-full flex-1 items-stretch gap-7 md:flex">
+          <nav aria-label="Navigasi utama" className="hidden flex-1 items-center gap-6 md:flex">
             {NAV_LINKS.map((link) => {
               const active = isActive(pathname, link.href);
               return (
@@ -127,17 +124,11 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`relative flex items-center whitespace-nowrap shrink-0 text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
-                    active ? 'font-bold text-ink' : 'font-medium text-muted hover:text-ink'
+                  className={`whitespace-nowrap text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                    active ? 'font-bold text-white' : 'font-medium text-zinc-300 hover:text-white'
                   }`}
                 >
                   {link.label}
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-accent"
-                    />
-                  ) : null}
                 </Link>
               );
             })}
@@ -151,13 +142,10 @@ export function Navbar() {
                 setSearchOpen(true);
               }}
               aria-label="Buka pencarian anime"
-              className="inline-flex h-10 cursor-pointer items-center gap-2.5 rounded-full border border-line bg-surface px-3.5 text-[13px] text-muted transition-colors duration-150 hover:border-line-accent hover:bg-elevated hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:w-52 lg:w-60"
+              className="group inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-white/[0.08] px-3.5 text-[13px] text-zinc-200 transition-all duration-200 hover:bg-white/[0.16] hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="hidden flex-1 text-left sm:inline">Cari anime</span>
-              <kbd className="hidden rounded-full border border-line bg-canvas/70 px-2 py-0.5 font-mono text-[10.5px] font-medium text-faint lg:inline">
-                Ctrl K
-              </kbd>
+              <Search className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+              <span className="hidden sm:inline">Cari anime</span>
             </button>
 
             <button
@@ -166,7 +154,7 @@ export function Navbar() {
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-panel"
               aria-label={mobileOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
-              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-ink transition-colors hover:bg-elevated md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/[0.08] text-zinc-100 transition-colors hover:bg-white/[0.16] md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
@@ -177,24 +165,20 @@ export function Navbar() {
           <nav
             id="mobile-nav-panel"
             aria-label="Navigasi mobile"
-            className="page-enter border-t border-line bg-canvas px-4 pb-4 pt-2 md:hidden"
+            className="page-enter border-t border-white/[0.06] bg-canvas px-4 pb-4 pt-3 md:hidden"
           >
-            <ul>
+            <ul className="space-y-1">
               {NAV_LINKS.map((link) => {
                 const active = isActive(pathname, link.href);
                 return (
-                  <li key={link.href} className="border-b border-line last:border-b-0">
+                  <li key={link.href}>
                     <Link
                       href={link.href}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-3 py-3.5 text-[15px] transition-colors ${
-                        active ? 'font-bold text-ink' : 'font-medium text-muted hover:text-ink'
+                      className={`block rounded-md px-3 py-2.5 text-sm transition-colors ${
+                        active ? 'bg-white/10 font-bold text-white' : 'font-medium text-zinc-300 hover:bg-white/[0.06] hover:text-white'
                       }`}
                     >
-                      <span
-                        aria-hidden="true"
-                        className={`h-4 w-1 rounded-full ${active ? 'bg-accent' : 'bg-transparent'}`}
-                      />
                       {link.label}
                     </Link>
                   </li>

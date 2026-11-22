@@ -177,14 +177,14 @@ export function InfiniteAnimeCatalog({
 
       <div ref={sentinelRef} className="py-2 text-center">
         {!pagination.hasNextPage && !loadingMore ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-zinc-400">
             Seluruh anime pada daftar ini sudah ditampilkan ({items.length} judul).
           </p>
         ) : !loadingMore && !error ? (
           <button
             type="button"
             onClick={() => void loadNextPage()}
-            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface px-5 text-xs font-semibold text-ink transition-colors duration-150 hover:border-line-accent hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+            className="inline-flex cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#12141a] px-4 py-2 text-xs font-medium text-zinc-300 transition-colors duration-150 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
           >
             Muat lebih banyak
           </button>
