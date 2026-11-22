@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthDialog, type AuthMode } from './AuthDialog';
+import { AUTH_ERROR_MESSAGES, AuthDialog, type AuthMode } from './AuthDialog';
 import { clearGuestHistory, readGuestHistory } from '@/lib/guest-history';
 
 export interface AuthUser {
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [stats, setStats] = useState<AuthStats>({ history: 0, favorites: 0 });
   const [loading, setLoading] = useState(true);
-  const [dialog, setDialog] = useState<{ mode: AuthMode; returnTo?: string } | null>(null);
+  const [dialog, setDialog] = useState<{ mode: AuthMode; returnTo?: string; initialError?: string } | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -65,6 +65,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Callback OAuth mengembalikan ?auth_error=... ke halaman asal. Pesannya
+  // ditampilkan di dalam modal, lalu parameter dibersihkan dari URL.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('auth_error');
+    if (!code) return;
+    setDialog({ mode: 'login', initialError: AUTH_ERROR_MESSAGES[code] || 'Login gagal. Coba lagi.' });
+    params.delete('auth_error');
+    params.delete('auth');
+    const qs = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+  }, []);
 
   // History tamu yang masih tertinggal (misalnya login lewat OAuth) dikirim
   // sekali setelah sesi aktif, lalu localStorage dibersihkan hanya jika
@@ -115,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthDialog
           mode={dialog.mode}
           returnTo={dialog.returnTo}
+          initialError={dialog.initialError}
           onClose={closeAuth}
           onAuthenticated={async () => {
             await refresh();
