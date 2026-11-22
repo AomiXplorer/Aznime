@@ -81,16 +81,46 @@ function normalizeState(raw: Partial<MaintenanceState> | null | undefined): Main
   };
 }
 
+export interface MaintenanceDiagnostics {
+  upstashConfigured: boolean;
+  upstashInvalidScheme: boolean;
+  telegramBotTokenConfigured: boolean;
+  webhookSecretConfigured: boolean;
+  adminIdsCount: number;
+  bypassSecretConfigured: boolean;
+}
+
 export function isUpstashConfigured(): boolean {
-  return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL?.trim() && process.env.UPSTASH_REDIS_REST_TOKEN?.trim()
-  );
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim() || '';
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim() || '';
+  return Boolean(token && /^https?:\/\//i.test(url));
+}
+
+export function getMaintenanceDiagnostics(): MaintenanceDiagnostics {
+  const rawUpstashUrl = process.env.UPSTASH_REDIS_REST_URL?.trim() || '';
+  const upstashInvalidScheme = Boolean(rawUpstashUrl && !/^https?:\/\//i.test(rawUpstashUrl));
+
+  return {
+    upstashConfigured: isUpstashConfigured(),
+    upstashInvalidScheme,
+    telegramBotTokenConfigured: Boolean(process.env.TELEGRAM_BOT_TOKEN?.trim()),
+    webhookSecretConfigured: Boolean(process.env.TELEGRAM_WEBHOOK_SECRET?.trim()),
+    adminIdsCount: parseAdminIds().size,
+    bypassSecretConfigured: Boolean(process.env.MAINTENANCE_BYPASS_SECRET?.trim()),
+  };
 }
 
 async function upstashCommand<T = unknown>(command: (string | number)[]): Promise<T | null> {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim().replace(/\/+$/, '');
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
   if (!url || !token) return null;
+
+  if (!/^https?:\/\//i.test(url)) {
+    console.error(
+      '[Maintenance] UPSTASH_REDIS_REST_URL harus berupa URL HTTPS REST (https://...upstash.io), bukan URL Redis TCP.'
+    );
+    return null;
+  }
 
   const res = await fetch(url, {
     method: 'POST',

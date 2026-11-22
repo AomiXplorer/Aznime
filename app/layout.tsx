@@ -1,15 +1,27 @@
 import type { Metadata, Viewport } from 'next';
-import { Figtree } from 'next/font/google';
+import { Bricolage_Grotesque, Figtree } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MaintenanceBypassBanner } from '@/components/MaintenanceBypassBanner';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
+/* Dua peran, dua wajah: Figtree untuk teks dan kontrol, Bricolage Grotesque
+   untuk judul. Satu wajah untuk semuanya adalah salah satu tanda paling khas
+   UI hasil generator, jadi judul punya karakter sendiri. */
 const figtree = Figtree({
   subsets: ['latin'],
   variable: '--font-figtree',
   display: 'swap',
+  weight: ['400', '500', '600'],
+});
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-bricolage',
+  display: 'swap',
+  weight: ['500', '600', '700'],
 });
 
 const TITLE = 'Aznime – Streaming Anime Subtitle Indonesia';
@@ -81,7 +93,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0a0b0e',
+  themeColor: '#0c0909',
   width: 'device-width',
   initialScale: 1,
   colorScheme: 'dark',
@@ -112,12 +124,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Langsung ke konten utama
         </a>
-        <Navbar />
-        <main id="main-content" className="flex-1">
-          {children}
-        </main>
-        <Footer />
+        <AuthProvider>
+          <Navbar />
+          <main id="main-content" className="flex-1">
+            {children}
+          </main>
+          <Footer />
         <MaintenanceBypassBanner />
+        </AuthProvider>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

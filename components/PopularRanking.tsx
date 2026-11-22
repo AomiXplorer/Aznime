@@ -49,7 +49,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
             Peringkat dari yang paling banyak ditonton.
           </p>
         </div>
-        <div role="tablist" aria-label="Periode peringkat" className="flex gap-1 rounded-full bg-white/[0.04] p-1">
+        <div role="tablist" aria-label="Periode peringkat" className="flex gap-0.5 rounded-[4px] border border-white/10 p-0.5">
           {PERIODS.map((p) => {
             const active = period === p.key;
             return (
@@ -60,7 +60,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
                 aria-selected={active}
                 onClick={() => setPeriod(p.key)}
                 className={cn(
-                  'cursor-pointer whitespace-nowrap rounded-full px-3 py-1 text-[12.5px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+                  'cursor-pointer whitespace-nowrap rounded-[3px] px-2.5 py-1 text-[12px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
                   active ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'
                 )}
               >
@@ -77,7 +77,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
           <Link
             href={itemHref(champion)}
             prefetch={false}
-            className="group flex overflow-hidden rounded-xl border border-white/[0.08] bg-surface transition-colors duration-200 hover:border-accent/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="group flex overflow-hidden rounded-[6px] border border-[#2b2222] bg-surface transition-colors duration-200 hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             <div className="relative aspect-[2/3] w-[42%] max-w-[260px] shrink-0 overflow-hidden">
               <AnimeImage
@@ -85,27 +85,23 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
                 alt={champion.title}
                 unoptimized={champion.source === 'malz'}
                 sizes="(max-width: 640px) 42vw, 260px"
-                className="transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               />
               <span
                 aria-hidden="true"
                 className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent"
               />
               <span className="absolute inset-x-0 bottom-0 p-3">
-                <span className="block truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-rose-300">
+                <span className="block truncate text-[10px] font-medium text-rose-300">
                   {CHAMPION_TAG[period]}
                 </span>
-                <span className="mt-0.5 block text-[2.6rem] font-black leading-none tracking-tighter text-white sm:text-[3rem]">
+                <span className="mt-0.5 block font-display text-[2.4rem] font-semibold leading-none tracking-[-0.04em] text-white tabular-nums sm:text-[2.8rem]">
                   01
                 </span>
               </span>
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
-                Peringkat 1
-              </span>
-              <h3 className="line-clamp-3 text-[1.02rem] font-extrabold leading-snug text-white sm:text-[1.25rem] lg:text-[1.45rem]">
+              <h3 className="line-clamp-3 font-display text-[17px] font-semibold leading-[1.25] tracking-[-0.02em] text-white sm:text-[20px] lg:text-[23px]">
                 {champion.title}
               </h3>
               {champion.genres.length > 0 ? (
@@ -130,13 +126,13 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
                   <Link
                     href={itemHref(item)}
                     prefetch={false}
-                    className="group flex h-full items-center gap-3 rounded-xl border border-white/[0.05] bg-[#0f1116] px-2.5 py-2.5 transition-colors duration-150 hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:gap-4 sm:px-3"
+                    className="group flex h-full items-center gap-3 rounded-[6px] border border-[#241d1d] bg-[#131010] px-2.5 py-2.5 transition-colors duration-150 hover:border-white/[0.16] hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:gap-4 sm:px-3"
                   >
                     <span className="sr-only">Peringkat {rank}: </span>
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'rank-numeral shrink-0 text-right font-black tabular-nums leading-none tracking-tighter',
+                        'rank-numeral shrink-0 text-right font-display font-semibold tabular-nums leading-none tracking-[-0.04em]',
                         isRunnerUp
                           ? 'rank-numeral-strong w-11 text-[2.5rem] sm:w-14 sm:text-[3rem]'
                           : 'rank-numeral-soft w-9 text-[2rem] sm:w-12 sm:text-[2.4rem]'
@@ -158,7 +154,6 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
                         alt={item.title}
                         unoptimized={item.source === 'malz'}
                         sizes={isRunnerUp ? '64px' : '56px'}
-                        className="transition-transform duration-300 ease-out group-hover:scale-[1.05]"
                       />
                     </div>
 
@@ -184,7 +179,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
           </ol>
         </div>
       ) : (
-        <p className="rounded-xl border border-white/[0.07] bg-surface p-6 text-center text-sm text-zinc-400">
+        <p className="rounded-[6px] border border-[#241d1d] bg-surface p-6 text-center text-[13px] text-zinc-400">
           Belum ada data peringkat untuk periode ini.
         </p>
       )}

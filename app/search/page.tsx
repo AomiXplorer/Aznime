@@ -67,12 +67,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             defaultValue={q}
             placeholder="Masukkan judul anime"
             required
-            className="h-11 w-full rounded-full bg-white/[0.08] pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 transition-colors focus:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-white/40"
+            className="h-11 w-full rounded-[4px] border border-white/10 bg-white/[0.03] pl-10 pr-4 text-[13.5px] text-white placeholder:text-zinc-500 transition-colors focus:border-white/30 focus:bg-white/[0.05] focus:outline-none"
           />
         </div>
         <button
           type="submit"
-          className="h-11 cursor-pointer rounded-full bg-accent-strong px-6 text-sm font-bold text-white transition-all hover:bg-accent active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="h-11 cursor-pointer rounded-[4px] bg-white px-6 text-[13px] font-semibold text-black transition-colors hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           Cari
         </button>

@@ -12,6 +12,7 @@ import {
   nekopoiDownloadsToBoxes,
   nekopoiEpisodeNumber,
   nekopoiEpisodeSlugFromRoute,
+  nekopoiProxiedImage,
   nekopoiSeriesSlugFromEpisode,
   nekopoiStreamsToMirrors,
   nekopoiToEpisodeSummary,
@@ -124,6 +125,7 @@ export default async function HentaiWatchPage({ params }: HentaiWatchPageProps) 
         <NekopoiPlayer
           key={inner}
           title={title}
+          poster={nekopoiProxiedImage(episode.thumbnail)}
           servers={nekopoiStreamsToMirrors(episode.streams)}
           navigation={{ prev: toNavLink(older, 'prev'), next: toNavLink(newer, 'next') }}
           seriesHref={seriesHref}

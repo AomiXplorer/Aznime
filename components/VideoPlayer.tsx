@@ -666,7 +666,7 @@ export function VideoPlayer({
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-0.5 border-l border-white/[0.08] pl-1">
+              <div className="flex shrink-0 items-center gap-0.5 border-l border-[#2b2222] pl-1">
                 <IconButton
                   icon={Monitor}
                   label={theater ? 'Keluar mode theater' : 'Mode theater'}
@@ -684,7 +684,7 @@ export function VideoPlayer({
             </div>
 
             {/* Navigasi episode: satu baris, tinggi tetap, state kosong tetap terlihat. */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-white/[0.08] bg-[#0a0c11] px-1 py-1 sm:px-1.5">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-[#2b2222] bg-[#0a0c11] px-1 py-1 sm:px-1.5">
               <EpisodeNavButton link={navigation.prev} direction="prev" seriesTitle={seriesTitle} />
               <Link
                 href={allSeriesHref}
@@ -702,7 +702,7 @@ export function VideoPlayer({
             {notice ? (
               <p
                 role="status"
-                className="border-t border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-zinc-400"
+                className="border-t border-[#2b2222] bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-zinc-400"
               >
                 {notice}
               </p>
@@ -731,7 +731,7 @@ export function VideoPlayer({
             onClick={() => setReportOpen(false)}
             tabIndex={-1}
           />
-          <div className="relative w-full max-w-md rounded-t-xl bg-[#101218] p-4 sm:rounded-xl">
+          <div className="relative w-full max-w-md rounded-t-xl bg-[#131010] p-4 sm:rounded-xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id="report-title" className="text-[13.5px] font-semibold text-white">

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getHome, getOngoing } from '@/lib/scraper';
 import { withoutAdult } from '@/lib/adult';
 import type { FeaturedAnime } from '@/lib/scraper';
@@ -12,6 +13,7 @@ import {
 import { HeroSection } from '@/components/HeroSection';
 import { PopularRanking } from '@/components/PopularRanking';
 import { AnimeRow } from '@/components/AnimeRow';
+import { AnimeGrid } from '@/components/AnimeGrid';
 import { ErrorState } from '@/components/ErrorState';
 
 export const revalidate = 180;
@@ -74,12 +76,37 @@ export default async function HomePage() {
   return (
     <>
       {heroItems.length > 0 ? <HeroSection items={heroItems} /> : null}
-      <div className="relative z-10 mx-auto max-w-7xl space-y-10 px-4 pt-6 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-7xl space-y-12 px-4 pt-8 sm:px-6 lg:px-8">
         <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
         <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
         <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
+        {/* Pita terang warna tulang: satu-satunya blok terang di halaman, jadi
+            mata berhenti di sini sebelum lanjut ke baris berikutnya. */}
         {archiveRow.length > 0 ? (
-          <AnimeRow title="Dari arsip" items={archiveRow} viewAllHref="/anime" />
+          <section
+            aria-label="Dari arsip"
+            className="relative left-1/2 w-screen -translate-x-1/2 border-y border-[#241d1d] bg-bone py-10 text-ink"
+          >
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mb-5 flex items-end justify-between gap-4 border-b border-ink/15 pb-2.5">
+                <div className="flex items-baseline gap-2.5">
+                  <h2 className="font-display text-[19px] font-semibold tracking-[-0.02em] text-ink">
+                    Dari arsip
+                  </h2>
+                  <span className="text-[11px] tabular-nums text-[#6f625d]">
+                    {archiveRow.length} judul
+                  </span>
+                </div>
+                <Link
+                  href="/anime"
+                  className="inline-flex items-center gap-0.5 text-[12px] font-medium text-[#6f625d] transition-colors duration-150 hover:text-ink"
+                >
+                  Semua
+                </Link>
+              </div>
+              <AnimeGrid items={archiveRow.slice(0, 14)} tone="light" className="xl:grid-cols-7" />
+            </div>
+          </section>
         ) : null}
         <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />
       </div>

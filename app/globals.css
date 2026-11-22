@@ -2,14 +2,31 @@
 
 @theme inline {
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
-  --color-canvas: #0a0b0e;
-  --color-surface: #12141a;
-  --color-elevated: #181b23;
+  /* Netralnya hangat, bukan abu-abu murni: seluruh tangga permukaan digeser
+     ke rona rose supaya tidak terbaca sebagai template dark-mode generik. */
+  --color-canvas: #0c0909;
+  --color-surface: #131010;
+  --color-elevated: #1b1515;
+  --color-line: #2b2222;
+  --color-bone: #efe8e0;
+  --color-ink: #1a1414;
   --color-accent: #e11d48;
   --color-accent-strong: #be123c;
-  --color-muted: #a1a1aa;
+  --color-muted: #a49b9a;
+
+  /* Skala zinc bawaan diganti versi hangat. Semua teks sekunder di seluruh
+     situs ikut menghangat tanpa perlu menyentuh tiap komponen. */
+  --color-zinc-100: #f4eeed;
+  --color-zinc-200: #e4dcda;
+  --color-zinc-300: #cbc1bf;
+  --color-zinc-400: #a99f9d;
+  --color-zinc-500: #867c7a;
+  --color-zinc-600: #665d5b;
+  --color-zinc-700: #4a4241;
+  --color-zinc-800: #2f2928;
+  --color-zinc-900: #1d1818;
 }
 
 :root {
@@ -18,13 +35,13 @@
 
 html {
   font-size: 15px;
-  background-color: #0a0b0e;
-  color: #f4f4f5;
+  background-color: #0c0909;
+  color: #f6f1f0;
 }
 
 body {
-  background-color: #0a0b0e;
-  color: #f4f4f5;
+  background-color: #0c0909;
+  color: #f6f1f0;
   font-family: var(--font-sans);
   /* `clip` (bukan `hidden`) supaya body tidak menjadi scroll container,
      sehingga `position: sticky` pada navbar tetap bekerja dan tidak memicu
@@ -35,12 +52,16 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Judul memakai Bricolage Grotesque dengan berat 600 dan tracking rapat.
+   Berat 800 di semua judul adalah salah satu pola paling khas UI generator,
+   jadi bobot dibatasi dan jarak huruf diatur per peran. */
 h1,
 h2,
 h3,
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -180,8 +201,7 @@ h3,
 }
 
 /* Sembunyikan navbar dan footer saat layar maintenance dirender lewat rewrite proxy. */
-body:has([data-maintenance-screen]) > header,
-body:has([data-maintenance-screen]) > footer {
+body:has([data-maintenance-screen]) header,
+body:has([data-maintenance-screen]) footer {
   display: none;
 }
-

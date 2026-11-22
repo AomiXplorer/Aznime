@@ -9,6 +9,7 @@ import {
   nekopoiSeriesSlugFromRoute,
   nekopoiDetailGenres,
   nekopoiDetailTitle,
+  nekopoiProxiedImage,
   nekopoiSynopsis,
   nekopoiToEpisodeSummary,
   type NekopoiDetailPayload,
@@ -57,7 +58,7 @@ function buildView(detail: NekopoiDetailPayload, synopsis: string | null): Anime
   return {
     title,
     altTitle: detail.japan_name?.trim() || null,
-    poster: detail.thumbnail || null,
+    poster: nekopoiProxiedImage(detail.thumbnail),
     posterUnoptimized: true,
     rating: detail.score?.trim() || null,
     synopsis,

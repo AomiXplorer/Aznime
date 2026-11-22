@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Info, Play, Youtube } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Youtube } from 'lucide-react';
 import type { AniListTrailer, FeaturedAnime } from '@/lib/scraper/types';
 import { AnimeImage } from './AnimeImage';
 import { TrailerModal } from './TrailerModal';
@@ -163,14 +163,14 @@ export function HeroSection({ items }: HeroSectionProps) {
           >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-zinc-300">
               {current.status ? (
-                <span className="rounded bg-accent px-2 py-0.5 text-xs font-bold text-white">{current.status}</span>
+                <span className="rounded-[3px] bg-accent px-1.5 py-[3px] text-[11px] font-semibold leading-none text-white">{current.status}</span>
               ) : null}
               {current.releaseYear ? <span>{current.releaseYear}</span> : null}
               {current.type ? <span>{current.type}</span> : null}
               {current.genres.length > 0 ? <span>{current.genres.slice(0, 3).join(', ')}</span> : null}
             </div>
 
-            <h1 className="line-clamp-3 text-[1.9rem] font-extrabold leading-[1.1] text-white [text-wrap:balance] sm:text-[2.2rem] lg:text-[2.6rem]">
+            <h1 className="line-clamp-3 font-display text-[30px] font-semibold leading-[1.05] tracking-[-0.035em] text-white [text-wrap:balance] sm:text-[38px] lg:text-[46px]">
               {current.title}
             </h1>
 
@@ -181,23 +181,16 @@ export function HeroSection({ items }: HeroSectionProps) {
             <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
               <Link
                 href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-md bg-white px-5 text-sm font-bold text-black transition-all duration-150 hover:bg-white/85 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                className="inline-flex h-11 items-center gap-2 rounded-[4px] bg-white px-5 text-[13px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
                 <Play className="h-4 w-4 fill-current" aria-hidden="true" />
                 Tonton
-              </Link>
-              <Link
-                href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white transition-colors duration-150 hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <Info className="h-4 w-4" aria-hidden="true" />
-                Info lainnya
               </Link>
               {hasTrailer ? (
                 <button
                   type="button"
                   onClick={() => setTrailerOpen(true)}
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-zinc-200 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 px-1 text-[13px] font-medium text-zinc-300 underline decoration-white/25 underline-offset-4 transition-colors duration-150 hover:text-white hover:decoration-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <Youtube className="h-4 w-4" aria-hidden="true" />
                   Trailer
@@ -212,7 +205,7 @@ export function HeroSection({ items }: HeroSectionProps) {
             href={detailHref}
             tabIndex={-1}
             aria-hidden="true"
-            className="relative ml-auto hidden aspect-[2/3] w-[210px] shrink-0 overflow-hidden rounded-lg shadow-2xl shadow-black/70 ring-1 ring-white/10 lg:block"
+            className="relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] ring-1 ring-white/15 lg:block"
           >
             <AnimeImage src={current.poster} alt={current.title} priority sizes="210px" />
           </Link>
@@ -222,7 +215,11 @@ export function HeroSection({ items }: HeroSectionProps) {
       {slides.length > 1 ? (
         <div className="absolute inset-x-0 bottom-6 z-10">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2" role="tablist" aria-label="Pilih anime unggulan">
+            <div className="flex items-center gap-3" role="tablist" aria-label="Pilih anime unggulan">
+              <span className="font-display text-[12px] tabular-nums text-zinc-200">
+                {String(index + 1).padStart(2, '0')}
+                <span className="text-zinc-500"> / {String(slides.length).padStart(2, '0')}</span>
+              </span>
               {slides.map((item, i) => (
                 <button
                   key={item.slug || i}
@@ -233,7 +230,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                   onClick={() => go(i)}
                   className="group relative h-6 w-9 cursor-pointer focus-visible:outline-none sm:w-12"
                 >
-                  <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/25 transition-colors group-hover:bg-white/40 group-focus-visible:ring-2 group-focus-visible:ring-white">
+                  <span className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 overflow-hidden bg-white/25 transition-colors group-hover:bg-white/45 group-focus-visible:ring-2 group-focus-visible:ring-white">
                     {i === index ? (
                       <span
                         key={`bar-${index}`}
@@ -241,7 +238,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                            tidak ada setInterval/setTimeout yang membangunkan
                            main thread, dan progres otomatis berhenti saat hover. */
                         onAnimationEnd={autoplay ? () => go(index + 1) : undefined}
-                        className="block h-full origin-left rounded-full bg-white"
+                        className="block h-full origin-left bg-accent"
                         style={
                           autoplay
                             ? {
@@ -262,7 +259,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index - 1)}
                 aria-label="Anime unggulan sebelumnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -270,7 +267,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index + 1)}
                 aria-label="Anime unggulan berikutnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>

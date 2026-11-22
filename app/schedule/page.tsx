@@ -61,7 +61,7 @@ export default async function SchedulePage() {
         <div className="space-y-10">
           {days.map(([day, items]) => (
             <section key={day} aria-label={`Jadwal ${day}`} className="space-y-4">
-              <div className="flex items-baseline justify-between border-b border-white/[0.08] pb-2">
+              <div className="flex items-baseline justify-between border-b border-[#2b2222] pb-2">
                 <h2 className="font-display text-xl font-semibold text-zinc-100">{day}</h2>
                 <span className="font-mono text-xs tabular-nums text-zinc-400">
                   {items.length} judul
@@ -77,9 +77,9 @@ export default async function SchedulePage() {
                     <Link
                       key={`${day}-${item.slug || idx}`}
                       href={href}
-                      className="group flex items-center gap-3 rounded-lg border border-white/[0.08] bg-[#12141a] p-2.5 transition-colors duration-150 hover:border-white/25 hover:bg-[#181b23] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                      className="group flex items-center gap-3 rounded-lg border border-[#2b2222] bg-[#131010] p-2.5 transition-colors duration-150 hover:border-white/25 hover:bg-[#1b1515] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                     >
-                      <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-md bg-[#181b23]">
+                      <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-md bg-[#1b1515]">
                         <AnimeImage src={item.poster} alt={item.title} sizes="56px" />
                       </div>
                       <div className="min-w-0 flex-1 space-y-1">

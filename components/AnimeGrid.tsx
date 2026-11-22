@@ -6,9 +6,10 @@ interface AnimeGridProps {
   items: AnimeCardItem[];
   priorityCount?: number;
   className?: string;
+  tone?: 'dark' | 'light';
 }
 
-export function AnimeGrid({ items, priorityCount = 0, className }: AnimeGridProps) {
+export function AnimeGrid({ items, priorityCount = 0, className, tone }: AnimeGridProps) {
   return (
     <div
       className={cn(
@@ -21,6 +22,7 @@ export function AnimeGrid({ items, priorityCount = 0, className }: AnimeGridProp
           key={`${item.kind}-${item.slug || item.url || idx}`}
           item={item}
           priority={idx < priorityCount}
+          tone={tone}
         />
       ))}
     </div>

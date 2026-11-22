@@ -86,7 +86,7 @@ export function WatchLayout({
 
         {episodesSlot ? (
           <section aria-label="Semua episode dalam seri ini" id="episode-lainnya" className="scroll-mt-20">
-            <div className="flex items-baseline justify-between gap-3 border-b border-white/[0.08] pb-2">
+            <div className="flex items-baseline justify-between gap-3 border-b border-[#2b2222] pb-2">
               <h2 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-zinc-200">
                 Episode lainnya
               </h2>

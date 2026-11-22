@@ -1,5 +1,5 @@
 import type { AnimeCardItem } from '@/lib/scraper/types';
-import { nekopoiAnimeSlugFromSlug, nekopoiEpisodeSlugFromSlug } from '@/lib/nekopoi';
+import { nekopoiCardHref } from '@/lib/nekopoi-links';
 import { AnimeCard } from './AnimeCard';
 import { cn } from '@/lib/cn';
 
@@ -10,25 +10,15 @@ interface NekopoiGridProps {
 }
 
 /**
- * Kartu Nekopoi memakai slug berawalan, jadi tujuannya dihitung di sini:
- * seri menuju halaman sinopsis, episode/post 3D-JAV menuju pemutar.
+ * Grid bagian /hentai. Kartu di sini tidak menampilkan baris genre/status
+ * karena seluruh isi bagian ini sudah hentai, dan label 18+ cukup satu kali di
+ * judul halaman. Nomor episode tetap muncul sebagai penanda di poster.
  */
-export function nekopoiCardHref(item: Pick<AnimeCardItem, 'slug' | 'kind'>): string {
-  if (!item.slug) return '/hentai';
-  const episodeSlug = nekopoiEpisodeSlugFromSlug(item.slug);
-  if (episodeSlug || item.kind === 'episode') {
-    const inner = episodeSlug || item.slug;
-    return `/hentai/watch/${encodeURIComponent(inner)}`;
-  }
-  const animeSlug = nekopoiAnimeSlugFromSlug(item.slug) || item.slug;
-  return `/hentai/${encodeURIComponent(animeSlug)}`;
-}
-
 export function NekopoiGrid({ items, priorityCount = 0, className }: NekopoiGridProps) {
   return (
     <div
       className={cn(
-        'grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7',
+        'grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-4 md:grid-cols-5 lg:grid-cols-6',
         className
       )}
     >
@@ -37,7 +27,7 @@ export function NekopoiGrid({ items, priorityCount = 0, className }: NekopoiGrid
           key={`${item.kind}-${item.slug || idx}`}
           item={item}
           href={nekopoiCardHref(item)}
-          badge="18+"
+          showMeta={false}
           priority={idx < priorityCount}
         />
       ))}

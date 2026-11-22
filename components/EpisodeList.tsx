@@ -101,7 +101,7 @@ export function EpisodeList({ episodes, currentSlug, hrefBase = '/watch' }: Epis
             const href = ep.slug ? `${hrefBase}/${encodeURIComponent(ep.slug)}` : '/anime';
             const isActive = Boolean(currentSlug && ep.slug === currentSlug);
             return (
-              <li key={`${ep.slug || idx}`} className="ep-item border-b border-white/[0.06]">
+              <li key={`${ep.slug || idx}`} className="ep-item border-b border-[#241d1d]">
                 <Link
                   href={href}
                   prefetch={false}

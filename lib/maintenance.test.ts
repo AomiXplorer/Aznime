@@ -5,9 +5,11 @@ import {
   consumePendingAction,
   createBypassToken,
   formatDurationLabel,
+  getMaintenanceDiagnostics,
   getMaintenanceState,
   invalidateMaintenanceCache,
   isAuthorizedTelegramAdmin,
+  isUpstashConfigured,
   parseAdminIds,
   parseDurationMinutes,
   parseMaintenanceOnArgs,
@@ -139,4 +141,39 @@ test('computeRetryAfterSeconds menjaga batas aman header Retry-After', () => {
   assert.equal(computeRetryAfterSeconds(null, now), 300);
   assert.equal(computeRetryAfterSeconds('2026-11-22T10:15:00.000Z', now), 900);
   assert.equal(computeRetryAfterSeconds('2026-11-22T09:50:00.000Z', now), 120);
+});
+
+test('getMaintenanceDiagnostics mendeteksi skema Upstash salah (rediss://) dan status env secara aman', () => {
+  const prevUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const prevToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const prevSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const prevAdmins = process.env.TELEGRAM_ADMIN_IDS;
+
+  process.env.UPSTASH_REDIS_REST_URL = 'rediss://default:abc@example.upstash.io:6379';
+  process.env.UPSTASH_REDIS_REST_TOKEN = 'token123';
+  process.env.TELEGRAM_WEBHOOK_SECRET = 'sec123';
+  process.env.TELEGRAM_ADMIN_IDS = '123456';
+
+  try {
+    assert.equal(isUpstashConfigured(), false);
+    const diag = getMaintenanceDiagnostics();
+    assert.equal(diag.upstashConfigured, false);
+    assert.equal(diag.upstashInvalidScheme, true);
+    assert.equal(diag.webhookSecretConfigured, true);
+    assert.equal(diag.adminIdsCount, 1);
+
+    process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
+    const validDiag = getMaintenanceDiagnostics();
+    assert.equal(validDiag.upstashConfigured, true);
+    assert.equal(validDiag.upstashInvalidScheme, false);
+  } finally {
+    if (prevUrl === undefined) delete process.env.UPSTASH_REDIS_REST_URL;
+    else process.env.UPSTASH_REDIS_REST_URL = prevUrl;
+    if (prevToken === undefined) delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    else process.env.UPSTASH_REDIS_REST_TOKEN = prevToken;
+    if (prevSecret === undefined) delete process.env.TELEGRAM_WEBHOOK_SECRET;
+    else process.env.TELEGRAM_WEBHOOK_SECRET = prevSecret;
+    if (prevAdmins === undefined) delete process.env.TELEGRAM_ADMIN_IDS;
+    else process.env.TELEGRAM_ADMIN_IDS = prevAdmins;
+  }
 });

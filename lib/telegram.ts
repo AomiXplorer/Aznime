@@ -4,9 +4,11 @@ import {
   createBypassToken,
   deletePendingAction,
   formatDurationLabel,
+  getMaintenanceDiagnostics,
   getMaintenanceState,
   isAuthorizedTelegramAdmin,
   isUpstashConfigured,
+  parseAdminIds,
   parseMaintenanceOnArgs,
   savePendingAction,
   setMaintenanceState,
@@ -80,7 +82,8 @@ function actorLabel(user?: TelegramUser): string {
 }
 
 async function telegramApi(method: string, payload: Record<string, unknown>): Promise<void> {
-  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  const rawToken = process.env.TELEGRAM_BOT_TOKEN?.trim() || '';
+  const token = rawToken.replace(/^bot(?=\d+:)/i, '');
   if (!token) {
     throw new Error('TELEGRAM_BOT_TOKEN belum dikonfigurasi.');
   }
@@ -264,11 +267,46 @@ export async function handleTelegramUpdate(update: TelegramUpdate, siteOrigin: s
   }
 }
 
+function logUnauthorizedTelegramAttempt(
+  kind: 'message' | 'callback',
+  userId?: number,
+  chatId?: number
+): void {
+  if (parseAdminIds().size === 0) {
+    console.warn(
+      `[Telegram] Ignored ${kind}: TELEGRAM_ADMIN_IDS is empty or invalid in environment.`
+    );
+    return;
+  }
+  console.warn(
+    `[Telegram] Ignored ${kind} from unauthorized userId=${userId ?? 'unknown'} chatId=${chatId ?? 'unknown'}.`
+  );
+}
+
+function buildDiagnosticsSummary(): string {
+  const diag = getMaintenanceDiagnostics();
+  const upstashStatus = diag.upstashInvalidScheme
+    ? 'Salah format (harus https://, bukan rediss://)'
+    : diag.upstashConfigured
+      ? 'Terhubung (REST API)'
+      : 'Belum diisi (fallback memori)';
+
+  return [
+    '<b>Diagnostik Server</b>',
+    `• <b>Upstash Redis:</b> ${upstashStatus}`,
+    `• <b>Webhook Secret:</b> ${diag.webhookSecretConfigured ? 'Terpasang' : 'Belum diisi'}`,
+    `• <b>Admin IDs:</b> ${diag.adminIdsCount} terdaftar`,
+    `• <b>Bypass Secret:</b> ${diag.bypassSecretConfigured ? 'Terpasang' : 'Ephemeral per restart'}`,
+    `• <b>Waktu server:</b> ${escapeHtml(formatWibTime(new Date().toISOString()))}`,
+  ].join('\n');
+}
+
 async function handleMessage(message: TelegramMessage, siteOrigin: string): Promise<void> {
   const chatId = message.chat.id;
   const userId = message.from?.id;
 
   if (!isAuthorizedTelegramAdmin(userId, chatId)) {
+    logUnauthorizedTelegramAttempt('message', userId, chatId);
     return;
   }
 
@@ -288,15 +326,24 @@ async function handleMessage(message: TelegramMessage, siteOrigin: string): Prom
         '<b>Panel Kendali Maintenance Aznime</b>',
         '',
         '<b>Perintah tersedia:</b>',
+        '• <code>/status</code> — Status maintenance & diagnostik server',
         '• <code>/maintenance</code> — Status & tombol cepat',
         '• <code>/maintenance on 30m Pesan</code> — Aktifkan dengan estimasi & pesan',
         '• <code>/maintenance off</code> — Matikan mode maintenance',
+        '• <code>/maintenance pesan Teks</code> — Ganti pesan maintenance',
         '• <code>/maintenance bypass</code> — Buat link akses admin',
         '',
         card.text,
       ].join('\n'),
       card.keyboard
     );
+    return;
+  }
+
+  if (command === '/status') {
+    const state = await getMaintenanceState({ bypassCache: true });
+    const card = buildStatusCard(state);
+    await sendMessage(chatId, `${card.text}\n\n${buildDiagnosticsSummary()}`, card.keyboard);
     return;
   }
 
@@ -394,6 +441,7 @@ async function handleCallbackQuery(query: TelegramCallbackQuery, siteOrigin: str
   const userId = query.from.id;
 
   if (!isAuthorizedTelegramAdmin(userId, chatId)) {
+    logUnauthorizedTelegramAttempt('callback', userId, chatId);
     await answerCallbackQuery(query.id, 'Akses ditolak.');
     return;
   }
