@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Check, ChevronDown, RotateCcw, Search, X } from 'lucide-react';
 import type { FilterOptionItem, FilterOptionsMap } from '@/lib/scraper/types';
 import { cn } from '@/lib/cn';
+import { AdultWarning } from './AdultWarning';
 
 export interface CatalogFilterState {
   status: string;
@@ -109,6 +110,8 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
   const [draftGenres, setDraftGenres] = useState<string[]>(current.genres);
   const [genreQuery, setGenreQuery] = useState('');
   const [mounted, setMounted] = useState(false);
+  // Memilih tipe Hentai membuka bagian 18+, jadi selalu lewat peringatan dulu.
+  const [adultPrompt, setAdultPrompt] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -215,6 +218,12 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
 
   const chooseSingle = useCallback(
     (key: 'status' | 'type' | 'order', value: string) => {
+      if (key === 'type' && value.trim().toLowerCase() === 'hentai') {
+        setAdultPrompt(true);
+        close();
+        return;
+      }
+
       const next: CatalogFilterState = {
         status: current.status,
         type: current.type,
@@ -540,6 +549,18 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
             document.body
           )
         : null}
+
+      <AdultWarning
+        open={adultPrompt}
+        onConfirm={() => {
+          setAdultPrompt(false);
+          router.push('/hentai');
+        }}
+        onCancel={() => {
+          setAdultPrompt(false);
+          triggerRefs.current.type?.focus();
+        }}
+      />
     </div>
   );
 }

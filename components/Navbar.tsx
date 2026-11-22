@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Menu, Search, X } from 'lucide-react';
+import { Wordmark } from './Wordmark';
 
 /* Dialog pencarian membawa motion + logika pencarian. Tidak dibutuhkan pada
    render awal, jadi dimuat terpisah dan baru dipasang saat pertama dibuka. */
@@ -113,9 +114,10 @@ export function Navbar() {
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="shrink-0 rounded-md text-[1.55rem] font-extrabold tracking-tight text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-label="Aznime, ke beranda"
+            className="shrink-0 rounded-sm text-[1.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
-            Aznime
+            <Wordmark />
           </Link>
 
           <nav aria-label="Navigasi utama" className="hidden flex-1 items-center gap-6 md:flex">

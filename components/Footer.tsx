@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Wordmark } from './Wordmark';
 
 const LINKS = [
   { href: '/', label: 'Beranda' },
@@ -15,8 +16,8 @@ export function Footer() {
     <footer className="mt-16 border-t border-white/[0.06] py-10 text-sm text-muted">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <div>
-          <Link href="/" className="text-xl font-extrabold tracking-tight text-accent">
-            Aznime
+          <Link href="/" aria-label="Aznime, ke beranda" className="inline-block text-xl">
+            <Wordmark />
           </Link>
           <p className="mt-1 max-w-sm text-xs">
             Streaming anime subtitle Indonesia dengan katalog langsung dan trailer AniList.
