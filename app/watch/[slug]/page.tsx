@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
     if (!ep.title) return { title: 'Nonton anime' };
     return {
       title: ep.title,
-      description: `Nonton streaming ${ep.title} subtitle Indonesia di Aznime. Pemutar otomatis memilih server tercepat.`,
+      description: `Nonton streaming ${ep.title} subtitle Indonesia di Aznime. Pilih server yang tersedia dan tautan unduhan per resolusi.`,
       alternates: { canonical: `/watch/${encodeURIComponent(decodedSlug)}` },
     };
   } catch {

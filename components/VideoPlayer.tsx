@@ -17,7 +17,6 @@ import {
   Monitor,
   RotateCcw,
   X,
-  Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { EpisodeNavLink, MirrorServer } from '@/lib/scraper/types';
@@ -40,11 +39,9 @@ interface VideoPlayerProps {
 
 /** Hanya dua server ini yang dipakai; sisanya disembunyikan. */
 const ALLOWED_SERVERS = ['vastads', 'abyss'] as const;
-/** Batas waktu satu pengukuran server. */
-const PROBE_TIMEOUT_MS = 4000;
-/** Server yang lebih lambat segini masih boleh menang kalau yang lain belum jawab. */
-const GRACE_MS = 250;
-/** Jika server terpilih belum selesai dimuat sampai batas ini, pindah otomatis. */
+/** Server default saat halaman dibuka. */
+const DEFAULT_SERVER = 'abyss';
+/** Jika server terpilih belum selesai dimuat sampai batas ini, pindah ke cadangan. */
 const STALL_MS = 12000;
 /** Kunci localStorage untuk preferensi theater. */
 const THEATER_KEY = 'aznime:theater';
@@ -55,6 +52,7 @@ const normalizeServerName = (name: string) => name.trim().toLowerCase().replace(
 const isVastads = (s: MirrorServer) => normalizeServerName(s.name).startsWith('vastads');
 const isAbyss = (s: MirrorServer) => normalizeServerName(s.name).startsWith('abyss');
 
+const isDefaultServer = (s: MirrorServer) => normalizeServerName(s.name).startsWith(DEFAULT_SERVER);
 const isAllowedServer = (s: MirrorServer) =>
   ALLOWED_SERVERS.some((name) => normalizeServerName(s.name).startsWith(name));
 
@@ -82,33 +80,6 @@ async function copyText(text: string): Promise<boolean> {
     } catch {
       return false;
     }
-  }
-}
-
-/**
- * Mengukur waktu sampai respons (header) pertama dari server, dari jaringan pengguna.
- * Mode no-cors dipakai karena host embed jarang mengirim header CORS; responsnya opaque,
- * tapi waktu tibanya tetap terukur. Koneksi langsung dibatalkan setelah header diterima.
- */
-async function probeServer(url: string, signal: AbortSignal): Promise<number> {
-  const start = performance.now();
-  const ctrl = new AbortController();
-  const onAbort = () => ctrl.abort();
-  signal.addEventListener('abort', onAbort, { once: true });
-  const timer = setTimeout(() => ctrl.abort(), PROBE_TIMEOUT_MS);
-  try {
-    await fetch(url, {
-      mode: 'no-cors',
-      cache: 'no-store',
-      credentials: 'omit',
-      referrerPolicy: 'no-referrer',
-      signal: ctrl.signal,
-    });
-    return Math.round(performance.now() - start);
-  } finally {
-    clearTimeout(timer);
-    ctrl.abort();
-    signal.removeEventListener('abort', onAbort);
   }
 }
 
@@ -216,8 +187,8 @@ export function VideoPlayer({
     const allowed = base.filter(isAllowedServer);
     const list = allowed.length > 0 ? allowed : base;
 
-    // vastads selalu di depan sebagai cadangan pertama.
-    return [...list].sort((a, b) => Number(isVastads(b)) - Number(isVastads(a)));
+    // Abyss dipakai sebagai server default, jadi selalu tampil paling depan.
+    return [...list].sort((a, b) => Number(isAbyss(b)) - Number(isAbyss(a)));
   }, [servers, defaultEmbed]);
 
   const playable = useMemo(
@@ -229,19 +200,14 @@ export function VideoPlayer({
   );
 
   const fallbackIdx = useMemo(() => {
-    const preferred = playable.find(({ s }) => isVastads(s));
+    const preferred = playable.find(({ s }) => isDefaultServer(s));
     if (preferred) return preferred.i;
     const direct = playable.find(({ s }) => isDirect(s));
     if (direct) return direct.i;
     return playable[0]?.i ?? 0;
   }, [playable]);
 
-  // null = sedang mengukur server mana yang tercepat.
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(
-    playable.length > 1 ? null : fallbackIdx
-  );
-  const [latencies, setLatencies] = useState<Record<number, number | null>>({});
-  const [autoIdx, setAutoIdx] = useState<number | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(fallbackIdx);
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -255,24 +221,17 @@ export function VideoPlayer({
 
   const manualRef = useRef(false);
   const triedRef = useRef<Set<number>>(new Set());
-  const latencyRef = useRef<Record<number, number | null>>({});
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const copyTimer = useRef<number | undefined>(undefined);
   const reportTimer = useRef<number | undefined>(undefined);
 
   const activeServer = selectedIdx !== null ? effectiveServers[selectedIdx] || null : null;
-  const racing = selectedIdx === null;
 
   const advanceToNext = useCallback(
     (reason: string): boolean => {
       if (manualRef.current) return false;
-      const lat = latencyRef.current;
-      const rank = (i: number) => (typeof lat[i] === 'number' ? (lat[i] as number) : 1e9);
-      const next = playable
-        .map((p) => p.i)
-        .filter((i) => !triedRef.current.has(i))
-        .sort((a, b) => rank(a) - rank(b))[0];
+      const next = playable.map((p) => p.i).find((i) => !triedRef.current.has(i));
       if (next === undefined) return false;
       triedRef.current.add(next);
       setNotice(`${reason} Pindah ke ${displayServerName(effectiveServers[next])}.`);
@@ -282,83 +241,16 @@ export function VideoPlayer({
     [playable, effectiveServers]
   );
 
-  // 1) Balapan antar server: yang pertama merespons menjadi default.
+  // 1) Server default: Abyss kalau tersedia, kalau tidak server pertama yang bisa diputar.
+  //    Tidak ada lagi pengukuran/balapan kecepatan antar server.
   useEffect(() => {
     manualRef.current = false;
-    triedRef.current = new Set();
-    latencyRef.current = {};
-    setLatencies({});
-    setAutoIdx(null);
+    triedRef.current = new Set([fallbackIdx]);
+    setSelectedIdx(fallbackIdx);
     setNotice(null);
     setMediaError(null);
     setServerErrors(new Set());
-
-    if (playable.length <= 1) {
-      setSelectedIdx(fallbackIdx);
-      return;
-    }
-    setSelectedIdx(null);
-
-    const ac = new AbortController();
-    let decided = false;
-    let settled = 0;
-    let graceTimer: ReturnType<typeof setTimeout> | undefined;
-    let hardTimer: ReturnType<typeof setTimeout> | undefined;
-
-    const decide = () => {
-      if (decided) return;
-      decided = true;
-      clearTimeout(graceTimer);
-      clearTimeout(hardTimer);
-      if (manualRef.current) return;
-
-      let best = -1;
-      let bestScore = Infinity;
-      for (const { s, i } of playable) {
-        const ms = latencyRef.current[i];
-        if (typeof ms !== 'number') continue;
-        const score = ms - (isDirect(s) ? GRACE_MS : 0);
-        if (score < bestScore) {
-          best = i;
-          bestScore = score;
-        }
-      }
-      const pick = best === -1 ? fallbackIdx : best;
-      triedRef.current.add(pick);
-      setAutoIdx(best === -1 ? null : pick);
-      setSelectedIdx(pick);
-    };
-
-    hardTimer = setTimeout(decide, PROBE_TIMEOUT_MS + 200);
-
-    for (const { s, i } of playable) {
-      probeServer(s.url as string, ac.signal).then(
-        (ms) => {
-          if (ac.signal.aborted) return;
-          latencyRef.current[i] = ms;
-          setLatencies({ ...latencyRef.current });
-          settled += 1;
-          if (decided) return;
-          if (isDirect(s)) decide();
-          else if (!graceTimer) graceTimer = setTimeout(decide, GRACE_MS);
-        },
-        () => {
-          if (ac.signal.aborted) return;
-          latencyRef.current[i] = null;
-          setLatencies({ ...latencyRef.current });
-          settled += 1;
-          if (!decided && settled >= playable.length) decide();
-        }
-      );
-    }
-
-    return () => {
-      decided = true;
-      ac.abort();
-      clearTimeout(graceTimer);
-      clearTimeout(hardTimer);
-    };
-  }, [playable, fallbackIdx]);
+  }, [fallbackIdx]);
 
   // 2) Muat server aktif (HLS / video langsung / iframe).
   useEffect(() => {
@@ -605,14 +497,14 @@ export function VideoPlayer({
       : '/anime';
 
   const serverStatus = (idx: number, server: MirrorServer) => {
-    if (!server.available || !server.url) return { label: 'Offline', tone: 'off' as const };
+    if (!server.available || !server.url) return { label: 'Tidak tersedia', tone: 'off' as const };
     if (serverErrors.has(idx)) return { label: 'Gagal dimuat', tone: 'error' as const };
-    const active = idx === selectedIdx;
-    const ms = latencies[idx];
-    if (active && isLoading) return { label: 'Memuat...', tone: 'loading' as const };
-    if (active) return { label: typeof ms === 'number' ? `Aktif · ${ms} ms` : 'Aktif', tone: 'active' as const };
-    if (typeof ms === 'number') return { label: `${ms} ms`, tone: 'idle' as const };
-    return { label: isDirect(server) ? 'Direct' : 'Embed', tone: 'idle' as const };
+    if (idx === selectedIdx) {
+      return isLoading
+        ? { label: 'Memuat', tone: 'loading' as const }
+        : { label: 'Aktif', tone: 'active' as const };
+    }
+    return { label: '', tone: 'idle' as const };
   };
 
   const toneClass = {
@@ -635,19 +527,7 @@ export function VideoPlayer({
         >
           <div ref={frameRef} className="overflow-hidden bg-black sm:rounded-lg">
             <div className="relative aspect-video w-full bg-black">
-              {racing ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-[#07080b] text-center"
-                >
-                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/15 border-t-white/80 motion-reduce:animate-none" />
-                  <p className="text-[12.5px] font-medium text-zinc-300">Memilih server tercepat</p>
-                  <p className="text-[11px] tabular-nums text-zinc-500">
-                    {Object.keys(latencies).length} dari {playable.length} server menjawab
-                  </p>
-                </div>
-              ) : !activeServer || !activeServer.available || !activeServer.url ? (
+              {!activeServer || !activeServer.available || !activeServer.url ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
                   <AlertCircle className="h-6 w-6 text-zinc-500" aria-hidden="true" />
                   <p className="text-[12.5px] font-semibold text-zinc-200">
@@ -717,7 +597,7 @@ export function VideoPlayer({
                 />
               )}
 
-              {!racing && isLoading && activeServer?.available && activeServer?.url && !mediaError ? (
+              {isLoading && activeServer?.available && activeServer?.url && !mediaError ? (
                 <div
                   role="status"
                   aria-live="polite"
@@ -746,23 +626,6 @@ export function VideoPlayer({
             {/* Satu strip kendali: server di kiri (bisa digeser), aksi di kanan. */}
             <div className="flex items-stretch gap-1 bg-[#0a0c11] py-1.5 pl-1 pr-1 sm:pl-1.5">
               <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-0.5">
-                {racing ? (
-                  <span
-                    role="status"
-                    aria-live="polite"
-                    className="inline-flex h-8 shrink-0 items-center gap-1.5 px-1.5 text-[11.5px] text-zinc-400"
-                  >
-                    <Loader2
-                      className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
-                      aria-hidden="true"
-                    />
-                    Mengukur
-                    <span className="tabular-nums text-zinc-500">
-                      {Object.keys(latencies).length}/{playable.length}
-                    </span>
-                  </span>
-                ) : null}
-
                 <div
                   role="radiogroup"
                   aria-label="Server video"
@@ -771,19 +634,7 @@ export function VideoPlayer({
                   {effectiveServers.map((server, idx) => {
                     const active = idx === selectedIdx;
                     const status = serverStatus(idx, server);
-                    const isFastest = autoIdx === idx;
-                    // Hanya tampilkan angka/keadaan yang informatif; "Embed"/"Direct"
-                    // cuma mengulang nama server dan bikin strip berisik.
-                    const latency =
-                      typeof latencies[idx] === 'number'
-                        ? `${latencies[idx]} ms`
-                        : status.tone === 'error'
-                          ? 'gagal'
-                          : status.tone === 'loading'
-                            ? 'memuat'
-                            : status.tone === 'off'
-                              ? 'offline'
-                              : null;
+                    const state = status.label ? status.label.toLowerCase() : null;
                     return (
                       <button
                         key={`${server.name}-${idx}`}
@@ -805,16 +656,8 @@ export function VideoPlayer({
                           aria-hidden="true"
                         />
                         <span className="whitespace-nowrap">{displayServerName(server)}</span>
-                        {latency ? (
-                          <span className="whitespace-nowrap tabular-nums text-[10.5px] text-zinc-500">
-                            {latency}
-                          </span>
-                        ) : null}
-                        {isFastest ? (
-                          <>
-                            <Zap className="h-3 w-3 shrink-0 text-amber-300/80" aria-hidden="true" />
-                            <span className="sr-only">tercepat</span>
-                          </>
+                        {state ? (
+                          <span className="whitespace-nowrap text-[10.5px] text-zinc-500">{state}</span>
                         ) : null}
                         {active ? <Check className="h-3 w-3 shrink-0 text-accent" aria-hidden="true" /> : null}
                       </button>
