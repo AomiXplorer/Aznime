@@ -7,6 +7,7 @@ import type {
   QuickSearchItem,
 } from './scraper/types';
 import { UpstreamError } from './scraper/utils';
+import { NEKOPOI_ANIME_PREFIX, NEKOPOI_EPISODE_PREFIX } from './nekopoi-links';
 
 /**
  * Sumber ketiga Aznime: Nekopoi (konten 18+), dibaca lewat API publik
@@ -31,8 +32,8 @@ export const NEKOPOI_SITE_URL = 'https://nekopoi.care';
  */
 export const NEKOPOI_ONLY_GENRE = 'Hentai';
 
-const ANIME_PREFIX = 'nekopoi-';
-const EPISODE_PREFIX = 'nekopoi-ep-';
+const ANIME_PREFIX = NEKOPOI_ANIME_PREFIX;
+const EPISODE_PREFIX = NEKOPOI_EPISODE_PREFIX;
 
 export function nekopoiAnimeSlug(slug: string): string {
   return `${ANIME_PREFIX}${slug.trim()}`;
@@ -343,6 +344,28 @@ export function nekopoiImage(url: string | null | undefined): string | null {
   }
 }
 
+const NEKOPOI_IMAGE_HOSTS = new Set(['nekopoi.care', 'www.nekopoi.care']);
+
+/**
+ * URL poster yang dipakai di halaman (bukan URL kanonik untuk metadata).
+ *
+ * Gambar Nekopoi tidak boleh dibuka langsung dari browser: host-nya menolak
+ * hotlink berbasis Referer, dan sebagian ISP di Indonesia memblokir domain itu
+ * sehingga thumbnail tampil kosong. Semua poster karena itu lewat /api/img
+ * milik Aznime sendiri.
+ */
+export function nekopoiProxiedImage(url: string | null | undefined): string | null {
+  const clean = nekopoiImage(url);
+  if (!clean) return null;
+  try {
+    const parsed = new URL(clean);
+    if (!NEKOPOI_IMAGE_HOSTS.has(parsed.hostname.toLowerCase())) return clean;
+    return `/api/img?u=${encodeURIComponent(clean)}`;
+  } catch {
+    return clean;
+  }
+}
+
 /**
  * Seri hentai selalu berada di /hentai/<slug>/. Episode lepas, 3D, dan JAV
  * berada langsung di akar situs, jadi path URL adalah penanda paling andal
@@ -381,7 +404,7 @@ export function nekopoiToCard(item: NekopoiListItem): AnimeCardItem {
     slug: isSeries ? nekopoiAnimeSlug(item.slug) : nekopoiEpisodeSlug(item.slug),
     url: item.url || null,
     kind: isSeries ? 'anime' : 'episode',
-    poster: nekopoiImage(item.thumbnail),
+    poster: nekopoiProxiedImage(item.thumbnail),
     type: NEKOPOI_ONLY_GENRE,
     status: item.status?.trim() || null,
     sub: 'Sub Indo',
@@ -566,5 +589,68 @@ export async function searchNekopoi(
     query: trimmed,
     items: envelope.data || [],
     pagination: toPagination(envelope.pagination, safePage),
+  };
+}
+
+/* ------------------------------------------------- pencarian dengan cadangan */
+
+const FALLBACK_PAGE_SIZE = 24;
+
+/** Normalisasi ringan untuk pencocokan lokal: huruf kecil, tanda baca jadi spasi. */
+function foldTitle(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Pencarian yang dipakai halaman /hentai.
+ *
+ * Pencarian di situs sumber kadang tidak menemukan judul yang jelas ada di
+ * daftar seri (indeksnya tidak lengkap, dan judul episode memakai awalan
+ * "[UNCENSORED]"/"[4K]"). Kalau hasil sumber kosong, daftar seri yang sudah
+ * di-cache dicocokkan sendiri di sini, jadi judul yang tampil di halaman ini
+ * selalu bisa ditemukan lewat kotak pencarian.
+ */
+export async function searchNekopoiCatalog(
+  query: string,
+  page = 1
+): Promise<{ query: string; items: NekopoiListItem[]; pagination: PaginationInfo }> {
+  const primary = await searchNekopoi(query, page);
+  if (primary.items.length > 0) return primary;
+
+  const needle = foldTitle(query);
+  if (!needle) return primary;
+
+  const all = await getNekopoiSeriesList();
+  const matches = all
+    .map((item) => ({ item, title: foldTitle(nekopoiCleanTitle(item.title)) }))
+    .filter((entry) => entry.title.includes(needle))
+    .sort((a, b) => {
+      const aStarts = a.title.startsWith(needle) ? 0 : 1;
+      const bStarts = b.title.startsWith(needle) ? 0 : 1;
+      return aStarts - bStarts || a.title.length - b.title.length;
+    })
+    .map((entry) => entry.item);
+
+  if (matches.length === 0) return primary;
+
+  const safePage = Math.max(1, Math.trunc(page) || 1);
+  const start = (safePage - 1) * FALLBACK_PAGE_SIZE;
+  const slice = matches.slice(start, start + FALLBACK_PAGE_SIZE);
+  const hasNextPage = start + FALLBACK_PAGE_SIZE < matches.length;
+
+  return {
+    query,
+    items: slice,
+    pagination: {
+      currentPage: safePage,
+      totalPages: Math.max(1, Math.ceil(matches.length / FALLBACK_PAGE_SIZE)),
+      hasNextPage,
+      hasPrevPage: safePage > 1,
+      nextPage: hasNextPage ? safePage + 1 : null,
+      prevPage: safePage > 1 ? safePage - 1 : null,
+    },
   };
 }

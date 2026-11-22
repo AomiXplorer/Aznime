@@ -6,19 +6,23 @@ import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, Search, X } from 'lucide-react';
 import type { QuickSearchItem } from '@/lib/scraper/types';
+import { nekopoiCardHref } from '@/lib/nekopoi-links';
 import { AnimeImage } from './AnimeImage';
 
 interface SearchDialogProps {
   open: boolean;
   onClose: () => void;
+  /** Di halaman /hentai, pencarian ini juga mencakup katalog Nekopoi. */
+  adult?: boolean;
 }
 
 function hrefFor(item: QuickSearchItem): string {
+  if (item.source === 'nekopoi') return nekopoiCardHref(item);
   if (!item.slug) return '/anime';
   return `${item.kind === 'episode' ? '/watch' : '/anime'}/${encodeURIComponent(item.slug)}`;
 }
 
-export function SearchDialog({ open, onClose }: SearchDialogProps) {
+export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -59,9 +63,10 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
 
     const timer = window.setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?mode=quick&q=${encodeURIComponent(trimmed)}`, {
-          signal: controller.signal,
-        });
+        const res = await fetch(
+          `/api/search?mode=quick&q=${encodeURIComponent(trimmed)}${adult ? '&adult=1' : ''}`,
+          { signal: controller.signal }
+        );
         const data = (await res.json()) as { results?: QuickSearchItem[]; error?: string };
         if (!res.ok) throw new Error(data.error || 'Pencarian gagal');
         setResults(data.results || []);
@@ -78,7 +83,10 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [trimmed, open]);
+  }, [trimmed, open, adult]);
+
+  const allResultsHref = (value: string) =>
+    adult ? `/hentai?q=${encodeURIComponent(value)}` : `/search?q=${encodeURIComponent(value)}`;
 
   const navigateTo = (href: string) => {
     onClose();
@@ -92,7 +100,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
       navigateTo(hrefFor(results[activeIndex]));
       return;
     }
-    navigateTo(`/search?q=${encodeURIComponent(trimmed)}`);
+    navigateTo(allResultsHref(trimmed));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -144,7 +152,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
             ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Cari anime"
+            aria-label={adult ? 'Cari hentai' : 'Cari anime'}
             initial={reduce ? false : { opacity: 0, y: -16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
@@ -154,7 +162,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
             <form onSubmit={handleSubmit} className="flex items-center gap-3 border-b border-white/[0.07] px-4">
               <Search className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
               <label htmlFor="quick-search-input" className="sr-only">
-                Judul anime
+                {adult ? 'Judul hentai' : 'Judul anime'}
               </label>
               <input
                 ref={inputRef}
@@ -162,7 +170,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Cari judul anime"
+                placeholder={adult ? 'Cari judul hentai' : 'Cari judul anime'}
                 autoComplete="off"
                 className="h-14 flex-1 bg-transparent text-[1.05rem] text-white placeholder:text-zinc-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
@@ -202,7 +210,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                   <p className="text-sm text-zinc-300">Tidak ada hasil untuk &ldquo;{trimmed}&rdquo;.</p>
                   <button
                     type="button"
-                    onClick={() => navigateTo(`/search?q=${encodeURIComponent(trimmed)}`)}
+                    onClick={() => navigateTo(allResultsHref(trimmed))}
                     className="mt-3 cursor-pointer text-sm font-semibold text-rose-400 hover:text-rose-300"
                   >
                     Coba pencarian lengkap
@@ -233,7 +241,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                               <AnimeImage
                                 src={item.poster}
                                 alt={item.title}
-                                unoptimized={item.source === 'malz'}
+                                unoptimized={item.source === 'malz' || item.source === 'nekopoi'}
                                 sizes="40px"
                               />
                             </div>
@@ -250,7 +258,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                     })}
                   </ul>
                   <Link
-                    href={`/search?q=${encodeURIComponent(trimmed)}`}
+                    href={allResultsHref(trimmed)}
                     onClick={onClose}
                     className="mt-1 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold text-rose-400 transition-colors hover:bg-white/[0.05] hover:text-rose-300"
                   >

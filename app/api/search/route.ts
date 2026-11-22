@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { quickSearch } from '@/lib/scraper';
 import type { PaginationInfo, QuickSearchItem } from '@/lib/scraper/types';
 import { getMalzSearch, malzToQuickItem } from '@/lib/malz';
+import { nekopoiIsHentaiItem, nekopoiToQuickItem, searchNekopoiCatalog } from '@/lib/nekopoi';
 import {
   getHidoriTitleIndex,
   mergeQuickSearchResults,
@@ -9,6 +10,8 @@ import {
 } from '@/lib/sources';
 
 const QUICK_MALZ_LIMIT = 8;
+const QUICK_ADULT_LIMIT = 8;
+const QUICK_TOTAL_LIMIT = 14;
 
 function emptyPagination(): PaginationInfo {
   return {
@@ -19,6 +22,24 @@ function emptyPagination(): PaginationInfo {
     nextPage: null,
     prevPage: null,
   };
+}
+
+/**
+ * Hasil Nekopoi untuk dialog pencarian. Hanya dipanggil dari halaman /hentai
+ * (parameter adult=1), supaya judul dewasa tidak pernah muncul di pencarian
+ * katalog utama.
+ */
+async function searchAdultQuick(query: string) {
+  try {
+    const { items } = await searchNekopoiCatalog(query, 1);
+    return items
+      .filter(nekopoiIsHentaiItem)
+      .slice(0, QUICK_ADULT_LIMIT)
+      .map(nekopoiToQuickItem);
+  } catch {
+    // Bagian dewasa tidak boleh menggagalkan pencarian utama.
+    return [];
+  }
 }
 
 async function mergeQuickResults(query: string, hidori: QuickSearchItem[]) {
@@ -49,8 +70,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (mode === 'quick') {
-      const hidori = await quickSearch(q);
-      const results = await mergeQuickResults(q, hidori);
+      const adult = searchParams.get('adult') === '1';
+      const [hidori, adultItems] = await Promise.all([
+        quickSearch(q),
+        adult ? searchAdultQuick(q) : Promise.resolve([]),
+      ]);
+      const merged = await mergeQuickResults(q, hidori);
+      const results = [...adultItems, ...merged].slice(0, QUICK_TOTAL_LIMIT);
       return NextResponse.json(
         { query: q, results },
         {

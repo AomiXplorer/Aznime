@@ -13,6 +13,8 @@ interface AnimeCardProps {
   href?: string;
   /** Label kecil di sudut kanan atas, mis. "18+". */
   badge?: string;
+  /** Baris genre/status di bawah judul; dimatikan di daftar yang seragam. */
+  showMeta?: boolean;
 }
 
 export function getAnimeItemHref(item: Pick<AnimeCardItem, 'slug' | 'kind'>): string {
@@ -26,7 +28,14 @@ function episodeLabel(item: AnimeCardItem): string | null {
   return item.episode || null;
 }
 
-function AnimeCardComponent({ item, priority = false, className, href: hrefOverride, badge }: AnimeCardProps) {
+function AnimeCardComponent({
+  item,
+  priority = false,
+  className,
+  href: hrefOverride,
+  badge,
+  showMeta = true,
+}: AnimeCardProps) {
   const href = hrefOverride || getAnimeItemHref(item);
   const displayTitle = item.seriesTitle || item.title;
   const meta = [item.type, item.status].filter(Boolean).join('  ');
@@ -84,7 +93,7 @@ function AnimeCardComponent({ item, priority = false, className, href: hrefOverr
         <h3 className="mt-2 line-clamp-2 min-h-[2.5rem] text-[13px] font-semibold leading-5 text-zinc-100 transition-colors group-hover:text-white">
           {displayTitle}
         </h3>
-        <p className="mt-0.5 h-4 truncate text-xs text-muted">{meta}</p>
+        {showMeta ? <p className="mt-0.5 h-4 truncate text-xs text-muted">{meta}</p> : null}
       </Link>
     </article>
   );

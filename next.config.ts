@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
     deviceSizes: [360, 420, 640, 768, 1024, 1280, 1600, 1920],
     imageSizes: [64, 96, 128, 160, 210, 256, 384],
+    // Poster Nekopoi dilayani proksi sendiri: /api/img?u=...
+    // Pola lokal ini membuat gambar berproksi tetap sah bila suatu saat
+    // dipasang tanpa prop `unoptimized`.
+    localPatterns: [{ pathname: '/api/img', search: '**' }],
     remotePatterns: [
       {
         protocol: 'https',

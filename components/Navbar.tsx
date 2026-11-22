@@ -27,6 +27,8 @@ function isActive(pathname: string, href: string) {
 
 export function Navbar() {
   const pathname = usePathname();
+  // Di bagian dewasa, tombol cari ikut mencari katalog Nekopoi.
+  const adult = pathname === '/hentai' || pathname.startsWith('/hentai/');
   const [searchOpen, setSearchOpen] = useState(false);
   // Sekali dibuka, dialog tetap terpasang supaya animasi keluar berjalan normal.
   const [searchMounted, setSearchMounted] = useState(false);
@@ -141,11 +143,11 @@ export function Navbar() {
                 setSearchMounted(true);
                 setSearchOpen(true);
               }}
-              aria-label="Buka pencarian anime"
+              aria-label={adult ? 'Buka pencarian hentai' : 'Buka pencarian anime'}
               className="group inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-white/[0.08] px-3.5 text-[13px] text-zinc-200 transition-all duration-200 hover:bg-white/[0.16] hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               <Search className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
-              <span className="hidden sm:inline">Cari anime</span>
+              <span className="hidden sm:inline">{adult ? 'Cari hentai' : 'Cari anime'}</span>
             </button>
 
             <button
@@ -190,7 +192,7 @@ export function Navbar() {
       </header>
 
       {searchMounted ? (
-        <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+        <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} adult={adult} />
       ) : null}
     </>
   );
