@@ -8,7 +8,6 @@ const LINKS = [
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
   { href: '/search', label: 'Cari' },
-  { href: '/credit', label: 'Kredit' },
 ];
 
 export function Footer() {

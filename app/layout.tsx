@@ -116,7 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="id" className={`dark ${figtree.variable}`}>
+    <html lang="id" className={`dark ${figtree.variable} ${bricolage.variable}`}>
       <body className="flex min-h-screen flex-col bg-canvas text-[#f4f4f5] selection:bg-accent-strong selection:text-white">
         <a
           href="#main-content"

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { EpisodeNavLink, MirrorServer } from '@/lib/scraper/types';
-import { CREDITS } from '@/lib/credits';
+import { PRIMARY_WHATSAPP_URL } from '@/lib/credits';
 import { cleanEpisodeTitle, episodeNumberFromTitle } from '@/lib/episode-format';
 import { cn } from '@/lib/cn';
 
@@ -768,15 +768,17 @@ export function VideoPlayer({
                 )}
                 {reportCopied ? 'Detail tersalin' : 'Salin detail'}
               </button>
-              <a
-                href={CREDITS[0]?.channelUrl || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium text-zinc-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white"
-              >
-                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                Buka WhatsApp
-              </a>
+              {PRIMARY_WHATSAPP_URL ? (
+                <a
+                  href={PRIMARY_WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium text-zinc-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                  Buka WhatsApp
+                </a>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setReportOpen(false)}

@@ -1,4 +1,8 @@
-import { BYPASS_COOKIE_NAME, BYPASS_HINT_COOKIE_NAME } from './maintenance-constants';
+import {
+  BYPASS_COOKIE_NAME,
+  BYPASS_HINT_COOKIE_NAME,
+  DEFAULT_MAINTENANCE_MESSAGE,
+} from './maintenance-constants';
 
 const MAINTENANCE_STATE_KEY = 'aznime:maintenance:state';
 const MAINTENANCE_PENDING_PREFIX = 'aznime:maintenance:pending:';
@@ -7,10 +11,7 @@ const PENDING_TTL_SECONDS = 300;
 const DEFAULT_BYPASS_TTL_SECONDS = 12 * 60 * 60;
 const MAX_DURATION_MINUTES = 7 * 24 * 60;
 
-export { BYPASS_COOKIE_NAME, BYPASS_HINT_COOKIE_NAME };
-
-export const DEFAULT_MAINTENANCE_MESSAGE =
-  'Kami sedang melakukan pembaruan dan perbaikan server agar streaming kembali lancar.';
+export { BYPASS_COOKIE_NAME, BYPASS_HINT_COOKIE_NAME, DEFAULT_MAINTENANCE_MESSAGE };
 
 export interface MaintenanceState {
   enabled: boolean;

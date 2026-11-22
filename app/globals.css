@@ -200,8 +200,26 @@ h3,
   contain-intrinsic-size: auto 68px;
 }
 
-/* Sembunyikan navbar dan footer saat layar maintenance dirender lewat rewrite proxy. */
-body:has([data-maintenance-screen]) header,
-body:has([data-maintenance-screen]) footer {
+/* Sembunyikan navbar dan footer situs saat layar maintenance dirender lewat
+   rewrite proxy. Hanya elemen milik layout (anak langsung body) yang disembunyikan,
+   supaya header/footer milik layar maintenance sendiri tetap tampil. */
+body:has([data-maintenance-screen]) > header,
+body:has([data-maintenance-screen]) > footer {
   display: none;
+}
+
+/* Masuknya layar maintenance: hanya opacity dan transform, 240ms. Blok
+   reduced-motion di atas sudah mematikan durasinya. */
+@keyframes screen-reveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.reveal {
+  animation: screen-reveal 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }

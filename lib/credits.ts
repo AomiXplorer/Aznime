@@ -1,22 +1,52 @@
-export interface CreditEntry {
+export type ContributorMotif = 'sun' | 'moon';
+
+export interface ContributorChannel {
+  url: string;
+  label: string;
+}
+
+export interface Contributor {
+  id: string;
   name: string;
-  channelUrl: string;
-  channelLabel: string;
+  role: string;
+  status: string;
+  active: boolean;
+  motif: ContributorMotif;
+  note: string;
+  whatsapp: ContributorChannel | null;
 }
 
 /**
- * Kredit pengelola Aznime beserta saluran WhatsApp resmi masing-masing.
- * Dipakai oleh menu hamburger dan footer.
+ * Sumber tunggal data contributor. Dipakai halaman Credit, layar Maintenance,
+ * dan tautan laporan di player supaya tidak ada salinan data yang menyimpang.
+ * Azura sengaja tanpa `whatsapp`: kanal resminya belum ada, jadi tombolnya
+ * tidak dirender sama sekali alih-alih memakai tautan pinjaman atau tautan mati.
  */
-export const CREDITS: CreditEntry[] = [
+export const CONTRIBUTORS: Contributor[] = [
   {
+    id: 'aomi',
     name: 'Aomi',
-    channelUrl: 'https://whatsapp.com/channel/0029Vb8AgskLY6dCvnTjxU3c',
-    channelLabel: 'Saluran WhatsApp Aomi',
+    role: 'Contributor',
+    status: 'Active',
+    active: true,
+    motif: 'sun',
+    note: 'Merawat katalog dan server. Kanal WhatsApp resmi untuk kabar rilis dan laporan episode rusak.',
+    whatsapp: {
+      url: 'https://whatsapp.com/channel/0029Vb8AgskLY6dCvnTjxU3c',
+      label: 'Connect with Aomi',
+    },
   },
   {
+    id: 'azura',
     name: 'Azura',
-    channelUrl: 'https://whatsapp.com/channel/0029Vb8E7w7KrWR25KfJ6o41',
-    channelLabel: 'Saluran WhatsApp Azura',
+    role: 'Contributor',
+    status: 'Contributor',
+    active: false,
+    motif: 'moon',
+    note: 'Ikut mengurus tampilan dan pengecekan judul. Kanal WhatsApp belum tersedia.',
+    whatsapp: null,
   },
 ];
+
+export const PRIMARY_WHATSAPP_URL =
+  CONTRIBUTORS.find((contributor) => contributor.whatsapp)?.whatsapp?.url ?? null;
