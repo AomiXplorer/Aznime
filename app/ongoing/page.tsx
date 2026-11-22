@@ -29,9 +29,9 @@ export default async function OngoingPage() {
       <PageHeader title="Sedang tayang" description="Diurutkan dari episode yang paling baru rilis.">
         <Link
           href="/schedule"
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-4 text-[13px] font-semibold text-ink transition-colors duration-150 hover:bg-elevated active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-4 text-[13px] font-semibold text-ink transition-colors duration-150 hover:border-line-accent hover:bg-elevated active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
         >
-          <CalendarDays className="h-4 w-4" aria-hidden="true" />
+          <CalendarDays className="h-4 w-4 text-accent-ink" aria-hidden="true" />
           Jadwal tayang
         </Link>
       </PageHeader>

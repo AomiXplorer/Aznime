@@ -263,19 +263,19 @@ export function VideoPlayer({
       : '/anime';
 
   const navBtn =
-    'inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-[13px] font-semibold transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60';
-  const navBtnOff = 'inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-[13px] font-semibold text-zinc-600';
+    'inline-flex h-10 items-center gap-1.5 rounded-lg px-4 text-[13px] font-semibold transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink';
+  const navBtnOff = 'inline-flex h-10 items-center gap-1.5 rounded-lg px-4 text-[13px] font-semibold text-faint';
 
   return (
     <div className="space-y-4">
       <div
         ref={containerRef}
-        className="relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-2xl shadow-black/60 ring-1 ring-white/10"
+        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-line bg-[#050407] shadow-[0_20px_50px_rgba(0,0,0,0.75)]"
       >
         {!activeServer || !activeServer.available || !activeServer.url ? (
           <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center">
             <AlertCircle className="mb-2 h-7 w-7 text-accent-ink" aria-hidden="true" />
-            <p className="text-sm font-semibold text-zinc-200">
+            <p className="text-sm font-semibold text-ink">
               {activeServer?.message || 'Belum ada sumber video untuk episode ini.'}
             </p>
             <p className="mt-1 text-xs text-muted">Pilih server lain atau pakai tautan unduhan di bawah.</p>
@@ -283,7 +283,7 @@ export function VideoPlayer({
         ) : mediaError ? (
           <div role="alert" className="flex h-full w-full flex-col items-center justify-center px-6 text-center">
             <AlertCircle className="mb-2 h-7 w-7 text-accent-ink" aria-hidden="true" />
-            <p className="text-sm font-semibold text-zinc-200">{mediaError}</p>
+            <p className="text-sm font-semibold text-ink">{mediaError}</p>
           </div>
         ) : isDirect(activeServer) ? (
           <video
@@ -300,7 +300,7 @@ export function VideoPlayer({
                 setMediaError('Video gagal diputar dari server ini. Coba server lain.');
               }
             }}
-            className="h-full w-full bg-black"
+            className="h-full w-full bg-[#050407]"
           />
         ) : (
           <iframe
@@ -321,7 +321,7 @@ export function VideoPlayer({
             aria-live="polite"
             className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55"
           >
-            <div className="flex items-center gap-2 rounded-md bg-surface px-4 py-2 text-xs font-semibold text-zinc-200 ring-1 ring-white/10">
+            <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink">
               <Loader2 className="h-4 w-4 animate-spin text-accent motion-reduce:animate-none" aria-hidden="true" />
               Memuat {activeServer.name}
             </div>
@@ -330,18 +330,21 @@ export function VideoPlayer({
       </div>
 
       {notice ? (
-        <p role="status" className="rounded-lg bg-amber-500/10 px-3.5 py-2 text-[13px] text-amber-200">
+        <p
+          role="status"
+          className="rounded-xl border border-accent/30 bg-accent-soft px-4 py-2.5 text-[13px] font-medium text-accent-ink"
+        >
           {notice}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface p-2.5">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {navigation.prev?.slug ? (
             <Link
               href={`/watch/${encodeURIComponent(navigation.prev.slug)}`}
               prefetch={false}
-              className={`${navBtn} bg-white/[0.07] text-zinc-100 hover:bg-white/[0.14]`}
+              className={`${navBtn} border border-line bg-elevated text-ink hover:bg-hover`}
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               Sebelumnya
@@ -356,7 +359,7 @@ export function VideoPlayer({
           <Link
             href={allSeriesHref}
             prefetch={false}
-            className={`${navBtn} bg-white/[0.07] text-zinc-100 hover:bg-white/[0.14]`}
+            className={`${navBtn} border border-line bg-elevated text-ink hover:bg-hover`}
           >
             <List className="h-4 w-4" aria-hidden="true" />
             Semua episode
@@ -366,7 +369,7 @@ export function VideoPlayer({
             <Link
               href={`/watch/${encodeURIComponent(navigation.next.slug)}`}
               prefetch={false}
-              className={`${navBtn} bg-white text-black hover:bg-white/85`}
+              className={`${navBtn} bg-accent font-bold text-white hover:bg-accent-hover`}
             >
               Berikutnya
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -383,7 +386,7 @@ export function VideoPlayer({
           type="button"
           onClick={handleFullscreen}
           aria-label="Layar penuh"
-          className={`${navBtn} cursor-pointer bg-white/[0.07] text-zinc-100 hover:bg-white/[0.14]`}
+          className={`${navBtn} cursor-pointer border border-line bg-elevated text-ink hover:bg-hover`}
         >
           <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">Layar penuh</span>
@@ -391,9 +394,9 @@ export function VideoPlayer({
       </div>
 
       {effectiveServers.length > 0 ? (
-        <div className="rounded-xl bg-surface p-4">
+        <div className="rounded-xl border border-line bg-surface p-4">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-bold text-white">Server</h2>
+            <h2 className="font-display text-sm font-bold text-ink">Server</h2>
             <span className="text-xs text-muted">
               {activeServer && isDirect(activeServer)
                 ? 'Spasi putar/jeda, F layar penuh, M bisu, panah untuk geser'
@@ -405,6 +408,7 @@ export function VideoPlayer({
             {effectiveServers.map((srv, idx) => {
               const isSelected = idx === selectedIdx;
               const isDefault = isDefaultServer(srv);
+              const showZap = isDefault || isDirect(srv);
               return (
                 <button
                   key={`${srv.name}-${idx}`}
@@ -413,18 +417,29 @@ export function VideoPlayer({
                   aria-checked={isSelected}
                   disabled={!srv.available}
                   onClick={() => pickManually(idx)}
-                  className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-md px-4 text-[13px] font-semibold transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-40 ${
-                    isSelected ? 'bg-accent-strong text-white' : 'bg-white/[0.07] text-zinc-200 hover:bg-white/[0.14]'
+                  className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-4 text-[13px] font-semibold transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:cursor-not-allowed disabled:opacity-40 ${
+                    isSelected
+                      ? 'bg-accent text-white'
+                      : 'border border-line bg-elevated text-ink hover:border-line-accent hover:bg-hover'
                   }`}
                 >
+                  {showZap ? (
+                    <Zap
+                      className={`h-3.5 w-3.5 ${isSelected ? 'fill-current text-white' : 'text-accent-ink'}`}
+                      aria-hidden="true"
+                    />
+                  ) : null}
                   <span>{srv.name}</span>
                   {isDefault ? (
-                    <span className="inline-flex items-center gap-0.5 rounded-md bg-white/20 px-1.5 py-0.5 text-[11px] font-bold">
-                      <Zap className="h-3 w-3 fill-current" aria-hidden="true" />
+                    <span
+                      className={`rounded-md px-1.5 py-0.5 font-mono text-[10.5px] font-bold ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-accent-soft text-accent-ink'
+                      }`}
+                    >
                       Default
                     </span>
                   ) : null}
-                  <span className="text-[11px] font-medium opacity-70">
+                  <span className="font-mono text-[11px] font-medium opacity-75">
                     {!srv.available ? 'Offline' : isDirect(srv) ? 'Direct' : 'Embed'}
                   </span>
                 </button>

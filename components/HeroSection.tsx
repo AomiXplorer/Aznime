@@ -1,10 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, PointerEvent } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Info, Play, Youtube } from 'lucide-react';
 import type { AniListTrailer, FeaturedAnime } from '@/lib/scraper/types';
+import { cn } from '@/lib/cn';
 import { AnimeImage } from './AnimeImage';
 import { TrailerModal } from './TrailerModal';
 
@@ -17,6 +19,7 @@ interface HeroSectionProps {
 }
 
 const AUTOPLAY_MS = 8000;
+const SWIPE_THRESHOLD_PX = 45;
 
 export function HeroSection({ items }: HeroSectionProps) {
   const slides = items.slice(0, 6);
@@ -25,12 +28,12 @@ export function HeroSection({ items }: HeroSectionProps) {
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [inView, setInView] = useState(true);
   const [pageHidden, setPageHidden] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
 
-  /* Slide pertama harus langsung terlihat. Sebelumnya gambar hero memulai dari
-     opacity 0 lalu dianimasikan setelah hydration, sehingga Largest Contentful
-     Paint tertunda sampai JS selesai (~3,2 s di mobile). Sekarang fade-in hanya
-     berlaku untuk pergantian slide, bukan untuk paint pertama. */
+  const sectionRef = useRef<HTMLElement>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  // Slide pertama harus langsung terlihat saat paint awal agar LCP tidak tertunda.
   const isFirstPaint = useRef(true);
   useEffect(() => {
     isFirstPaint.current = false;
@@ -45,8 +48,6 @@ export function HeroSection({ items }: HeroSectionProps) {
     [slides.length]
   );
 
-  /* Autoplay berhenti saat hero keluar layar atau tab disembunyikan. Pergantian
-     banner besar yang terus jalan di latar belakang bikin scroll di HP tersendat. */
   useEffect(() => {
     const node = sectionRef.current;
     if (!node || typeof IntersectionObserver === 'undefined') return;
@@ -73,7 +74,47 @@ export function HeroSection({ items }: HeroSectionProps) {
   const current = slides[index] || slides[0];
   const detailHref = current.slug ? `/anime/${encodeURIComponent(current.slug)}` : '/anime';
   const banner = current.trailer?.bannerImage || null;
+  const showcasePoster = current.trailer?.coverImage || current.poster;
   const hasTrailer = Boolean(current.trailer?.id && current.trailer?.site === 'youtube');
+
+  const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('a, button')) return;
+    swipeStartRef.current = { x: e.clientX, y: e.clientY };
+    suppressClickRef.current = false;
+  };
+
+  const handlePointerUp = (e: PointerEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || slides.length <= 1) return;
+
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dx) >= SWIPE_THRESHOLD_PX && Math.abs(dx) > Math.abs(dy)) {
+      suppressClickRef.current = true;
+      go(dx < 0 ? index + 1 : index - 1);
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 150);
+    }
+  };
+
+  const cancelSwipe = () => {
+    swipeStartRef.current = null;
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (slides.length <= 1) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      go(index + 1);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      go(index - 1);
+    }
+  };
 
   return (
     <section
@@ -84,133 +125,185 @@ export function HeroSection({ items }: HeroSectionProps) {
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
+      onKeyDown={handleKeyDown}
       className="relative -mt-16 w-full overflow-hidden bg-canvas"
     >
-      <div className="absolute inset-0" aria-hidden="true">
-        <AnimatePresence initial={false}>
+      {/* Satu wrapper AnimatePresence terpadu untuk latar dan konten agar tidak pernah desync saat klik/geser cepat. */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={cancelSwipe}
+        onPointerLeave={cancelSwipe}
+        onClickCapture={(e) => {
+          if (suppressClickRef.current) e.preventDefault();
+        }}
+        className="relative touch-pan-y select-none"
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
-            key={`bg-${index}`}
-            className="absolute inset-0"
-            /* Hanya opacity: animasi scale pada gambar selebar viewport
-               memaksa rasterisasi ulang layer besar tiap frame. */
+            key={current.slug || index}
             initial={isFirstPaint.current || reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.45, ease: 'easeOut' }}
+            transition={{ duration: reduce ? 0 : 0.22, ease: 'easeOut' }}
+            className="relative"
           >
-            {banner ? (
-              <AnimeImage src={banner} alt="" priority sizes="100vw" className="object-cover object-center" />
-            ) : (
-              /* Tanpa filter blur: blur 2xl pada gambar selebar layar adalah
-                 salah satu operasi paint termahal dan selalu aktif. */
-              <AnimeImage
-                src={current.poster}
-                alt=""
-                priority
-                sizes="100vw"
-                className="object-cover object-top opacity-30"
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/60 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-canvas to-transparent" />
-      </div>
-
-      <div className="relative mx-auto flex min-h-[68vh] max-w-7xl items-end gap-10 px-4 pb-20 pt-32 sm:px-6 lg:min-h-[78vh] lg:px-8">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={`txt-${index}`}
-            initial={isFirstPaint.current || reduce ? false : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="max-w-xl flex-1 space-y-3.5"
-          >
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-muted">
-              {current.status ? (
-                <span className="flex items-center gap-2 font-bold text-ink">
-                  <span aria-hidden="true" className="h-3.5 w-0.5 bg-accent" />
-                  {current.status}
-                </span>
-              ) : null}
-              {current.releaseYear ? <span>{current.releaseYear}</span> : null}
-              {current.type ? <span>{current.type}</span> : null}
-              {current.genres.length > 0 ? <span>{current.genres.slice(0, 3).join(', ')}</span> : null}
+            {/* Latar panggung adaptif: widescreen banner bila tersedia, atau Split Stage tekstur + ambient crimson glow bila hanya ada poster portrait. */}
+            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+              {banner ? (
+                <>
+                  <AnimeImage
+                    src={banner}
+                    alt=""
+                    priority
+                    sizes="100vw"
+                    className="object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/75 to-canvas/20" />
+                  <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-canvas via-canvas/55 to-transparent" />
+                </>
+              ) : (
+                <>
+                  <div className="stage-pattern absolute inset-0 opacity-60" />
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        'radial-gradient(circle at 76% 38%, rgba(225, 29, 72, 0.14), transparent 56%)',
+                    }}
+                  />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-canvas to-transparent" />
+                </>
+              )}
             </div>
 
-            <h1 className="line-clamp-3 font-display text-[2.1rem] font-bold leading-[1.05] text-ink [text-wrap:balance] sm:text-[2.7rem] lg:text-[3.3rem]">
-              {current.title}
-            </h1>
+            <div className="relative mx-auto flex min-h-[68vh] max-w-7xl flex-col-reverse justify-end gap-6 px-4 pb-32 pt-28 sm:flex-row sm:items-end sm:justify-between sm:gap-10 sm:px-6 sm:pb-36 lg:min-h-[76vh] lg:px-8">
+              <div className="max-w-xl flex-1 space-y-3.5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-muted">
+                  {current.status ? (
+                    <span className="inline-flex items-center gap-2 font-semibold text-ink">
+                      <span aria-hidden="true" className="h-3.5 w-0.5 rounded-full bg-accent" />
+                      {current.status}
+                    </span>
+                  ) : null}
+                  {current.releaseYear ? (
+                    <span className="font-mono text-xs tabular-nums">{current.releaseYear}</span>
+                  ) : null}
+                  {current.type ? <span>{current.type}</span> : null}
+                  {current.genres.length > 0 ? (
+                    <span className="text-muted">{current.genres.slice(0, 3).join(' · ')}</span>
+                  ) : null}
+                </div>
 
-            {current.synopsis ? (
-              <p className="line-clamp-3 max-w-prose text-sm leading-relaxed text-muted">{current.synopsis}</p>
-            ) : null}
+                <h1 className="line-clamp-3 font-display text-[2rem] font-bold leading-[1.06] text-ink [text-wrap:balance] sm:text-[2.65rem] lg:text-[3.25rem]">
+                  {current.title}
+                </h1>
 
-            <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
-              <Link
-                href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-md bg-accent px-5 text-sm font-bold text-white transition-colors duration-150 hover:bg-accent-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-              >
-                <Play className="h-4 w-4 fill-current" aria-hidden="true" />
-                Tonton
-              </Link>
-              <Link
-                href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-white/25 px-5 text-sm font-bold text-ink transition-colors duration-150 hover:bg-white/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
-              >
-                <Info className="h-4 w-4" aria-hidden="true" />
-                Info lainnya
-              </Link>
-              {hasTrailer ? (
-                <button
-                  type="button"
-                  onClick={() => setTrailerOpen(true)}
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                {current.synopsis ? (
+                  <p className="line-clamp-3 max-w-prose text-sm leading-relaxed text-muted">
+                    {current.synopsis}
+                  </p>
+                ) : null}
+
+                <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
+                  <Link
+                    href={detailHref}
+                    className="inline-flex h-11 items-center gap-2 rounded-lg bg-accent px-5 text-sm font-bold text-white transition-colors duration-150 hover:bg-accent-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                  >
+                    <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+                    Tonton
+                  </Link>
+                  <Link
+                    href={detailHref}
+                    className="inline-flex h-11 items-center gap-2 rounded-lg border border-line bg-surface/80 px-5 text-sm font-semibold text-ink transition-colors duration-150 hover:border-white/25 hover:bg-elevated active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                  >
+                    <Info className="h-4 w-4" aria-hidden="true" />
+                    Info lainnya
+                  </Link>
+                  {hasTrailer ? (
+                    <button
+                      type="button"
+                      onClick={() => setTrailerOpen(true)}
+                      className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg px-3.5 text-sm font-semibold text-muted transition-colors hover:bg-surface/70 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                    >
+                      <Youtube className="h-4 w-4 text-accent-ink" aria-hidden="true" />
+                      Trailer
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {!banner && showcasePoster ? (
+                <Link
+                  href={detailHref}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="relative aspect-[2/3] w-[144px] shrink-0 overflow-hidden rounded-2xl bg-surface shadow-[0_24px_60px_-15px_rgba(225,29,72,0.25)] ring-1 ring-white/15 sm:w-[184px] lg:w-[232px]"
                 >
-                  <Youtube className="h-4 w-4" aria-hidden="true" />
-                  Trailer
-                </button>
+                  <AnimeImage
+                    src={showcasePoster}
+                    alt={current.title}
+                    priority
+                    sizes="(max-width: 640px) 144px, (max-width: 1024px) 184px, 232px"
+                  />
+                </Link>
               ) : null}
             </div>
           </motion.div>
         </AnimatePresence>
-
-        {!banner ? (
-          <Link
-            href={detailHref}
-            tabIndex={-1}
-            aria-hidden="true"
-            className="relative ml-auto hidden aspect-[2/3] w-[210px] shrink-0 overflow-hidden rounded shadow-xl shadow-black/60 ring-1 ring-white/10 lg:block"
-          >
-            <AnimeImage src={current.poster} alt={current.title} priority sizes="210px" />
-          </Link>
-        ) : null}
       </div>
 
+      {/* Interactive Filmstrip Dock */}
       {slides.length > 1 ? (
-        <div className="absolute inset-x-0 bottom-6 z-10">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2" role="tablist" aria-label="Pilih anime unggulan">
-              {slides.map((item, i) => (
-                <button
-                  key={item.slug || i}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === index}
-                  aria-label={`Unggulan ${i + 1}: ${item.title}`}
-                  onClick={() => go(i)}
-                  className="group relative h-6 w-9 cursor-pointer focus-visible:outline-none sm:w-12"
-                >
-                  <span className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 overflow-hidden bg-white/25 transition-colors group-hover:bg-white/40 group-focus-visible:ring-2 group-focus-visible:ring-accent-ink">
-                    {i === index ? (
+        <div className="relative z-10 -mt-20 pb-6 sm:-mt-24">
+          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <div
+              role="tablist"
+              aria-label="Pilih anime unggulan"
+              className="grid flex-1 grid-cols-6 gap-1.5 sm:gap-2.5"
+            >
+              {slides.map((item, i) => {
+                const isActive = i === index;
+                const thumbSrc = item.trailer?.coverImage || item.poster;
+                const slideNum = String(i + 1).padStart(2, '0');
+                return (
+                  <button
+                    key={item.slug || i}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-label={`Unggulan ${i + 1}: ${item.title}`}
+                    onClick={() => go(i)}
+                    className={cn(
+                      'group relative flex h-11 cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-xl border px-1.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:h-14 sm:justify-start sm:gap-2.5 sm:px-2',
+                      isActive
+                        ? 'border-accent/60 bg-elevated/95 text-ink'
+                        : 'border-line bg-surface/80 text-muted hover:border-white/20 hover:bg-elevated/80 hover:text-ink'
+                    )}
+                  >
+                    <span className="relative h-7 w-5 shrink-0 overflow-hidden rounded-md bg-canvas ring-1 ring-white/10 sm:h-10 sm:w-7">
+                      <AnimeImage src={thumbSrc} alt="" sizes="36px" />
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <span
+                        className={cn(
+                          'block font-mono text-[10px] font-bold leading-none tabular-nums sm:text-[11px]',
+                          isActive ? 'text-accent-ink' : 'text-faint group-hover:text-muted'
+                        )}
+                      >
+                        {slideNum}
+                      </span>
+                      <span className="mt-1 hidden truncate text-xs font-semibold leading-tight sm:block">
+                        {item.title}
+                      </span>
+                    </div>
+
+                    {isActive ? (
                       <span
                         key={`bar-${index}`}
-                        /* Autoplay dijalankan oleh CSS animation di compositor:
-                           tidak ada setInterval/setTimeout yang membangunkan
-                           main thread, dan progres otomatis berhenti saat hover. */
                         onAnimationEnd={autoplay ? () => go(index + 1) : undefined}
-                        className="block h-full origin-left bg-accent-hover"
+                        className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-accent-hover"
                         style={
                           autoplay
                             ? {
@@ -221,27 +314,27 @@ export function HeroSection({ items }: HeroSectionProps) {
                         }
                       />
                     ) : null}
-                  </span>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="hidden items-center gap-2 sm:flex">
+            <div className="hidden shrink-0 items-center gap-1.5 md:flex">
               <button
                 type="button"
                 onClick={() => go(index - 1)}
                 aria-label="Anime unggulan sebelumnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-line bg-canvas/70 text-ink transition-colors hover:bg-elevated active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-line bg-surface/90 text-ink transition-colors hover:border-accent/50 hover:bg-accent hover:text-white active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
               >
-                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 onClick={() => go(index + 1)}
                 aria-label="Anime unggulan berikutnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-line bg-canvas/70 text-ink transition-colors hover:bg-elevated active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-line bg-surface/90 text-ink transition-colors hover:border-accent/50 hover:bg-accent hover:text-white active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
               >
-                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>

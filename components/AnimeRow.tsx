@@ -45,7 +45,7 @@ export function AnimeRow({
           type="button"
           onClick={() => scrollByAmount('left')}
           aria-label={`Geser ${title} ke kiri`}
-          className="absolute -left-3 top-[calc(50%-1.75rem)] z-10 hidden h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border border-line bg-canvas text-ink opacity-0 transition-opacity duration-150 hover:bg-elevated group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink md:flex"
+          className="absolute -left-3 top-[calc(50%-1.75rem)] z-10 hidden h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-line bg-elevated/95 text-ink opacity-0 shadow-lg transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink md:flex"
         >
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -53,7 +53,7 @@ export function AnimeRow({
           type="button"
           onClick={() => scrollByAmount('right')}
           aria-label={`Geser ${title} ke kanan`}
-          className="absolute -right-3 top-[calc(50%-1.75rem)] z-10 hidden h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border border-line bg-canvas text-ink opacity-0 transition-opacity duration-150 hover:bg-elevated group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink md:flex"
+          className="absolute -right-3 top-[calc(50%-1.75rem)] z-10 hidden h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-line bg-elevated/95 text-ink opacity-0 shadow-lg transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink md:flex"
         >
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </button>

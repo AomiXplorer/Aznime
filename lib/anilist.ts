@@ -12,6 +12,10 @@ interface AniListGraphQLResponse {
         native?: string | null;
       } | null;
       bannerImage?: string | null;
+      coverImage?: {
+        extraLarge?: string | null;
+        large?: string | null;
+      } | null;
       trailer?: {
         id?: string | null;
         site?: string | null;
@@ -83,6 +87,10 @@ query ($search: String) {
       native
     }
     bannerImage
+    coverImage {
+      extraLarge
+      large
+    }
     trailer {
       id
       site
@@ -113,14 +121,18 @@ async function queryAniListMedia(searchTerm: string): Promise<AniListTrailer | n
     const media = json.data?.Media;
     if (!media) return null;
 
+    const coverImage = media.coverImage?.extraLarge || media.coverImage?.large || null;
+    const bannerImage = media.bannerImage || null;
     const trailer = media.trailer;
+
     if (!trailer?.id || !trailer?.site) {
-      if (!media.bannerImage) return null;
+      if (!bannerImage && !coverImage) return null;
       return {
         id: '',
         site: '',
         thumbnail: null,
-        bannerImage: media.bannerImage,
+        bannerImage,
+        coverImage,
         matchedTitle: media.title?.english || media.title?.romaji || null,
       };
     }
@@ -134,7 +146,8 @@ async function queryAniListMedia(searchTerm: string): Promise<AniListTrailer | n
       id: trailer.id,
       site,
       thumbnail,
-      bannerImage: media.bannerImage || null,
+      bannerImage,
+      coverImage,
       matchedTitle: media.title?.english || media.title?.romaji || null,
     };
   } catch {
@@ -155,7 +168,7 @@ export async function getAniListTrailer(
     return cached.value;
   }
 
-  let bestBannerOnly: AniListTrailer | null = null;
+  let bestFallback: AniListTrailer | null = null;
 
   for (const candidate of candidates.slice(0, 3)) {
     const result = await queryAniListMedia(candidate);
@@ -166,16 +179,16 @@ export async function getAniListTrailer(
       });
       return result;
     }
-    if (result?.id && !bestBannerOnly) {
-      bestBannerOnly = result;
-    } else if (result?.bannerImage && !bestBannerOnly) {
-      bestBannerOnly = result;
+    if (result?.id && !bestFallback) {
+      bestFallback = result;
+    } else if ((result?.bannerImage || result?.coverImage) && !bestFallback) {
+      bestFallback = result;
     }
   }
 
   trailerCache.set(cacheKey, {
-    value: bestBannerOnly,
+    value: bestFallback,
     expiresAt: Date.now() + 6 * 60 * 60 * 1000,
   });
-  return bestBannerOnly;
+  return bestFallback;
 }

@@ -65,25 +65,25 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-2">
         <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-          <Link href="/" className="transition-colors hover:text-white">
+          <Link href="/" className="transition-colors hover:text-ink">
             Beranda
           </Link>
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           {seriesSlug ? (
             <Link
               href={`/anime/${encodeURIComponent(seriesSlug)}`}
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-ink"
             >
               {seriesDetail?.title || episode.series?.title || 'Detail seri'}
             </Link>
           ) : (
-            <Link href="/anime" className="transition-colors hover:text-white">
+            <Link href="/anime" className="transition-colors hover:text-ink">
               Anime
             </Link>
           )}
         </nav>
 
-        <h1 className="text-xl font-extrabold leading-snug text-white [text-wrap:balance] sm:text-2xl">
+        <h1 className="font-display text-xl font-bold leading-snug text-ink [text-wrap:balance] sm:text-2xl">
           {episode.title}
         </h1>
       </div>
@@ -100,10 +100,12 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
       <DownloadBoxes boxes={episode.downloads} heading="Unduh episode ini" />
 
       {seriesDetail && seriesDetail.episodes.length > 0 ? (
-        <section aria-label="Semua episode dalam seri ini" className="space-y-4 border-t border-white/[0.07] pt-8">
+        <section aria-label="Semua episode dalam seri ini" className="space-y-4 border-t border-line pt-8">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="text-lg font-bold text-white">Episode lainnya</h2>
-            <span className="text-xs text-muted">{seriesDetail.totalEpisodes} episode</span>
+            <h2 className="font-display text-lg font-bold text-ink">Episode lainnya</h2>
+            <span className="font-mono text-xs tabular-nums text-muted">
+              {seriesDetail.totalEpisodes} episode
+            </span>
           </div>
           <EpisodeList episodes={seriesDetail.episodes} />
         </section>

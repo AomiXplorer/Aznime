@@ -231,6 +231,27 @@ function safeDecodeSlug(value: string): string {
   }
 }
 
+/**
+ * Bersihkan sufiks dimensi thumbnail WordPress (-214x300.jpg) dan parameter
+ * query pengecil gambar (?resize=..., ?w=..., ?fit=...) agar poster tampil tajam.
+ */
+export function stripImageDownscaleParams(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    parsed.pathname = parsed.pathname.replace(
+      /-\d{2,4}x\d{2,4}(?=\.(jpe?g|png|webp|avif)$)/i,
+      ''
+    );
+    parsed.searchParams.delete('resize');
+    parsed.searchParams.delete('w');
+    parsed.searchParams.delete('h');
+    parsed.searchParams.delete('fit');
+    return parsed.toString();
+  } catch {
+    return rawUrl.replace(/-\d{2,4}x\d{2,4}(?=\.(jpe?g|png|webp|avif))/i, '');
+  }
+}
+
 export function parseImgSrc($: CheerioAPI, container: AnyNode | string): string | null {
   const root = $(container);
   const img = root.find('img').not('noscript img').first();
@@ -239,7 +260,7 @@ export function parseImgSrc($: CheerioAPI, container: AnyNode | string): string 
   for (const candidate of candidates) {
     if (candidate && !candidate.startsWith('data:image/svg+xml')) {
       const normalized = normalizeUrl(candidate);
-      if (normalized) return normalized;
+      if (normalized) return stripImageDownscaleParams(normalized);
     }
   }
 
@@ -249,7 +270,7 @@ export function parseImgSrc($: CheerioAPI, container: AnyNode | string): string 
     const nsSrc = $ns('img').attr('src');
     if (nsSrc) {
       const normalized = normalizeUrl(nsSrc);
-      if (normalized) return normalized;
+      if (normalized) return stripImageDownscaleParams(normalized);
     }
   }
 

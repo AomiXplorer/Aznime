@@ -86,6 +86,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
 
   const trailer = await getAniListTrailer(detail.title, detail.altTitle).catch(() => null);
   const banner = trailer?.bannerImage || null;
+  const displayPoster = trailer?.coverImage || detail.poster;
 
   // Episode dari sumber biasanya terbaru dulu; episode pertama ada di akhir daftar.
   const firstEpisode = detail.episodes.length > 0 ? detail.episodes[detail.episodes.length - 1] : null;
@@ -99,34 +100,51 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
     name: detail.title,
     alternateName: detail.altTitle || undefined,
     description: detail.synopsis || undefined,
-    image: detail.poster || undefined,
+    image: displayPoster || undefined,
     genre: detail.genres.map((g) => g.name),
     numberOfEpisodes: detail.totalEpisodes || undefined,
   };
 
   return (
     <div className="pb-8">
-      <section className="relative -mt-0 overflow-hidden bg-canvas">
+      <section className="relative overflow-hidden bg-canvas">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           {banner ? (
-            <AnimeImage src={banner} alt="" priority sizes="100vw" className="object-cover object-center opacity-60" />
+            <>
+              <AnimeImage
+                src={banner}
+                alt=""
+                priority
+                sizes="100vw"
+                className="object-cover object-center opacity-60"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/75 to-canvas/30" />
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-canvas to-transparent" />
+            </>
           ) : (
-            <AnimeImage
-              src={detail.poster}
-              alt=""
-              priority
-              sizes="100vw"
-              className="object-cover object-top opacity-30"
-            />
+            <>
+              <div className="stage-pattern absolute inset-0 opacity-60" />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'radial-gradient(circle at 22% 35%, rgba(225, 29, 72, 0.14), transparent 58%)',
+                }}
+              />
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-canvas to-transparent" />
+            </>
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/70 to-canvas/30" />
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-canvas to-transparent" />
         </div>
 
         <div className="relative mx-auto grid max-w-7xl gap-8 px-4 pb-10 pt-12 sm:px-6 md:grid-cols-[200px_1fr] lg:grid-cols-[230px_1fr] lg:px-8">
           <div className="mx-auto w-40 md:mx-0 md:w-full">
-            <div className="relative aspect-[2/3] w-full overflow-hidden rounded bg-surface shadow-xl shadow-black/60 ring-1 ring-white/10">
-              <AnimeImage src={detail.poster} alt={detail.title} priority sizes="(max-width: 768px) 160px, 230px" />
+            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-surface shadow-[0_20px_50px_-12px_rgba(0,0,0,0.75)] ring-1 ring-white/15">
+              <AnimeImage
+                src={displayPoster}
+                alt={detail.title}
+                priority
+                sizes="(max-width: 768px) 160px, 230px"
+              />
             </div>
           </div>
 
@@ -140,14 +158,14 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-muted">
               {detail.rating ? (
-                <span className="inline-flex items-center gap-1.5 font-bold text-ink">
+                <span className="inline-flex items-center gap-1.5 font-mono font-bold tabular-nums text-ink">
                   <Star className="h-4 w-4 fill-accent-ink text-accent-ink" aria-hidden="true" />
                   {detail.rating}
                 </span>
               ) : null}
               {detail.info.Status ? <span>{detail.info.Status}</span> : null}
               {detail.info.Tipe || detail.info.Type ? <span>{detail.info.Tipe || detail.info.Type}</span> : null}
-              <span>{detail.totalEpisodes} episode</span>
+              <span className="font-mono tabular-nums">{detail.totalEpisodes} episode</span>
             </div>
 
             {detail.genres.length > 0 ? (
@@ -156,7 +174,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                   <Link
                     key={`${g.slug || idx}`}
                     href={g.slug ? `/anime?genre=${encodeURIComponent(g.slug)}` : '/anime'}
-                    className="rounded border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-muted transition-colors duration-150 hover:border-white/25 hover:text-ink"
+                    className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-muted transition-colors duration-150 hover:border-accent/50 hover:bg-accent-soft hover:text-accent-ink"
                   >
                     {g.name}
                   </Link>
@@ -172,7 +190,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
               {firstEpisode?.slug ? (
                 <Link
                   href={`/watch/${encodeURIComponent(firstEpisode.slug)}`}
-                  className="inline-flex h-11 items-center gap-2 rounded-md bg-accent px-5 text-sm font-bold text-white transition-colors duration-150 hover:bg-accent-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                  className="inline-flex h-11 items-center gap-2 rounded-lg bg-accent px-5 text-sm font-bold text-white transition-colors duration-150 hover:bg-accent-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                 >
                   <Play className="h-4 w-4 fill-current" aria-hidden="true" />
                   Mulai menonton{epSuffix(firstEpisode.number)}
@@ -182,7 +200,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
               {latestEpisode?.slug && latestEpisode.slug !== firstEpisode?.slug ? (
                 <Link
                   href={`/watch/${encodeURIComponent(latestEpisode.slug)}`}
-                  className="inline-flex h-11 items-center gap-2 rounded-md border border-white/25 px-5 text-sm font-bold text-ink transition-colors duration-150 hover:bg-white/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                  className="inline-flex h-11 items-center gap-2 rounded-lg border border-line bg-surface/90 px-5 text-sm font-semibold text-ink transition-colors duration-150 hover:border-white/25 hover:bg-elevated active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
                 >
                   Episode terbaru{epSuffix(latestEpisode.number)}
                 </Link>
@@ -194,12 +212,12 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
 
       <div className="mx-auto max-w-7xl space-y-14 px-4 pt-8 sm:px-6 lg:px-8">
         {infoEntries.length > 0 ? (
-          <section aria-label="Informasi anime" className="space-y-1">
+          <section aria-label="Informasi anime" className="space-y-4">
             <SectionHeading title="Informasi" />
-            <dl className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {infoEntries.map(([key, val]) => (
-                <div key={key} className="space-y-0.5 border-b border-line py-3.5">
-                  <dt className="text-xs text-faint">{key}</dt>
+                <div key={key} className="space-y-1 rounded-xl border border-line bg-surface p-3.5">
+                  <dt className="text-xs font-medium text-faint">{key}</dt>
                   <dd className="text-sm font-semibold text-ink">{val}</dd>
                 </div>
               ))}

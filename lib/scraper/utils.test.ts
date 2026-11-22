@@ -51,18 +51,18 @@ test('extractSlug and link resolution handle anime and episode URLs including en
   );
 });
 
-test('parseImgSrc skips SVG base64 placeholders and falls back to noscript', () => {
+test('parseImgSrc skips SVG base64 placeholders, strips WordPress downscale params, and falls back to noscript', () => {
   const $ = cheerio.load(`
     <div class="thumb">
-      <img src="data:image/svg+xml;base64,PHN2Zz4=" data-src="https://v10.hidoristream.online/poster.jpg" />
+      <img src="data:image/svg+xml;base64,PHN2Zz4=" data-src="https://v10.hidoristream.online/wp-content/uploads/poster-214x300.jpg?resize=214,300&w=214" />
     </div>
     <div class="fallback">
       <img src="data:image/svg+xml;base64,PHN2Zz4=" />
-      <noscript><img src="https://v10.hidoristream.online/ns.jpg" /></noscript>
+      <noscript><img src="https://v10.hidoristream.online/ns-150x220.webp?fit=150,220" /></noscript>
     </div>
   `);
-  assert.equal(parseImgSrc($, '.thumb'), 'https://v10.hidoristream.online/poster.jpg');
-  assert.equal(parseImgSrc($, '.fallback'), 'https://v10.hidoristream.online/ns.jpg');
+  assert.equal(parseImgSrc($, '.thumb'), 'https://v10.hidoristream.online/wp-content/uploads/poster.jpg');
+  assert.equal(parseImgSrc($, '.fallback'), 'https://v10.hidoristream.online/ns.webp');
 });
 
 test('parseAnimeCard extracts card fields accurately', () => {

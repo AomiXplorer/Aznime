@@ -33,33 +33,29 @@ function AnimeCardComponent({ item, priority = false, className }: AnimeCardProp
         /* Prefetch tiap kartu membuat puluhan permintaan RSC saat grid digulir.
            Dimatikan supaya scroll di HP tetap ringan; halaman tetap cepat dibuka. */
         prefetch={false}
-        className="block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded bg-surface ring-1 ring-white/[0.06] transition-transform duration-200 ease-out group-active:scale-[0.97]">
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface ring-1 ring-white/[0.06] transition-all duration-200 ease-out group-hover:ring-accent/50 group-active:scale-[0.97]">
           <AnimeImage
             src={item.poster}
             alt={displayTitle}
             priority={priority}
             sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 170px"
+            className="transition-transform duration-300 ease-out group-hover:scale-[1.03]"
           />
           {ep ? (
-            <span className="absolute left-0 top-2 bg-accent px-1.5 py-1 text-[11px] font-bold leading-none text-white">
+            <span className="absolute left-0 top-0 rounded-br-lg bg-accent px-2 py-1 font-mono text-[11px] font-bold leading-none tabular-nums text-white">
               {ep}
             </span>
           ) : null}
           {item.isHot ? (
-            <span className="absolute right-0 top-2 bg-canvas/85 px-1.5 py-1 text-[11px] font-semibold leading-none text-ink">
+            <span className="absolute right-0 top-0 rounded-bl-lg border-b border-l border-accent/30 bg-canvas/85 px-2 py-1 text-[11px] font-semibold leading-none text-accent-ink">
               Hot
             </span>
           ) : null}
-          {/* Satu-satunya umpan balik hover: garis crimson yang memanjang. */}
-          <span
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-accent transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
-          />
         </div>
 
-        <h3 className="mt-2 line-clamp-2 min-h-[2.5rem] text-[13px] font-semibold leading-5 text-ink/90 transition-colors duration-150 group-hover:text-ink">
+        <h3 className="mt-2.5 line-clamp-2 min-h-[2.5rem] text-[13px] font-semibold leading-5 text-ink/90 transition-colors duration-150 group-hover:text-accent-ink">
           {displayTitle}
         </h3>
         {item.type || item.status ? (

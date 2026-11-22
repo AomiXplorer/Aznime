@@ -19,24 +19,31 @@ interface SectionHeadingProps {
  */
 export function SectionHeading({ title, description, href, linkLabel = 'Lihat semua', children }: SectionHeadingProps) {
   return (
-    <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-line">
-      <div className="relative pb-3">
-        <h2 className="font-display text-[1.3rem] font-bold leading-none text-ink sm:text-[1.45rem]">{title}</h2>
+    <div className="relative flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-line pb-3">
+      <div className="relative">
+        <h2 className="font-display text-[1.35rem] font-bold leading-none text-ink sm:text-[1.5rem]">
+          {title}
+        </h2>
         {description ? <p className="mt-1.5 text-[13px] text-muted">{description}</p> : null}
-        <span aria-hidden="true" className="absolute -bottom-px left-0 h-0.5 w-10 bg-accent" />
+        <span
+          aria-hidden="true"
+          className="absolute -bottom-[13px] left-0 h-0.5 w-12 rounded-full bg-accent"
+        />
       </div>
-      <div className="flex items-center gap-3 pb-3">
-        {children}
-        {href ? (
-          <Link
-            href={href}
-            className="inline-flex items-center gap-0.5 text-[13px] font-semibold text-muted transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
-          >
-            {linkLabel}
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        ) : null}
-      </div>
+      {(children || href) ? (
+        <div className="flex items-center gap-3">
+          {children}
+          {href ? (
+            <Link
+              href={href}
+              className="inline-flex items-center gap-0.5 whitespace-nowrap text-[13px] font-semibold text-muted transition-colors duration-150 hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+            >
+              {linkLabel}
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -262,13 +262,13 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
 
   const triggerClass = (active: boolean) =>
     cn(
-      'inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-[0.98]',
+      'inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full border px-4 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink active:scale-[0.98]',
       active
-        ? 'border-accent/50 bg-accent/15 text-white'
-        : 'border-white/[0.08] bg-white/[0.04] text-zinc-200 hover:bg-white/[0.09]'
+        ? 'border-accent/60 bg-accent-soft text-accent-ink'
+        : 'border-line bg-elevated/70 text-ink hover:border-white/20 hover:bg-hover'
     );
 
-  const triggerLabelClass = 'text-[11px] font-medium uppercase tracking-wide text-zinc-500';
+  const triggerLabelClass = 'text-[11px] font-medium text-faint';
 
   // Di baris chip, "Semua" sudah cukup jelas; label panjang dipakai di dalam panel.
   const shortValue = (value: string, fallback: string) => (value ? fallback : 'Semua');
@@ -277,8 +277,8 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
     cn(
       'flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left text-[14px] transition-colors duration-150',
       selected
-        ? 'bg-accent/15 font-semibold text-white'
-        : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white'
+        ? 'bg-accent-soft font-semibold text-accent-ink'
+        : 'text-muted hover:bg-elevated hover:text-ink'
     );
 
   const currentSingle =
@@ -291,7 +291,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
           <div className="px-4 pb-3">
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
                 aria-hidden="true"
               />
               <input
@@ -300,14 +300,14 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
                 onChange={(event) => setGenreQuery(event.target.value)}
                 placeholder="Cari genre, misal romance"
                 aria-label="Cari genre"
-                className="h-11 w-full rounded-xl border border-white/10 bg-canvas pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-accent/60 focus:outline-none focus:ring-1 focus:ring-accent/60"
+                className="h-11 w-full rounded-xl border border-line bg-canvas pl-9 pr-3 text-sm text-ink placeholder:text-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
             {filteredGenres.length === 0 ? (
-              <p className="py-8 text-center text-sm text-zinc-500">
+              <p className="py-8 text-center text-sm text-muted">
                 Genre &ldquo;{genreQuery}&rdquo; nggak ketemu. Coba kata lain ya.
               </p>
             ) : (
@@ -321,10 +321,10 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
                       aria-pressed={selected}
                       onClick={() => toggleGenre(item.value)}
                       className={cn(
-                        'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-2 text-[13px] font-medium transition-colors duration-150 active:scale-[0.97]',
+                        'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-150 active:scale-[0.97]',
                         selected
-                          ? 'border-accent/60 bg-accent/20 text-white'
-                          : 'border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08]'
+                          ? 'border-accent/60 bg-accent-soft text-accent-ink'
+                          : 'border-line bg-elevated/60 text-muted hover:border-white/20 hover:bg-hover hover:text-ink'
                       )}
                     >
                       {selected ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -336,23 +336,23 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-white/[0.07] px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
             <button
               type="button"
               onClick={() => setDraftGenres([])}
               disabled={draftGenres.length === 0}
-              className="cursor-pointer rounded-md px-3 py-2 text-[13px] font-semibold text-zinc-400 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-lg px-3 py-2 text-[13px] font-semibold text-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
             >
               Bersihkan
             </button>
             <button
               type="button"
               onClick={applyGenres}
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-accent px-5 text-[13px] font-bold text-white transition-colors hover:bg-accent-hover active:scale-[0.98]"
+              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-accent px-5 text-[13px] font-bold text-white transition-colors hover:bg-accent-hover active:scale-[0.98]"
             >
               Terapkan
               {draftGenres.length > 0 ? (
-                <span className="rounded-md bg-black/25 px-1.5 py-0.5 text-[11px] font-bold">
+                <span className="rounded-md bg-black/25 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums">
                   {draftGenres.length}
                 </span>
               ) : null}
@@ -388,7 +388,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
   };
 
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-surface p-3">
+    <div className="rounded-2xl border border-line bg-surface p-3">
       <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
         <button
           type="button"
@@ -454,11 +454,11 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
           <button
             type="button"
             onClick={resetAll}
-            className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[12px] font-semibold text-zinc-400 transition-colors hover:text-white"
+            className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[12px] font-semibold text-muted transition-colors hover:text-ink"
           >
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
             Reset
-            <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[11px] font-bold text-zinc-200">
+            <span className="rounded-full bg-elevated px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-ink">
               {activeCount}
             </span>
           </button>
@@ -466,7 +466,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
       </div>
 
       {current.genres.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5 border-t border-white/[0.06] pt-3">
+        <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
           {current.genres.map((value) => {
             const item = genreItems.find((entry) => entry.value === value);
             return (
@@ -482,7 +482,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
                   })
                 }
                 aria-label={`Hapus genre ${item?.label ?? value}`}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-white/[0.06] px-2.5 py-1 text-[12px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.12] hover:text-white"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line-accent bg-accent-soft px-3 py-1 text-[12px] font-medium text-accent-ink transition-colors hover:bg-accent hover:text-white"
               >
                 {item?.label ?? value}
                 <X className="h-3 w-3" aria-hidden="true" />
@@ -499,7 +499,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
                 type="button"
                 aria-label="Tutup pilihan filter"
                 onClick={close}
-                className="picker-backdrop absolute inset-0 cursor-default bg-black/70"
+                className="picker-backdrop absolute inset-0 cursor-default bg-black/75"
               />
               <div
                 ref={panelRef}
@@ -507,22 +507,22 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
                 aria-modal="true"
                 aria-labelledby="filter-panel-title"
                 tabIndex={-1}
-                className="picker-sheet relative flex max-h-[82vh] w-full flex-col overflow-hidden rounded-t-3xl border border-white/[0.08] bg-surface shadow-2xl shadow-black/60 outline-none sm:max-w-md sm:rounded-3xl"
+                className="picker-sheet relative flex max-h-[82vh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-surface shadow-2xl shadow-black/70 outline-none sm:max-w-md sm:rounded-3xl"
               >
                 <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4">
                   <div>
-                    <h2 id="filter-panel-title" className="text-[15px] font-bold text-white">
+                    <h2 id="filter-panel-title" className="font-display text-[16px] font-bold text-ink">
                       {PANEL_COPY[openKey].title}
                     </h2>
                     {PANEL_COPY[openKey].hint ? (
-                      <p className="mt-0.5 text-[12px] text-zinc-500">{PANEL_COPY[openKey].hint}</p>
+                      <p className="mt-0.5 text-[12px] text-muted">{PANEL_COPY[openKey].hint}</p>
                     ) : null}
                   </div>
                   <button
                     type="button"
                     onClick={close}
                     aria-label="Tutup"
-                    className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-white/[0.06] text-zinc-300 transition-colors hover:bg-white/[0.12] hover:text-white"
+                    className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-elevated text-muted transition-colors hover:bg-hover hover:text-ink"
                   >
                     <X className="h-4 w-4" aria-hidden="true" />
                   </button>

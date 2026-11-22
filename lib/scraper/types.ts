@@ -259,5 +259,6 @@ export interface AniListTrailer {
   site: string;
   thumbnail: string | null;
   bannerImage: string | null;
+  coverImage?: string | null;
   matchedTitle: string | null;
 }

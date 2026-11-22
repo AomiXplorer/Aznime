@@ -14,7 +14,7 @@ export function DownloadBoxes({
 
   return (
     <section aria-label={heading} className="space-y-4">
-      <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-zinc-100">
+      <h2 className="flex items-center gap-2 font-display text-lg font-bold text-ink">
         <Download className="h-4 w-4 text-accent-ink" aria-hidden="true" />
         {heading}
       </h2>
@@ -23,10 +23,10 @@ export function DownloadBoxes({
         {boxes.map((box, boxIdx) => (
           <div
             key={`${box.title}-${boxIdx}`}
-            className="overflow-hidden rounded-lg border border-white/10 bg-surface"
+            className="overflow-hidden rounded-xl border border-line bg-surface"
           >
             {box.title ? (
-              <div className="border-b border-white/10 bg-elevated px-4 py-2.5 text-sm font-medium text-zinc-200">
+              <div className="border-b border-line bg-elevated px-4 py-2.5 text-sm font-semibold text-ink">
                 {box.title}
               </div>
             ) : null}
@@ -37,7 +37,7 @@ export function DownloadBoxes({
                   key={`${q.quality}-${qIdx}`}
                   className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
                 >
-                  <span className="w-24 shrink-0 font-mono text-xs font-semibold tabular-nums text-zinc-300">
+                  <span className="w-24 shrink-0 font-mono text-xs font-semibold tabular-nums text-ink">
                     {q.quality}
                   </span>
                   <div className="flex flex-wrap gap-2">
@@ -47,10 +47,13 @@ export function DownloadBoxes({
                         href={lnk.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 bg-canvas px-3 text-xs font-medium text-zinc-200 transition-colors duration-150 hover:border-accent-ink/50 hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                        className="group inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-canvas px-3 text-xs font-semibold text-muted transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
                       >
                         <span>{lnk.host}</span>
-                        <ExternalLink className="h-3 w-3 text-zinc-500" aria-hidden="true" />
+                        <ExternalLink
+                          className="h-3 w-3 text-faint transition-colors group-hover:text-white"
+                          aria-hidden="true"
+                        />
                       </a>
                     ))}
                   </div>

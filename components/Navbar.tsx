@@ -108,13 +108,15 @@ export function Navbar() {
           }`}
         />
 
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-10 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5 rounded-sm font-display text-[1.4rem] font-bold leading-none tracking-tight text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+            className="flex shrink-0 items-center gap-2.5 rounded-sm font-display text-[1.45rem] font-extrabold leading-none tracking-tight text-ink whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
           >
-            <span aria-hidden="true" className="h-5 w-1 bg-accent" />
-            Aznime
+            <span aria-hidden="true" className="h-5 w-1 rounded-full bg-accent" />
+            <span>
+              Aznime<span className="text-accent">.</span>
+            </span>
           </Link>
 
           <nav aria-label="Navigasi utama" className="hidden h-full flex-1 items-stretch gap-7 md:flex">
@@ -125,13 +127,16 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`relative flex items-center whitespace-nowrap text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
+                  className={`relative flex items-center whitespace-nowrap shrink-0 text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
                     active ? 'font-bold text-ink' : 'font-medium text-muted hover:text-ink'
                   }`}
                 >
                   {link.label}
                   {active ? (
-                    <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" />
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-accent"
+                    />
                   ) : null}
                 </Link>
               );
@@ -146,11 +151,11 @@ export function Navbar() {
                 setSearchOpen(true);
               }}
               aria-label="Buka pencarian anime"
-              className="inline-flex h-10 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-surface px-3 text-[13px] text-muted transition-colors duration-150 hover:border-white/20 hover:bg-elevated hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:w-52 lg:w-60"
+              className="inline-flex h-10 cursor-pointer items-center gap-2.5 rounded-full border border-line bg-surface px-3.5 text-[13px] text-muted transition-colors duration-150 hover:border-line-accent hover:bg-elevated hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:w-52 lg:w-60"
             >
               <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="hidden flex-1 text-left sm:inline">Cari anime</span>
-              <kbd className="hidden rounded border border-line px-1.5 py-0.5 font-sans text-[11px] text-faint lg:inline">
+              <kbd className="hidden rounded-full border border-line bg-canvas/70 px-2 py-0.5 font-mono text-[10.5px] font-medium text-faint lg:inline">
                 Ctrl K
               </kbd>
             </button>
@@ -161,7 +166,7 @@ export function Navbar() {
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-panel"
               aria-label={mobileOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
-              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-line bg-surface text-ink transition-colors hover:bg-elevated md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-ink transition-colors hover:bg-elevated md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
             >
               {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
@@ -188,7 +193,7 @@ export function Navbar() {
                     >
                       <span
                         aria-hidden="true"
-                        className={`h-4 w-0.5 ${active ? 'bg-accent' : 'bg-transparent'}`}
+                        className={`h-4 w-1 rounded-full ${active ? 'bg-accent' : 'bg-transparent'}`}
                       />
                       {link.label}
                     </Link>

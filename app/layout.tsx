@@ -1,21 +1,28 @@
 import type { Metadata, Viewport } from 'next';
-import { Manrope, Space_Grotesk } from 'next/font/google';
+import { JetBrains_Mono, Outfit, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
-// Dua keluarga font: Space Grotesk untuk judul/angka (karakter geometris),
-// Manrope untuk teks antarmuka dan paragraf (mudah dibaca).
-const spaceGrotesk = Space_Grotesk({
+// Tiga keluarga font: Outfit untuk judul & peringkat besar, Plus Jakarta Sans
+// untuk teks antarmuka & sinopsis, JetBrains Mono untuk badge/angka presisi.
+const outfit = Outfit({
   subsets: ['latin'],
-  variable: '--font-space-grotesk',
-  weight: ['500', '700'],
+  variable: '--font-outfit',
+  weight: ['600', '700', '800'],
   display: 'swap',
 });
-const manrope = Manrope({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-manrope',
+  variable: '--font-plus-jakarta',
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  weight: ['500', '700'],
   display: 'swap',
 });
 
@@ -88,7 +95,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0c0c0f',
+  themeColor: '#0A090C',
   width: 'device-width',
   initialScale: 1,
   colorScheme: 'dark',
@@ -111,7 +118,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="id" className={`dark ${spaceGrotesk.variable} ${manrope.variable}`}>
+    <html
+      lang="id"
+      className={`dark ${outfit.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}
+    >
       <body className="flex min-h-screen flex-col bg-canvas text-ink selection:bg-accent selection:text-white">
         <a
           href="#main-content"

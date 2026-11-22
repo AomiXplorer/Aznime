@@ -67,12 +67,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             defaultValue={q}
             placeholder="Masukkan judul anime"
             required
-            className="h-11 w-full rounded-md border border-line bg-surface pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 transition-colors focus:bg-elevated focus:outline-none focus:ring-2 focus:ring-white/40"
+            className="h-11 w-full rounded-lg border border-line bg-surface pl-10 pr-4 text-sm text-ink placeholder:text-faint transition-colors focus:border-accent focus:bg-elevated focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </div>
         <button
           type="submit"
-          className="h-11 cursor-pointer rounded-md bg-accent px-6 text-sm font-bold text-white transition-all hover:bg-accent-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="h-11 cursor-pointer rounded-lg bg-accent px-6 text-sm font-bold text-white transition-all hover:bg-accent-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
         >
           Cari
         </button>
@@ -90,7 +90,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ) : data ? (
         <div className="space-y-5">
           <p className="text-sm text-muted">
-            Hasil untuk <span className="font-semibold text-white">&ldquo;{q}&rdquo;</span>
+            Hasil untuk <span className="font-semibold text-ink">&ldquo;{q}&rdquo;</span>
           </p>
           <InfiniteAnimeCatalog
             initialItems={data.results}

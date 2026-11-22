@@ -17,10 +17,12 @@ export function Footer() {
         <div className="max-w-sm">
           <Link
             href="/"
-            className="flex items-center gap-2.5 font-display text-xl font-bold leading-none text-ink"
+            className="inline-flex items-center gap-2.5 font-display text-xl font-extrabold leading-none text-ink"
           >
-            <span aria-hidden="true" className="h-4 w-1 bg-accent" />
-            Aznime
+            <span aria-hidden="true" className="h-4 w-1 rounded-full bg-accent" />
+            <span>
+              Aznime<span className="text-accent">.</span>
+            </span>
           </Link>
           <p className="mt-3 text-[13px] leading-relaxed">
             Streaming anime subtitle Indonesia dengan katalog langsung dan trailer AniList.
@@ -28,7 +30,7 @@ export function Footer() {
         </div>
         <nav aria-label="Tautan footer" className="flex flex-wrap gap-x-6 gap-y-2.5 text-[13px] md:max-w-md md:justify-end">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="transition-colors duration-150 hover:text-ink">
+            <Link key={l.href} href={l.href} className="transition-colors duration-150 hover:text-accent-ink">
               {l.label}
             </Link>
           ))}

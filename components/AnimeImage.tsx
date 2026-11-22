@@ -39,32 +39,37 @@ function AnimeImageComponent({
           fallbackClassName
         )}
       >
-        <Film className="mb-2 h-6 w-6 text-zinc-600" aria-hidden="true" />
-        <span className="line-clamp-2 text-xs font-medium text-zinc-500">{alt}</span>
+        <Film className="mb-2 h-6 w-6 text-faint" aria-hidden="true" />
+        <span className="line-clamp-2 text-xs font-medium text-muted">{alt}</span>
       </div>
     );
   }
 
   return (
-    <Image
-      src={src}
-      alt={alt}
-      fill={fill}
-      width={fill ? undefined : width}
-      height={fill ? undefined : height}
-      sizes={sizes}
-      priority={priority}
-      loading={priority ? undefined : 'lazy'}
-      decoding="async"
-      referrerPolicy="no-referrer"
-      onLoad={() => setLoaded(true)}
-      onError={() => setHasError(true)}
-      className={cn(
-        'object-cover transition-opacity duration-200 ease-out',
-        loaded || priority ? 'opacity-100' : 'opacity-0',
-        className
-      )}
-    />
+    <>
+      {!loaded && !priority ? (
+        <span aria-hidden="true" className="shimmer pointer-events-none absolute inset-0" />
+      ) : null}
+      <Image
+        src={src}
+        alt={alt}
+        fill={fill}
+        width={fill ? undefined : width}
+        height={fill ? undefined : height}
+        sizes={sizes}
+        priority={priority}
+        loading={priority ? undefined : 'lazy'}
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onLoad={() => setLoaded(true)}
+        onError={() => setHasError(true)}
+        className={cn(
+          'object-cover transition-opacity duration-200 ease-out',
+          loaded || priority ? 'opacity-100' : 'opacity-0',
+          className
+        )}
+      />
+    </>
   );
 }
 
