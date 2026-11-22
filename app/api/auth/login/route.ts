@@ -3,7 +3,7 @@ import { createSession, setSessionCookie } from '@/lib/auth/session';
 import { findUserByEmail, toPublicUser } from '@/lib/auth/users';
 import { verifyPassword } from '@/lib/auth/crypto';
 import { consumeRateLimit } from '@/lib/auth/rate-limit';
-import { verifyTurnstile, turnstileSiteKey } from '@/lib/auth/turnstile';
+import { isTurnstileSecretUsable, verifyTurnstile, turnstileSiteKey } from '@/lib/auth/turnstile';
 import { syncHistory } from '@/lib/auth/history';
 import { normalizeEmail, validateEmail } from '@/lib/auth/validation';
 
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       return jsonError(422, 'Password wajib diisi.');
     }
 
-    if (turnstileSiteKey()) {
+    if (turnstileSiteKey() && (await isTurnstileSecretUsable())) {
       const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : '';
       const result = await verifyTurnstile(token, { ip });
       if (!result.ok) {

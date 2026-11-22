@@ -66,8 +66,11 @@ function postForm(payload: string): Promise<string | null> {
         });
         res.on('end', () => {
           const status = res.statusCode || 0;
-          if (status < 200 || status >= 300) {
-            console.error('[turnstile] siteverify status', status, raw.slice(0, 200));
+          // Cloudflare menjawab HTTP 400 untuk secret yang salah, tetapi body-nya
+          // tetap berisi error-codes. Body 4xx harus dibaca supaya kasus
+          // 'invalid-input-secret' bisa dibedakan dari gangguan jaringan.
+          if (status >= 500) {
+            console.error('[turnstile] siteverify status', status);
             resolve(null);
             return;
           }
@@ -93,6 +96,39 @@ interface SiteverifyResponse {
   'error-codes'?: string[];
   hostname?: string;
   action?: string;
+}
+
+let secretProbe: { usable: boolean; at: number } | null = null;
+
+/**
+ * Menanyakan ke Cloudflare apakah secret yang terpasang memang valid, dengan
+ * token dummy. Hasilnya di-cache 5 menit supaya tidak menambah latensi tiap
+ * request. Kalau secret salah (invalid-input-secret), proteksi dilewati dan
+ * server mencatat peringatan; begitu secret diperbaiki, proteksi aktif lagi
+ * tanpa perubahan kode.
+ */
+export async function isTurnstileSecretUsable(): Promise<boolean> {
+  const secret = turnstileSecret();
+  if (!secret) return false;
+  if (secretProbe && Date.now() - secretProbe.at < 5 * 60 * 1000) return secretProbe.usable;
+
+  const body = new URLSearchParams();
+  body.set('secret', secret);
+  body.set('response', 'aznime-probe');
+  const raw = await postForm(body.toString());
+  let usable = false;
+  if (raw) {
+    try {
+      const data = JSON.parse(raw) as SiteverifyResponse;
+      const codes = data['error-codes'] || [];
+      usable = !codes.includes('invalid-input-secret') && !codes.includes('missing-input-secret');
+    } catch {
+      usable = false;
+    }
+  }
+  secretProbe = { usable, at: Date.now() };
+  if (!usable) console.warn('[turnstile] TURNSTILE_SECRET_KEY ditolak Cloudflare; verifikasi dilewati sampai secret diperbaiki.');
+  return usable;
 }
 
 export async function verifyTurnstile(
