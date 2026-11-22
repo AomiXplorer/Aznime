@@ -191,6 +191,16 @@ export function normalizeMalzAsset(url: string | null | undefined): string | nul
   }
 }
 
+/**
+ * CDN gambar animein menolak hotlink dari domain lain, jadi poster dikirim
+ * lewat /api/img yang menyamar sebagai permintaan dari situsnya sendiri.
+ */
+export function malzImageUrl(url: string | null | undefined): string | null {
+  const normalized = normalizeMalzAsset(url);
+  if (!normalized) return null;
+  return `/api/img?u=${encodeURIComponent(normalized)}`;
+}
+
 export function splitMalzList(raw: string | null | undefined): string[] {
   if (!raw) return [];
   return raw
@@ -236,7 +246,7 @@ export function malzToCard(anime: MalzAnime): AnimeCardItem {
     slug: malzAnimeSlug(anime.id),
     url: `${MALZ_BASE_URL}/detail/${anime.id}`,
     kind: 'anime',
-    poster: normalizeMalzAsset(anime.poster) || normalizeMalzAsset(anime.cover),
+    poster: malzImageUrl(anime.poster) || malzImageUrl(anime.cover),
     type: anime.tipe ? malzTypeLabel(anime.tipe) : null,
     status: anime.status ? malzStatusLabel(anime.status) : null,
     sub: 'Sub',

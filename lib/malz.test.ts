@@ -8,6 +8,7 @@ import {
   malzStatusLabel,
   malzToCard,
   malzToEpisodeSummary,
+  malzImageUrl,
   malzToQuickItem,
   normalizeMalzAsset,
   type MalzAnime,
@@ -57,7 +58,11 @@ test('malzToCard memetakan field API ke kartu katalog', () => {
   assert.equal(card.kind, 'anime');
   assert.equal(card.type, 'TV');
   assert.equal(card.status, 'Completed');
-  assert.equal(card.poster, 'https://xyz-api.animein.net/assets_xyz/images/movie/poster/abc.jpg');
+  assert.equal(
+    card.poster,
+    '/api/img?u=' +
+      encodeURIComponent('https://xyz-api.animein.net/assets_xyz/images/movie/poster/abc.jpg')
+  );
   assert.deepEqual(card.genres, ['Action', 'Shounen', 'Super Power']);
   assert.deepEqual(card.altTitles, ['Naruto: Shippuden', 'NARUTO-ナルト- 疾風伝']);
 });
@@ -114,4 +119,13 @@ test('malzServersToMirrors membuang server tanpa tautan', () => {
     { id: '1', nama: 'RAPSODI', tipe: 'direct', kualitas: '720p', ukuran_mb: null, link: '', host: 'cdn', perlu_browser: true },
   ]);
   assert.equal(mirrors.length, 0);
+});
+
+test('malzImageUrl mengarahkan poster lewat proxy gambar', () => {
+  assert.equal(malzImageUrl(''), null);
+  assert.equal(malzImageUrl(null), null);
+  assert.equal(
+    malzImageUrl('https://api.animein.net//assets/images/movie/poster/abc.jpg'),
+    '/api/img?u=' + encodeURIComponent('https://api.animein.net/assets/images/movie/poster/abc.jpg')
+  );
 });
