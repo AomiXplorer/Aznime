@@ -66,7 +66,14 @@ export function NekopoiPlayer({
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [started, setStarted] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [sandboxed, setSandboxed] = useState(true);
+  /**
+   * Sandbox dimatikan secara bawaan. Host playmogo/stmpoi dilindungi
+   * Cloudflare, dan halaman verifikasinya menyelesaikan diri dengan memuat
+   * ulang frame teratas; di dalam iframe ber-sandbox langkah itu diblokir
+   * sehingga hasilnya selalu "Verification failed" dan video tidak pernah
+   * tampil. Mode aman tetap tersedia sebagai pilihan, bukan default.
+   */
+  const [sandboxed, setSandboxed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   // Host video kadang menolak tampil tanpa memberi sinyal apa pun ke halaman
   // induk. Bila iframe tidak selesai dimuat, bantuan dibuka sendiri.
@@ -208,8 +215,8 @@ export function NekopoiPlayer({
                     className="mt-2.5 cursor-pointer text-[11px] font-medium text-zinc-500 underline decoration-white/20 underline-offset-2 transition-colors hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                   >
                     {sandboxed
-                      ? 'Masih kosong? Matikan mode aman sekali untuk server ini.'
-                      : 'Nyalakan lagi mode aman (blokir pop-up iklan).'}
+                      ? 'Masih kosong? Matikan mode aman: host yang menolak sandbox akan memutar.'
+                      : 'Nyalakan mode aman untuk memblokir pop-up iklan (sebagian host menolak).'}
                   </button>
                 </div>
               </div>
@@ -239,7 +246,9 @@ export function NekopoiPlayer({
                 Tonton {active.name}
               </button>
               <p className="text-[11.5px] text-zinc-400">
-                Pemutar pihak ketiga. Mode aman aktif: pop-up dan pengalihan halaman diblokir.
+                {sandboxed
+                  ? 'Pemutar pihak ketiga. Mode aman: pop-up dan pengalihan halaman diblokir.'
+                  : 'Pemutar pihak ketiga. Iklan dari host bisa membuka tab baru.'}
               </p>
             </div>
           </>
@@ -309,7 +318,7 @@ export function NekopoiPlayer({
           <p className="text-[11px] leading-snug text-zinc-500">
             {sandboxed
               ? 'Mode aman: pop-up dan pengalihan iklan diblokir.'
-              : 'Mode kompatibel: pop-up iklan diizinkan.'}{' '}
+              : 'Mode kompatibel: iklan host bisa terbuka.'}{' '}
             <button
               type="button"
               onClick={() => setHelpOpen(true)}
