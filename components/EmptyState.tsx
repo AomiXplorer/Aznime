@@ -15,16 +15,14 @@ export function EmptyState({
   actionHref,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-white/10 bg-[#12141a] px-6 py-14 text-center">
-      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-[#181b23] text-zinc-400">
-        <Film className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <h2 className="font-display text-lg font-semibold text-zinc-100">{title}</h2>
-      <p className="mt-1.5 max-w-md text-sm text-zinc-400">{description}</p>
+    <div className="flex flex-col items-start rounded-[6px] border border-white/[0.08] bg-surface px-6 py-10">
+      <Film className="h-5 w-5 text-zinc-600" aria-hidden="true" />
+      <h2 className="mt-4 font-display text-[17px] font-semibold tracking-[-0.02em] text-white">{title}</h2>
+      <p className="mt-1.5 max-w-[52ch] text-[13px] leading-relaxed text-zinc-400">{description}</p>
       {actionLabel && actionHref ? (
         <Link
           href={actionHref}
-          className="mt-6 inline-flex items-center justify-center rounded-md bg-[#be123c] px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-[#9f1239] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0b0e]"
+          className="mt-5 inline-flex items-center justify-center rounded-[4px] bg-white px-4 py-2 text-[12.5px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
         >
           {actionLabel}
         </Link>

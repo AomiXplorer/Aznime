@@ -37,7 +37,7 @@ export function TrailerModal({ open, onClose, title, trailer }: TrailerModalProp
       onClick={(e) => {
         if (e.target === dialogRef.current) onClose();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-4xl rounded-xl border border-white/15 bg-[#12141a] p-0 text-zinc-100 shadow-2xl"
+      className="m-auto w-[calc(100%-2rem)] max-w-4xl rounded-[10px] border border-white/15 bg-[#0f1116] p-0 text-zinc-100 shadow-2xl shadow-black/60"
     >
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h2 id="trailer-modal-title" className="truncate pr-4 text-sm font-semibold text-zinc-100">

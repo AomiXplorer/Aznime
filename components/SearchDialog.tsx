@@ -145,7 +145,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
           <div
             aria-hidden="true"
             onClick={onClose}
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/80"
           />
 
           <motion.div
@@ -157,7 +157,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-surface shadow-2xl ring-1 ring-white/10"
+            className="relative w-full max-w-2xl overflow-hidden rounded-[10px] border border-white/[0.09] bg-[#0f1116] shadow-2xl shadow-black/60"
           >
             <form onSubmit={handleSubmit} className="flex items-center gap-3 border-b border-white/[0.07] px-4">
               <Search className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
@@ -178,7 +178,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                 type="button"
                 onClick={onClose}
                 aria-label="Tutup pencarian"
-                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>

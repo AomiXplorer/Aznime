@@ -22,11 +22,11 @@ export default function CreditPage() {
       </Link>
 
       <header className="mt-8">
-        <p className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-[12px] font-semibold text-rose-300">
+        <p className="inline-flex items-center gap-1.5 rounded-[4px] bg-accent/15 px-3 py-1 text-[12px] font-semibold text-rose-300">
           <Heart className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
           Salam hangat
         </p>
-        <h1 className="mt-4 text-[1.9rem] font-extrabold leading-tight text-white sm:text-[2.3rem]">
+        <h1 className="mt-4 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.03em] text-white sm:text-[34px]">
           Halo, penonton. Makasih ya sudah mampir.
         </h1>
         <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-zinc-300">
@@ -58,12 +58,12 @@ export default function CreditPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${credit.channelLabel} (dibuka di tab baru)`}
-                className="group flex h-full flex-col justify-between gap-4 rounded-2xl border border-white/[0.07] bg-surface p-4 transition-colors duration-150 hover:border-white/15 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="group flex h-full flex-col justify-between gap-4 rounded-[6px] border border-white/[0.08] bg-surface p-4 transition-colors duration-150 hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 <div>
                   <span
                     aria-hidden="true"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-sm font-extrabold text-accent"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-sm font-semibold text-accent"
                   >
                     {credit.name.charAt(0)}
                   </span>
@@ -82,7 +82,7 @@ export default function CreditPage() {
         </ul>
       </section>
 
-      <section className="mt-10 rounded-2xl border border-white/[0.07] bg-surface p-5">
+      <section className="mt-10 rounded-[6px] border border-white/[0.08] bg-surface p-5">
         <h2 className="text-[15px] font-bold text-white">Sedikit titip pesan</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-zinc-300">
           Kami suka anime, dan kami senang kalau kamu juga suka. Jadi kalau ada yang kurang pas,

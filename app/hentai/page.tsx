@@ -59,7 +59,7 @@ export default async function HentaiIndexPage({ searchParams }: HentaiPageProps)
               </span>
               Nekopoi · Sub Indo
             </p>
-            <h1 className="mt-2 font-display text-[2.4rem] font-black leading-[0.88] tracking-[-0.045em] text-white sm:text-[3.1rem]">
+            <h1 className="mt-2 font-display text-[2.3rem] font-semibold leading-[0.9] tracking-[-0.035em] text-white sm:text-[3rem]">
               Hentai
             </h1>
           </div>
@@ -72,7 +72,7 @@ export default async function HentaiIndexPage({ searchParams }: HentaiPageProps)
           <HentaiSearch initialQuery={q} />
           <nav
             aria-label="Pilih daftar"
-            className="flex items-center gap-0.5 self-start rounded-[6px] border border-white/10 bg-white/[0.02] p-1"
+            className="flex items-center gap-0.5 self-start rounded-[4px] border border-white/10 p-0.5"
           >
             {TABS.map((item) => {
               const active = !q && tab === item.key;
@@ -82,7 +82,7 @@ export default async function HentaiIndexPage({ searchParams }: HentaiPageProps)
                   href={buildHref({ tab: item.key })}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'inline-flex h-8 items-center rounded-[4px] px-3.5 text-[12.5px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+                    'inline-flex h-8 items-center rounded-[3px] px-3 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
                     active
                       ? 'bg-white text-black'
                       : 'text-zinc-400 hover:bg-white/[0.06] hover:text-white'
@@ -133,7 +133,7 @@ async function SearchResults({ query, page, tab }: { query: string; page: number
   return (
     <section aria-label="Hasil pencarian">
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-[15px] font-bold text-white">
+        <h2 className="font-display text-[15px] font-semibold tracking-[-0.02em] text-white">
           Hasil “{query}”
           {items.length > 0 ? (
             <span className="ml-2 text-[12px] font-medium tabular-nums text-zinc-500">

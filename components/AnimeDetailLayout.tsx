@@ -93,7 +93,7 @@ export function AnimeDetailLayout({
           <div className="space-y-4 self-end">
             <div className="space-y-1.5">
               {altTitle ? <p className="text-xs text-zinc-400 sm:text-[13px]">{altTitle}</p> : null}
-              <h1 className="text-2xl font-extrabold leading-tight text-white [text-wrap:balance] sm:text-[2rem]">
+              <h1 className="font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.03em] text-white [text-wrap:balance] sm:text-[34px]">
                 {title}
               </h1>
             </div>
@@ -117,14 +117,14 @@ export function AnimeDetailLayout({
                     <Link
                       key={`${genre.slug}-${idx}`}
                       href={`/anime?genre=${encodeURIComponent(genre.slug)}`}
-                      className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-zinc-200 transition-colors hover:bg-white/20 hover:text-white"
+                      className="rounded-[4px] bg-white/10 px-3 py-1 text-xs font-semibold text-zinc-200 transition-colors hover:bg-white/20 hover:text-white"
                     >
                       {genre.name}
                     </Link>
                   ) : (
                     <span
                       key={`${genre.name}-${idx}`}
-                      className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-zinc-200"
+                      className="rounded-[4px] bg-white/10 px-3 py-1 text-xs font-semibold text-zinc-200"
                     >
                       {genre.name}
                     </span>
@@ -165,7 +165,7 @@ export function AnimeDetailLayout({
         {infoEntries.length > 0 ? (
           <section aria-label="Informasi anime">
             <h2 className="mb-4 text-lg font-bold text-white">Informasi</h2>
-            <dl className="grid gap-4 rounded-xl bg-surface p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="grid gap-4 rounded-[6px] border border-white/[0.06] bg-surface p-5 sm:grid-cols-2 lg:grid-cols-4">
               {infoEntries.map(([key, val]) => (
                 <div key={key} className="space-y-0.5">
                   <dt className="text-xs text-muted">{key}</dt>

@@ -128,8 +128,10 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`whitespace-nowrap text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
-                    active ? 'font-bold text-white' : 'font-medium text-zinc-300 hover:text-white'
+                  className={`relative whitespace-nowrap text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                    active
+                      ? 'font-semibold text-white after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-full after:bg-accent'
+                      : 'font-medium text-zinc-400 hover:text-white'
                   }`}
                 >
                   {link.label}
@@ -146,9 +148,9 @@ export function Navbar() {
                 setSearchOpen(true);
               }}
               aria-label={adult ? 'Buka pencarian hentai' : 'Buka pencarian anime'}
-              className="group inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-white/[0.08] px-3.5 text-[13px] text-zinc-200 transition-all duration-200 hover:bg-white/[0.16] hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-zinc-300 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              <Search className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+              <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">{adult ? 'Cari hentai' : 'Cari anime'}</span>
             </button>
 
@@ -158,9 +160,9 @@ export function Navbar() {
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-panel"
               aria-label={mobileOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
-              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/[0.08] text-zinc-100 transition-colors hover:bg-white/[0.16] md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] border border-white/10 text-zinc-200 transition-colors duration-150 hover:border-white/25 hover:text-white md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+              {mobileOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -179,8 +181,10 @@ export function Navbar() {
                     <Link
                       href={link.href}
                       aria-current={active ? 'page' : undefined}
-                      className={`block rounded-md px-3 py-2.5 text-sm transition-colors ${
-                        active ? 'bg-white/10 font-bold text-white' : 'font-medium text-zinc-300 hover:bg-white/[0.06] hover:text-white'
+                      className={`flex items-center justify-between rounded-[4px] px-3 py-2.5 text-[13.5px] transition-colors ${
+                        active
+                          ? 'bg-white/[0.07] font-semibold text-white'
+                          : 'font-medium text-zinc-400 hover:bg-white/[0.04] hover:text-white'
                       }`}
                     >
                       {link.label}

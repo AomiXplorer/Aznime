@@ -163,14 +163,14 @@ export function HeroSection({ items }: HeroSectionProps) {
           >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-zinc-300">
               {current.status ? (
-                <span className="rounded bg-accent px-2 py-0.5 text-xs font-bold text-white">{current.status}</span>
+                <span className="rounded-[3px] bg-accent px-1.5 py-[3px] text-[11px] font-semibold leading-none text-white">{current.status}</span>
               ) : null}
               {current.releaseYear ? <span>{current.releaseYear}</span> : null}
               {current.type ? <span>{current.type}</span> : null}
               {current.genres.length > 0 ? <span>{current.genres.slice(0, 3).join(', ')}</span> : null}
             </div>
 
-            <h1 className="line-clamp-3 text-[1.9rem] font-extrabold leading-[1.1] text-white [text-wrap:balance] sm:text-[2.2rem] lg:text-[2.6rem]">
+            <h1 className="line-clamp-3 font-display text-[30px] font-semibold leading-[1.05] tracking-[-0.035em] text-white [text-wrap:balance] sm:text-[38px] lg:text-[46px]">
               {current.title}
             </h1>
 
@@ -181,14 +181,14 @@ export function HeroSection({ items }: HeroSectionProps) {
             <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
               <Link
                 href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-md bg-white px-5 text-sm font-bold text-black transition-all duration-150 hover:bg-white/85 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                className="inline-flex h-11 items-center gap-2 rounded-[4px] bg-white px-5 text-[13px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
                 <Play className="h-4 w-4 fill-current" aria-hidden="true" />
                 Tonton
               </Link>
               <Link
                 href={detailHref}
-                className="inline-flex h-11 items-center gap-2 rounded-md bg-white/20 px-5 text-sm font-bold text-white transition-colors duration-150 hover:bg-white/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="inline-flex h-11 items-center gap-2 rounded-[4px] border border-white/25 px-5 text-[13px] font-semibold text-white transition-colors duration-150 hover:border-white/50 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <Info className="h-4 w-4" aria-hidden="true" />
                 Info lainnya
@@ -212,7 +212,7 @@ export function HeroSection({ items }: HeroSectionProps) {
             href={detailHref}
             tabIndex={-1}
             aria-hidden="true"
-            className="relative ml-auto hidden aspect-[2/3] w-[210px] shrink-0 overflow-hidden rounded-lg shadow-2xl shadow-black/70 ring-1 ring-white/10 lg:block"
+            className="relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] ring-1 ring-white/15 lg:block"
           >
             <AnimeImage src={current.poster} alt={current.title} priority sizes="210px" />
           </Link>
@@ -262,7 +262,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index - 1)}
                 aria-label="Anime unggulan sebelumnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -270,7 +270,7 @@ export function HeroSection({ items }: HeroSectionProps) {
                 type="button"
                 onClick={() => go(index + 1)}
                 aria-label="Anime unggulan berikutnya"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] bg-white/10 text-white transition-colors hover:bg-white/25 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>

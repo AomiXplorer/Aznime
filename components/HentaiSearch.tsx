@@ -154,7 +154,7 @@ export function HentaiSearch({ initialQuery }: HentaiSearchProps) {
           aria-expanded={showPanel}
           aria-controls={listId}
           aria-autocomplete="list"
-          className="h-11 w-full rounded-[6px] border border-white/10 bg-white/[0.04] pl-9 pr-9 text-[13.5px] text-zinc-100 placeholder:text-zinc-500 transition-colors duration-150 hover:border-white/20 focus:border-white/30 focus:bg-white/[0.06] focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+          className="h-10 w-full rounded-[4px] border border-white/10 bg-white/[0.03] pl-9 pr-9 text-[13px] text-zinc-100 placeholder:text-zinc-500 transition-colors duration-150 hover:border-white/20 focus:border-white/30 focus:bg-white/[0.05] focus:outline-none [&::-webkit-search-cancel-button]:hidden"
         />
         {query ? (
           <button
@@ -169,7 +169,7 @@ export function HentaiSearch({ initialQuery }: HentaiSearchProps) {
       </form>
 
       {showPanel ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-[6px] border border-white/12 bg-[#12141a] shadow-2xl shadow-black/60">
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-[6px] border border-white/12 bg-[#0f1116] shadow-2xl shadow-black/60">
           <div className="max-h-[min(60vh,420px)] overflow-y-auto">
             {loading && items.length === 0 ? (
               <p className="flex items-center gap-2 px-3 py-4 text-[12.5px] text-zinc-400">

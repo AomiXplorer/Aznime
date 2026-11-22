@@ -133,7 +133,7 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
       >
         <Link
           href={archiveMode ? '/anime' : '/anime?order=archive'}
-          className="inline-flex h-9 items-center gap-2 rounded-full bg-white/10 px-4 text-[13px] font-semibold text-white transition-colors hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="inline-flex h-9 items-center gap-2 rounded-[4px] border border-white/15 px-4 text-[12.5px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           <Archive className="h-4 w-4" aria-hidden="true" />
           {archiveMode ? 'Katalog utama' : 'Arsip anime'}

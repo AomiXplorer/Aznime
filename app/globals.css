@@ -2,7 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --color-canvas: #0a0b0e;
   --color-surface: #12141a;
@@ -35,12 +35,16 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Judul memakai Bricolage Grotesque dengan berat 600 dan tracking rapat.
+   Berat 800 di semua judul adalah salah satu pola paling khas UI generator,
+   jadi bobot dibatasi dan jarak huruf diatur per peran. */
 h1,
 h2,
 h3,
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .no-scrollbar::-webkit-scrollbar {
