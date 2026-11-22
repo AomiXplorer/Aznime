@@ -199,3 +199,9 @@ h3,
   content-visibility: auto;
   contain-intrinsic-size: auto 68px;
 }
+
+/* Sembunyikan navbar dan footer saat layar maintenance dirender lewat rewrite proxy. */
+body:has([data-maintenance-screen]) header,
+body:has([data-maintenance-screen]) footer {
+  display: none;
+}

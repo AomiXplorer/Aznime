@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Figtree } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { MaintenanceBypassBanner } from '@/components/MaintenanceBypassBanner';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
@@ -129,6 +130,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
           <Footer />
+        <MaintenanceBypassBanner />
         </AuthProvider>
         <script
           type="application/ld+json"
