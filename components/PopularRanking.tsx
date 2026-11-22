@@ -83,6 +83,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
               <AnimeImage
                 src={champion.poster}
                 alt={champion.title}
+                unoptimized={champion.source === 'malz'}
                 sizes="(max-width: 640px) 42vw, 260px"
                 className="transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               />
@@ -155,6 +156,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
                       <AnimeImage
                         src={item.poster}
                         alt={item.title}
+                        unoptimized={item.source === 'malz'}
                         sizes={isRunnerUp ? '64px' : '56px'}
                         className="transition-transform duration-300 ease-out group-hover:scale-[1.05]"
                       />

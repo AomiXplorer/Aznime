@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CalendarDays } from 'lucide-react';
 import { getOngoing } from '@/lib/scraper';
+import { supplementWithArchive } from '@/lib/sources';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { ErrorState } from '@/components/ErrorState';
 import { PageHeader } from '@/components/PageHeader';
@@ -19,7 +20,8 @@ export default async function OngoingPage() {
   let errorMsg: string | null = null;
 
   try {
-    data = await getOngoing(1);
+    const ongoing = await getOngoing(1);
+    data = { ...ongoing, results: await supplementWithArchive(ongoing.results, { status: 'ongoing' }) };
   } catch (err) {
     errorMsg = err instanceof Error ? err.message : 'Gagal memuat daftar ongoing';
   }

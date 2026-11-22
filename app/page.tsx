@@ -1,6 +1,13 @@
 import { getHome, getOngoing } from '@/lib/scraper';
 import type { FeaturedAnime } from '@/lib/scraper';
 import { getAniListTrailer } from '@/lib/anilist';
+import {
+  archiveByStatus,
+  getMalzArchivePool,
+  mergeAnimeCards,
+  getHidoriTitleIndex,
+  topUpPopularRanking,
+} from '@/lib/sources';
 import { HeroSection } from '@/components/HeroSection';
 import { PopularRanking } from '@/components/PopularRanking';
 import { AnimeRow } from '@/components/AnimeRow';
@@ -16,7 +23,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 export default async function HomePage() {
-  const [homeRes, ongoingRes] = await Promise.allSettled([getHome(1), getOngoing(1)]);
+  const [homeRes, ongoingRes, poolRes, indexRes] = await Promise.allSettled([
+    getHome(1),
+    getOngoing(1),
+    getMalzArchivePool(),
+    getHidoriTitleIndex(),
+  ]);
 
   if (homeRes.status === 'rejected') {
     const message =
@@ -30,6 +42,8 @@ export default async function HomePage() {
 
   const home = homeRes.value;
   const ongoing = ongoingRes.status === 'fulfilled' ? ongoingRes.value.results : [];
+  const archive = poolRes.status === 'fulfilled' ? poolRes.value : [];
+  const hidoriIndex = indexRes.status === 'fulfilled' ? indexRes.value : new Set<string>();
 
   // Trailer AniList hanya memperkaya hero. Batas tunggunya dijaga ketat supaya
   // tidak menahan TTFB/LCP: kalau AniList lambat, hero tetap tampil dengan poster.
@@ -40,17 +54,29 @@ export default async function HomePage() {
     }))
   );
 
+  const [weekly, monthly, alltime] = await Promise.all([
+    topUpPopularRanking(home.popular.weekly),
+    topUpPopularRanking(home.popular.monthly),
+    topUpPopularRanking(home.popular.alltime),
+  ]);
+
+  const ongoingWithArchive = mergeAnimeCards(
+    ongoing,
+    archiveByStatus(archive, 'Ongoing', 8),
+    hidoriIndex
+  );
+  const archiveRow = archive.slice(0, 14);
+
   return (
     <>
       <HeroSection items={heroItems} />
       <div className="relative z-10 mx-auto max-w-7xl space-y-10 px-4 pt-6 sm:px-6 lg:px-8">
-        <PopularRanking
-          weekly={home.popular.weekly}
-          monthly={home.popular.monthly}
-          alltime={home.popular.alltime}
-        />
+        <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
         <AnimeRow title="Episode terbaru" items={home.latestRelease} viewAllHref="/anime?order=update" />
-        <AnimeRow title="Sedang tayang" items={ongoing} viewAllHref="/ongoing" />
+        <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
+        {archiveRow.length > 0 ? (
+          <AnimeRow title="Dari arsip" items={archiveRow} viewAllHref="/anime" />
+        ) : null}
         <AnimeRow title="Baru tamat" items={home.completedLatest} viewAllHref="/completed" />
       </div>
     </>

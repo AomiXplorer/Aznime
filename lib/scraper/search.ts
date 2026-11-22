@@ -96,6 +96,7 @@ export function parseQuickSearchPayload(rawBody: string): QuickSearchItem[] {
       type: item.post_type?.trim() || null,
       latestEpisode: item.post_latest?.trim() || null,
       sub: item.post_sub?.trim() || null,
+      source: 'hidori',
     });
   }
 

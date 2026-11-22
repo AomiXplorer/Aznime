@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Search } from 'lucide-react';
-import { search } from '@/lib/scraper';
+import { searchAcrossSources } from '@/lib/sources';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
@@ -41,7 +41,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   if (q) {
     try {
-      data = await search(q, 1);
+      data = await searchAcrossSources(q, 1);
     } catch (err) {
       errorMsg = err instanceof Error ? err.message : 'Gagal mencari anime';
     }

@@ -49,6 +49,7 @@ const ORDER_LABELS: Record<string, string> = {
   rating: 'Rating tertinggi',
   title: 'A–Z',
   titlereverse: 'Z–A',
+  archive: 'Arsip lengkap',
 };
 
 const FALLBACK_STATUS: FilterOptionItem[] = [
@@ -128,6 +129,9 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
     );
     if (!list.some((item) => item.value === 'update')) {
       list.unshift({ label: ORDER_LABELS.update, value: 'update' });
+    }
+    if (!list.some((item) => item.value === 'archive')) {
+      list.push({ label: ORDER_LABELS.archive, value: 'archive' });
     }
     return list;
   }, [options.order]);

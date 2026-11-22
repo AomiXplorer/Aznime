@@ -44,6 +44,7 @@ function AnimeCardComponent({ item, priority = false, className }: AnimeCardProp
             src={item.poster}
             alt={displayTitle}
             priority={priority}
+            unoptimized={item.source === 'malz'}
             sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 170px"
             className="transition-transform duration-500 ease-out group-hover:scale-[1.06]"
           />

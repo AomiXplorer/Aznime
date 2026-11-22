@@ -1,5 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnimeList } from '@/lib/scraper';
+import {
+  MALZ_PAGE_BASE,
+  getMalzArchivePool,
+  isMalzPoolPage,
+  supplementWithArchive,
+  toMalzPoolPage,
+  toVirtualMalzPage,
+} from '@/lib/sources';
+import type { PaginationInfo } from '@/lib/scraper/types';
+
+const ARCHIVE_PAGE_SIZE = 24;
+
+function archivePagination(currentPage: number, poolLength: number, served: number): PaginationInfo {
+  const servedTotal = (toMalzPoolPage(currentPage) + 1) * ARCHIVE_PAGE_SIZE;
+  const hasNextPage = servedTotal < poolLength;
+  return {
+    currentPage,
+    totalPages: Math.ceil(poolLength / ARCHIVE_PAGE_SIZE),
+    hasNextPage,
+    hasPrevPage: true,
+    nextPage: hasNextPage ? toVirtualMalzPage(toMalzPoolPage(currentPage) + 1) : null,
+    prevPage: currentPage > MALZ_PAGE_BASE + 1 ? currentPage - 1 : null,
+  };
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,6 +39,21 @@ export async function GET(req: NextRequest) {
     const season = searchParams.getAll('season').filter(Boolean);
     const studio = searchParams.getAll('studio').filter(Boolean);
 
+    if (isMalzPoolPage(page)) {
+      const pool = await getMalzArchivePool();
+      const poolPage = toMalzPoolPage(page);
+      const start = (poolPage - 1) * ARCHIVE_PAGE_SIZE;
+      const results = pool.slice(start, start + ARCHIVE_PAGE_SIZE);
+      return NextResponse.json(
+        {
+          filters: { status: '', type: '', sub: '', order: 'archive', genre: [], season: [], studio: [] },
+          pagination: archivePagination(page, pool.length, results.length),
+          results,
+        },
+        { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+      );
+    }
+
     const data = await getAnimeList({
       page,
       status,
@@ -26,11 +65,53 @@ export async function GET(req: NextRequest) {
       studio: studio.length ? studio : undefined,
     });
 
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    const filtersActive =
+      Boolean(status || type || sub || genre.length || season.length || studio.length) ||
+      Boolean(order && order !== 'update');
+
+    if (filtersActive) {
+      const results =
+        page === 1
+          ? await supplementWithArchive(data.results, { status, type, genres: genre })
+          : data.results;
+      return NextResponse.json(
+        { ...data, results },
+        { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' } }
+      );
+    }
+
+    if (data.results.length === 0) {
+      const pool = await getMalzArchivePool();
+      const results = pool.slice(0, ARCHIVE_PAGE_SIZE);
+      return NextResponse.json(
+        {
+          ...data,
+          results,
+          pagination: results.length
+            ? archivePagination(toVirtualMalzPage(1), pool.length, results.length)
+            : data.pagination,
+        },
+        { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+      );
+    }
+
+    const pool = await getMalzArchivePool();
+
+    return NextResponse.json(
+      {
+        ...data,
+        pagination: {
+          ...data.pagination,
+          hasNextPage: data.pagination.hasNextPage || pool.length > 0,
+          nextPage: data.pagination.hasNextPage
+            ? data.pagination.nextPage
+            : pool.length > 0
+              ? toVirtualMalzPage(1)
+              : null,
+        },
       },
-    });
+      { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' } }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Gagal memuat katalog anime';
     return NextResponse.json({ error: message }, { status: 502 });

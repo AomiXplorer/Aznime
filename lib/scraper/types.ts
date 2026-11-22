@@ -1,5 +1,8 @@
 export type LinkKind = 'anime' | 'episode';
 
+/** Sumber data: Hidori (utama) atau arsip Malz (pelengkap judul lama). */
+export type AnimeSource = 'hidori' | 'malz';
+
 export interface AnimeCardItem {
   postId: string | null;
   title: string;
@@ -14,6 +17,10 @@ export interface AnimeCardItem {
   episode: string | null;
   episodeNumber: number | null;
   isHot: boolean;
+  source: AnimeSource;
+  /** Judul alternatif dari sumber, dipakai untuk dedupe dan pencocokan trailer. */
+  altTitles?: string[];
+  genres?: string[];
 }
 
 export interface FeaturedAnime {
@@ -38,6 +45,7 @@ export interface OngoingSidebarItem {
 
 export interface PopularAnimeItem {
   rank: number;
+  source?: AnimeSource;
   postId: string | null;
   title: string;
   slug: string | null;
@@ -240,6 +248,8 @@ export interface QuickSearchItem {
   type: string | null;
   latestEpisode?: string | null;
   sub?: string | null;
+  source: AnimeSource;
+  altTitles?: string[];
 }
 
 export interface BlogListResponse {

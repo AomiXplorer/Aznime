@@ -13,6 +13,8 @@ interface AnimeImageProps {
   height?: number;
   sizes?: string;
   priority?: boolean;
+  /** Lewati optimizer Next untuk gambar dari CDN yang menolak permintaan server. */
+  unoptimized?: boolean;
   className?: string;
   fallbackClassName?: string;
 }
@@ -25,6 +27,7 @@ function AnimeImageComponent({
   height,
   sizes = '(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 220px',
   priority = false,
+  unoptimized = false,
   className,
   fallbackClassName,
 }: AnimeImageProps) {
@@ -54,6 +57,7 @@ function AnimeImageComponent({
       height={fill ? undefined : height}
       sizes={sizes}
       priority={priority}
+      unoptimized={unoptimized}
       loading={priority ? undefined : 'lazy'}
       decoding="async"
       referrerPolicy="no-referrer"

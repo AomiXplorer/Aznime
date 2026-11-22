@@ -1,13 +1,24 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight } from 'lucide-react';
 import { getDetail, getEpisode, UpstreamError } from '@/lib/scraper';
 import type { EpisodeNavLink, EpisodeSummary } from '@/lib/scraper/types';
 import { cleanEpisodeTitle, episodeNumberFromTitle } from '@/lib/episode-format';
+import {
+  getMalzDetail,
+  getMalzEpisodes,
+  getMalzStream,
+  malzAnimeSlug,
+  malzEpisodeIdFromSlug,
+  malzEpisodeSlug,
+  malzServersToMirrors,
+  malzStatusLabel,
+  malzToEpisodeSummary,
+  type MalzEpisode,
+} from '@/lib/malz';
 import { VideoPlayer } from '@/components/VideoPlayer';
-import { DownloadBoxes } from '@/components/DownloadBoxes';
 import { EpisodeList } from '@/components/EpisodeList';
+import { MalzEpisodeList } from '@/components/MalzEpisodeList';
+import { WatchLayout, type WatchMetaItem } from '@/components/WatchLayout';
 import { ErrorState } from '@/components/ErrorState';
 
 export const revalidate = 120;
@@ -38,9 +49,150 @@ function toNavLink(episode: EpisodeSummary | null): EpisodeNavLink | null {
   };
 }
 
+function malzNavLink(episode: MalzEpisode | null): EpisodeNavLink | null {
+  if (!episode) return null;
+  const summary = malzToEpisodeSummary(episode);
+  return {
+    title: summary.title,
+    slug: summary.slug,
+    url: summary.url,
+    number: summary.number,
+  };
+}
+
+function episodeMeta(number: string | null, extra: string | null, status: string | null): WatchMetaItem[] {
+  const items: WatchMetaItem[] = [
+    number ? { label: /^\d/.test(number) ? `Episode ${number}` : number } : null,
+    extra ? { label: extra } : null,
+    { label: 'Sub Indo' },
+    status
+      ? { label: status, dot: status === 'Sedang tayang' ? 'bg-emerald-400' : 'bg-zinc-500' }
+      : null,
+  ].filter(Boolean) as WatchMetaItem[];
+  return items;
+}
+
+interface MalzWatchData {
+  animeId: string;
+  seriesSlug: string;
+  title: string;
+  seriesTitle: string;
+  seriesHref: string;
+  episodeNumber: string | null;
+  year: string | null;
+  status: string | null;
+  servers: ReturnType<typeof malzServersToMirrors>;
+  defaultEmbed: string | null;
+  navigation: {
+    prev: EpisodeNavLink | null;
+    all: EpisodeNavLink | null;
+    next: EpisodeNavLink | null;
+  };
+  episodes: EpisodeSummary[];
+  loadedPage: number;
+  perPage: number;
+  totalEpisodes: number;
+}
+
+async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
+  const stream = await getMalzStream(episodeId);
+  if (!stream.episode) {
+    throw new UpstreamError('Episode tidak ditemukan di arsip Malz', { status: 404 });
+  }
+
+  const episode = stream.episode;
+  const animeId = episode.id_anime;
+  const [detail, firstPage] = await Promise.all([
+    getMalzDetail(animeId).catch(() => null),
+    getMalzEpisodes(animeId, 0),
+  ]);
+
+  const perHalaman = firstPage.perHalaman;
+  const maxNumber = Number.parseFloat(firstPage.items[0]?.episode || '') || 0;
+  const targetNumber = Number.parseFloat(episode.episode || '') || 0;
+
+  // Halaman episode dihitung dari nomor episode supaya seri panjang tidak perlu
+  // diambil halaman demi halaman hanya untuk menemukan episode yang dibuka.
+  const targetPage =
+    maxNumber > 0 && targetNumber > 0 && maxNumber >= targetNumber
+      ? Math.max(0, Math.floor((maxNumber - targetNumber) / perHalaman))
+      : 0;
+
+  const [pageA, pageB] = await Promise.all([
+    targetPage === 0 ? Promise.resolve(firstPage) : getMalzEpisodes(animeId, targetPage).catch(() => firstPage),
+    getMalzEpisodes(animeId, targetPage + 1).catch(() => null),
+  ]);
+
+  const episodeById = new Map<string, MalzEpisode>();
+  for (const item of [...pageA.items, ...(pageB?.items || [])]) episodeById.set(item.id, item);
+  const episodes = [...episodeById.values()].sort(
+    (a, b) => (Number.parseFloat(b.episode) || 0) - (Number.parseFloat(a.episode) || 0)
+  );
+  const loadedPage = targetPage + 1;
+
+  const currentIndex = episodes.findIndex((item) => item.id === episodeId);
+  const olderEpisode = currentIndex >= 0 ? episodes[currentIndex + 1] || null : null;
+  const newerEpisode = currentIndex >= 0 ? episodes[currentIndex - 1] || null : null;
+
+  const summaries = episodes.map(malzToEpisodeSummary);
+  const seriesSlug = malzAnimeSlug(animeId);
+  const allLink: EpisodeNavLink = {
+    title: detail?.anime.judul || 'Semua episode',
+    slug: seriesSlug,
+    url: '',
+  };
+
+  const totalEpisodes = summaries.reduce((max, item) => {
+    const value = Number.parseFloat(item.number || '');
+    return Number.isFinite(value) ? Math.max(max, value) : max;
+  }, 0);
+
+  const servers = malzServersToMirrors(stream.servers);
+  const firstDirect = servers.find((server) => server.type === 'video' || server.type === 'hls');
+
+  return {
+    animeId,
+    seriesSlug,
+    title: cleanEpisodeTitle(episode.judul || `Episode ${episode.episode}`),
+    seriesTitle: cleanEpisodeTitle(detail?.anime.judul || 'Detail seri'),
+    seriesHref: `/anime/${encodeURIComponent(seriesSlug)}`,
+    episodeNumber: episode.episode || null,
+    year: detail?.anime.tahun || null,
+    status: detail?.anime.status ? malzStatusLabel(detail.anime.status) : null,
+    servers,
+    defaultEmbed: firstDirect?.url || null,
+    navigation: {
+      prev: malzNavLink(olderEpisode),
+      all: allLink,
+      next: malzNavLink(newerEpisode) || malzNavLink(stream.berikutnya),
+    },
+    episodes: summaries,
+    loadedPage,
+    perPage: perHalaman,
+    totalEpisodes: totalEpisodes || summaries.length,
+  };
+}
+
 export async function generateMetadata({ params }: WatchPageProps): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
+  const malzEpisodeId = malzEpisodeIdFromSlug(decodedSlug);
+
+  if (malzEpisodeId) {
+    try {
+      const stream = await getMalzStream(malzEpisodeId);
+      const episode = stream.episode;
+      if (!episode) return { title: 'Nonton anime' };
+      const label = cleanEpisodeTitle(episode.judul || `Episode ${episode.episode}`);
+      return {
+        title: label,
+        description: `Nonton streaming ${label} subtitle Indonesia di Aznime. Pilih kualitas video yang tersedia.`,
+        alternates: { canonical: `/watch/${encodeURIComponent(decodedSlug)}` },
+      };
+    } catch {
+      return { title: 'Nonton anime' };
+    }
+  }
 
   try {
     const ep = await getEpisode(decodedSlug);
@@ -55,9 +207,63 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
   }
 }
 
+async function MalzWatchPage({ episodeId }: { episodeId: string }) {
+  let data: MalzWatchData;
+  try {
+    data = await buildMalzWatch(episodeId);
+  } catch (err) {
+    if (err instanceof UpstreamError && err.isNotFound) notFound();
+    const message = err instanceof Error ? err.message : 'Gagal memuat episode dari arsip.';
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        <ErrorState title="Gagal memuat pemutar episode" message={message} />
+      </div>
+    );
+  }
+
+  return (
+    <WatchLayout
+      seriesTitle={data.seriesTitle}
+      seriesHref={data.seriesHref}
+      title={data.title}
+      meta={episodeMeta(data.episodeNumber, data.year, data.status)}
+      downloadBoxes={[]}
+      downloadHeading="Unduh episode"
+      episodeCount={data.totalEpisodes}
+      episodesSlot={
+        data.episodes.length > 0 ? (
+          <MalzEpisodeList
+            animeId={data.animeId}
+            initialEpisodes={data.episodes}
+            initialPage={data.loadedPage}
+            perPage={data.perPage}
+            currentSlug={malzEpisodeSlug(episodeId)}
+          />
+        ) : null
+      }
+      player={
+        <VideoPlayer
+          key={episodeId}
+          title={data.title}
+          servers={data.servers}
+          defaultEmbed={data.defaultEmbed}
+          navigation={data.navigation}
+          seriesSlug={data.seriesSlug}
+          seriesTitle={data.seriesTitle}
+        />
+      }
+    />
+  );
+}
+
 export default async function WatchEpisodePage({ params }: WatchPageProps) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
+  const malzEpisodeId = malzEpisodeIdFromSlug(decodedSlug);
+
+  if (malzEpisodeId) {
+    return <MalzWatchPage episodeId={malzEpisodeId} />;
+  }
 
   let episode = null;
   let upstreamError: string | null = null;
@@ -92,9 +298,7 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
     null;
 
   const episodes = seriesDetail?.episodes ?? [];
-  const currentIdx = episodes.findIndex(
-    (ep) => ep.slug === decodedSlug || ep.url === episode.url
-  );
+  const currentIdx = episodes.findIndex((ep) => ep.slug === decodedSlug || ep.url === episode.url);
   // Daftar episode dari sumber urut dari yang terbaru, jadi index + 1 lebih lama.
   const olderEpisode = currentIdx >= 0 ? episodes[currentIdx + 1] || null : null;
   const newerEpisode = currentIdx >= 0 ? episodes[currentIdx - 1] || null : null;
@@ -109,69 +313,21 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
   const status = translateStatus(seriesDetail?.info['Status']);
   const cleanTitle = cleanEpisodeTitle(episode.title);
 
-  // Metadata sebagai satu baris teks, bukan deretan badge: lebih ringkas dan
-  // hierarkinya tidak bersaing dengan judul.
-  const meta: Array<{ label: string; dot?: string }> = [
-    episodeNumber
-      ? { label: /^\d/.test(episodeNumber) ? `Episode ${episodeNumber}` : episodeNumber }
-      : null,
-    season ? { label: season } : null,
-    { label: 'Sub Indo' },
-    status ? { label: status, dot: status === 'Sedang tayang' ? 'bg-emerald-400' : 'bg-zinc-500' } : null,
-  ].filter(Boolean) as Array<{ label: string; dot?: string }>;
-
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-14 pt-4 sm:px-6 sm:pt-6 lg:px-8">
-      <header className="mb-3 sm:mb-4">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-1 text-[11px] text-zinc-500"
-        >
-          <Link href="/" className="shrink-0 transition-colors duration-150 hover:text-zinc-300">
-            Beranda
-          </Link>
-          <ChevronRight className="h-3 w-3 shrink-0" aria-hidden="true" />
-          {seriesSlug ? (
-            <Link
-              href={`/anime/${encodeURIComponent(seriesSlug)}`}
-              className="min-w-0 truncate transition-colors duration-150 hover:text-zinc-300"
-            >
-              {seriesTitle}
-            </Link>
-          ) : (
-            <Link href="/anime" className="transition-colors duration-150 hover:text-zinc-300">
-              Anime
-            </Link>
-          )}
-        </nav>
-
-        <h1 className="mt-1.5 text-[18px] font-bold leading-snug tracking-tight text-white [text-wrap:balance] sm:text-[22px]">
-          {cleanTitle}
-        </h1>
-
-        {meta.length > 0 ? (
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] leading-none text-zinc-400">
-            {meta.map((item, idx) => (
-              <span key={item.label} className="inline-flex items-center gap-2">
-                {idx > 0 ? (
-                  <span aria-hidden="true" className="text-zinc-600">
-                    ·
-                  </span>
-                ) : null}
-                <span className="inline-flex items-center gap-1.5">
-                  {item.dot ? (
-                    <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} aria-hidden="true" />
-                  ) : null}
-                  {item.label}
-                </span>
-              </span>
-            ))}
-          </p>
-        ) : null}
-      </header>
-
-      {/* Di HP pemutar menyentuh tepi layar supaya area tonton maksimal. */}
-      <div className="-mx-4 sm:mx-0">
+    <WatchLayout
+      seriesTitle={seriesTitle}
+      seriesHref={seriesSlug ? `/anime/${encodeURIComponent(seriesSlug)}` : null}
+      title={cleanTitle}
+      meta={episodeMeta(episodeNumber, season, status)}
+      downloadBoxes={episode.downloads}
+      downloadHeading="Unduh episode"
+      episodeCount={seriesDetail?.totalEpisodes ?? episodes.length}
+      episodesSlot={
+        seriesDetail && seriesDetail.episodes.length > 0 ? (
+          <EpisodeList episodes={seriesDetail.episodes} currentSlug={decodedSlug} />
+        ) : null
+      }
+      player={
         <VideoPlayer
           key={decodedSlug}
           title={cleanTitle}
@@ -181,25 +337,7 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
           seriesSlug={seriesSlug}
           seriesTitle={seriesTitle}
         />
-      </div>
-
-      <div className="mt-7 space-y-9 sm:mt-8 sm:space-y-10">
-        <DownloadBoxes boxes={episode.downloads} heading="Unduh episode" />
-
-        {seriesDetail && seriesDetail.episodes.length > 0 ? (
-          <section aria-label="Semua episode dalam seri ini" id="episode-lainnya" className="scroll-mt-20">
-            <div className="flex items-baseline justify-between gap-3 border-b border-white/[0.08] pb-2">
-              <h2 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-zinc-200">
-                Episode lainnya
-              </h2>
-              <span className="text-[11px] tabular-nums text-zinc-500">
-                {seriesDetail.totalEpisodes} episode
-              </span>
-            </div>
-            <EpisodeList episodes={seriesDetail.episodes} currentSlug={decodedSlug} />
-          </section>
-        ) : null}
-      </div>
-    </div>
+      }
+    />
   );
 }

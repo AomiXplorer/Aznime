@@ -288,6 +288,7 @@ export function parseAnimeCard($: CheerioAPI, article: AnyNode): AnimeCardItem {
     episode: episodeText,
     episodeNumber: epMatch ? parseFloat(epMatch[1]) : null,
     isHot,
+    source: 'hidori',
   };
 }
 

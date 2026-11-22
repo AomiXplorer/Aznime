@@ -230,7 +230,12 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                             }`}
                           >
                             <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-elevated">
-                              <AnimeImage src={item.poster} alt={item.title} sizes="40px" />
+                              <AnimeImage
+                                src={item.poster}
+                                alt={item.title}
+                                unoptimized={item.source === 'malz'}
+                                sizes="40px"
+                              />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-semibold text-white">{item.title}</p>
