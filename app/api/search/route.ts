@@ -4,9 +4,8 @@ import type { PaginationInfo, QuickSearchItem } from '@/lib/scraper/types';
 import { getMalzSearch, malzToQuickItem } from '@/lib/malz';
 import {
   getHidoriTitleIndex,
-  isKnownTitle,
+  mergeQuickSearchResults,
   searchAcrossSources,
-  titleMatchKeys,
 } from '@/lib/sources';
 
 const QUICK_MALZ_LIMIT = 8;
@@ -22,22 +21,13 @@ function emptyPagination(): PaginationInfo {
   };
 }
 
-async function mergeQuickResults(query: string, hidori: QuickSearchItem[]): Promise<QuickSearchItem[]> {
-  const [index, malzItems] = await Promise.all([getHidoriTitleIndex(), getMalzSearch(query, 0, 'views')]);
-  const keys = new Set(index);
-  for (const item of hidori) {
-    for (const key of titleMatchKeys(item)) keys.add(key);
-  }
+async function mergeQuickResults(query: string, hidori: QuickSearchItem[]) {
+  const [index, malzItems] = await Promise.all([
+    getHidoriTitleIndex(),
+    getMalzSearch(query, 0, 'views'),
+  ]);
 
-  const merged = [...hidori];
-  for (const anime of malzItems) {
-    const item = malzToQuickItem(anime);
-    if (isKnownTitle(item, keys)) continue;
-    merged.push(item);
-    if (merged.length >= hidori.length + QUICK_MALZ_LIMIT) break;
-  }
-
-  return merged;
+  return mergeQuickSearchResults(hidori, malzItems.map(malzToQuickItem), index, QUICK_MALZ_LIMIT);
 }
 
 export async function GET(req: NextRequest) {

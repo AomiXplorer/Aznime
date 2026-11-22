@@ -2,14 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   MALZ_PAGE_BASE,
+  dedupeCards,
   isMalzPoolPage,
+  looseTitleKey,
   mergeAnimeCards,
+  mergeQuickSearchResults,
   normalizeTitle,
   titleMatchKeys,
   toMalzPoolPage,
   toVirtualMalzPage,
 } from './sources';
-import type { AnimeCardItem } from './scraper/types';
+import type { AnimeCardItem, QuickSearchItem } from './scraper/types';
 
 function card(partial: Partial<AnimeCardItem> & { title: string }): AnimeCardItem {
   return {
@@ -121,4 +124,108 @@ test('judul yang sama dari dua sumber tetap diringkas jadi satu', () => {
   ];
   const merged = mergeAnimeCards([], malz, new Set());
   assert.equal(merged.length, 1);
+});
+
+function quick(partial: Partial<QuickSearchItem> & { title: string }): QuickSearchItem {
+  return {
+    postId: '',
+    slug: null,
+    url: null,
+    kind: 'anime',
+    poster: null,
+    genres: [],
+    type: null,
+    latestEpisode: null,
+    sub: 'Sub',
+    source: 'hidori',
+    ...partial,
+  };
+}
+
+test('normalizeTitle membuang penanda rilis yang membuat judul terlihat beda', () => {
+  assert.equal(normalizeTitle('BATCH Gachiakuta Subtitle Indonesia'), 'gachiakuta');
+  assert.equal(normalizeTitle('BATCH BATCH Sakamoto Days Sub Indo'), 'sakamoto days');
+  assert.equal(normalizeTitle('Kusuriya no Hitorigoto [BD 1080p]'), 'kusuriya no hitorigoto');
+  assert.equal(normalizeTitle('One Piece Web-DL 720p Subtitle Indonesia'), 'one piece');
+});
+
+test('tahun dalam kurung tetap dipertahankan supaya musim berbeda tidak tertelan', () => {
+  assert.notEqual(normalizeTitle('Berserk (1997)'), normalizeTitle('Berserk'));
+  assert.notEqual(normalizeTitle('Pokemon (2019)'), normalizeTitle('Pokemon (2023)'));
+  assert.equal(looseTitleKey('Berserk (1997)'), 'berserk');
+});
+
+test('kartu BATCH dibuang dan diganti entri arsip yang judulnya bersih', () => {
+  const hidori = [
+    card({
+      title: 'BATCH Gachiakuta Subtitle Indonesia',
+      seriesTitle: 'Gachiakuta',
+      isBatch: true,
+    }),
+  ];
+  const malz = [card({ title: 'Gachiakuta', slug: 'malz-9001', source: 'malz' })];
+
+  const merged = mergeAnimeCards(hidori, malz, new Set());
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].source, 'malz');
+  assert.equal(merged[0].title, 'Gachiakuta');
+});
+
+test('kartu BATCH tetap dipakai kalau arsip tidak punya padanannya', () => {
+  const hidori = [
+    card({ title: 'BATCH Anime Langka Subtitle Indonesia', seriesTitle: 'Anime Langka', isBatch: true }),
+  ];
+
+  const merged = mergeAnimeCards(hidori, [], new Set());
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].source, 'hidori');
+});
+
+test('seri yang bukan BATCH tidak diganti entri arsip', () => {
+  const hidori = [card({ title: 'Gachiakuta Subtitle Indonesia', seriesTitle: 'Gachiakuta' })];
+  const malz = [card({ title: 'Gachiakuta', slug: 'malz-9001', source: 'malz' })];
+
+  const merged = mergeAnimeCards(hidori, malz, new Set());
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].source, 'hidori');
+});
+
+test('dedupeCards meringkas duplikat dalam satu sumber dan memilih posting seri', () => {
+  const items = [
+    card({ title: 'BATCH Sakamoto Days Subtitle Indonesia', kind: 'episode' }),
+    card({ title: 'Sakamoto Days Subtitle Indonesia', kind: 'anime' }),
+    card({ title: 'Sakamoto Days Season 2 Subtitle Indonesia', kind: 'anime' }),
+  ];
+
+  const deduped = dedupeCards(items);
+  assert.deepEqual(
+    deduped.map((item) => item.title),
+    ['Sakamoto Days Subtitle Indonesia', 'Sakamoto Days Season 2 Subtitle Indonesia']
+  );
+});
+
+test('mergeQuickSearchResults tidak mengulang anime yang sama dari arsip', () => {
+  const hidori = [quick({ title: 'BATCH Gachiakuta Subtitle Indonesia' })];
+  const malz = [
+    quick({ title: 'Gachiakuta', slug: 'malz-9001', source: 'malz' }),
+    quick({ title: 'Sakamoto Days', slug: 'malz-9002', source: 'malz' }),
+    quick({ title: 'Sakamoto Days', slug: 'malz-9003', source: 'malz' }),
+  ];
+
+  const merged = mergeQuickSearchResults(hidori, malz, new Set(), 8);
+  assert.deepEqual(
+    merged.map((item) => item.slug),
+    ['malz-9001', 'malz-9002']
+  );
+});
+
+test('mergeQuickSearchResults menghormati jatah arsip', () => {
+  const malz = [
+    quick({ title: 'Anime A', slug: 'malz-1', source: 'malz' }),
+    quick({ title: 'Anime B', slug: 'malz-2', source: 'malz' }),
+    quick({ title: 'Anime C', slug: 'malz-3', source: 'malz' }),
+  ];
+
+  const merged = mergeQuickSearchResults([], malz, new Set(), 2);
+  assert.equal(merged.length, 2);
 });

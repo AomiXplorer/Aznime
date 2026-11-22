@@ -1,6 +1,7 @@
 import type {
   AnimeCardItem,
   PopularAnimeItem,
+  QuickSearchItem,
   SearchResponse,
 } from './scraper/types';
 import { getListMode } from './scraper/anime';
@@ -36,21 +37,93 @@ export function toVirtualMalzPage(poolPage: number): number {
 const ORDINAL_SEASON = /\b(\d+)(?:st|nd|rd|th)\s+season\b/g;
 
 /**
- * Kunci pembanding judul antar sumber. Kedua sisi melewati transformasi yang
- * sama, jadi cukup untuk menyamakan "Black Clover 2nd Season" dengan "Black
- * Clover Season 2" dan "Shippuuden" dengan "Shippuden" tanpa menggabungkan
- * judul yang memang berbeda.
+ * Penanda rilis/pencarian yang ditempel situs sumber di judul. Kalau tidak
+ * dibuang, "BATCH Gachiakuta Subtitle Indonesia" dianggap judul berbeda dari
+ * "Gachiakuta" milik arsip Malz, sehingga anime yang sama tampil dua kali
+ * sebagai dua kartu (clone).
  */
-export function normalizeTitle(raw: string): string {
+const RELEASE_NOISE_TOKENS = [
+  'subtitle bahasa indonesia',
+  'subtitle indonesia',
+  'subtitle indo',
+  'sub indonesia',
+  'sub indonesian',
+  'sub indo',
+  'batch',
+  'lengkap',
+  'uncensored',
+  'uncut',
+  'blu ray',
+  'bluray',
+  'bd',
+  'web dl',
+  'webdl',
+  'web rip',
+  'webrip',
+  'softsub',
+  'hardsub',
+  'multi sub',
+  '2160p',
+  '1080p',
+  '720p',
+  '540p',
+  '480p',
+  '4k',
+  'fhd',
+];
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const RELEASE_NOISE_PATTERN = new RegExp(
+  `(?:^|\\s)(?:${RELEASE_NOISE_TOKENS.map(escapeRegExp).join('|')})(?=\\s|$)`,
+  'g'
+);
+
+/** Judul sumber kadang menumpuk penanda ("BATCH BATCH ..."), jadi disapu berulang. */
+function stripReleaseNoise(text: string): string {
+  let current = text;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const next = current.replace(RELEASE_NOISE_PATTERN, ' ');
+    if (next === current) break;
+    current = next;
+  }
+  return current;
+}
+
+function normalize(raw: string, keepParenthetical: boolean): string {
   if (!raw) return '';
   let text = raw.toLowerCase();
-  text = text.replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ');
-  text = text.replace(/subtitle\s+indonesia/g, ' ').replace(/sub\s+indo(nesia)?/g, ' ');
-  text = text.replace(ORDINAL_SEASON, (_m, n: string) => `season ${n}`);
+  text = text.replace(/\[[^\]]*\]/g, ' ');
+  text = keepParenthetical ? text.replace(/[()]/g, ' ') : text.replace(/\([^)]*\)/g, ' ');
+  // Pemisah diubah jadi spasi lebih dulu supaya penanda seperti "Web-DL"
+  // terbaca sebagai dua kata dan ikut tersapu.
   text = text.replace(/[^a-z0-9]+/g, ' ');
+  text = stripReleaseNoise(text);
+  text = text.replace(ORDINAL_SEASON, (_m, n: string) => `season ${n}`);
   text = text.replace(/([a-z])\1+/g, '$1');
   text = text.replace(/^the\s+/, '');
   return text.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Kunci pembanding judul antar sumber. Kedua sisi melewati transformasi yang
+ * sama, jadi "Black Clover 2nd Season" sama dengan "Black Clover Season 2" dan
+ * "Shippuuden" sama dengan "Shippuden". Tahun di dalam tanda kurung tetap
+ * dipertahankan supaya "Berserk (1997)" tidak menelan "Berserk" (2016).
+ */
+export function normalizeTitle(raw: string): string {
+  return normalize(raw, true);
+}
+
+/**
+ * Versi longgar: isi tanda kurung dibuang. Dipakai hanya untuk mencocokkan
+ * judul antar sumber, karena satu sumber sering menambahkan "(TV)" atau tahun
+ * yang tidak dipakai sumber lain.
+ */
+export function looseTitleKey(raw: string): string {
+  return normalize(raw, false);
 }
 
 /**
@@ -63,8 +136,9 @@ export function titleMatchKeys(parts: TitleBearing): string[] {
   const keys = new Set<string>();
   const push = (value: string | null | undefined, minLength: number) => {
     if (!value) return;
-    const normalized = normalizeTitle(value);
-    if (normalized.length >= minLength) keys.add(normalized);
+    for (const normalized of [normalizeTitle(value), looseTitleKey(value)]) {
+      if (normalized && normalized.length >= minLength) keys.add(normalized);
+    }
   };
 
   push(parts.title, 2);
@@ -127,36 +201,141 @@ export function isKnownTitle(item: TitleBearing, keys: Set<string>): boolean {
   return titleMatchKeys(item).some((key) => keys.has(key));
 }
 
+interface MergeableItem extends TitleBearing {
+  title: string;
+  kind?: string;
+  isBatch?: boolean;
+}
+
 /**
- * Aturan penggabungan: entri Hidori selalu menang. Entri Malz hanya muncul
- * kalau judulnya belum ada di Hidori, sehingga Naruto dari Malz tidak
- * menghasilkan dua kartu Naruto.
+ * Postingan "BATCH ..." adalah halaman unduhan untuk seri yang sama, bukan
+ * anime lain. Kalau ada kartu lain dengan judul bersih, kartu BATCH itulah
+ * yang dibuang; kartu BATCH hanya dipakai kalau memang tidak ada penggantinya.
  */
+function isBatchItem(item: MergeableItem): boolean {
+  if (typeof item.isBatch === 'boolean') return item.isBatch;
+  return /^batch\b/i.test(item.title);
+}
+
+function prefersItem<T extends MergeableItem>(candidate: T, current: T): boolean {
+  const candidateBatch = isBatchItem(candidate);
+  const currentBatch = isBatchItem(current);
+  if (candidateBatch !== currentBatch) return !candidateBatch;
+  if (candidate.kind !== current.kind) return candidate.kind === 'anime';
+  return false;
+}
+
+function dedupeByTitle<T extends { title: string }>(
+  items: T[],
+  prefer?: (candidate: T, current: T) => boolean
+): T[] {
+  const slotByKey = new Map<string, number>();
+  const result: T[] = [];
+
+  for (const item of items) {
+    const key = normalizeTitle(item.title);
+    if (!key) {
+      result.push(item);
+      continue;
+    }
+    const slot = slotByKey.get(key);
+    if (slot === undefined) {
+      slotByKey.set(key, result.length);
+      result.push(item);
+      continue;
+    }
+    if (prefer && prefer(item, result[slot])) result[slot] = item;
+  }
+
+  return result;
+}
+
+/**
+ * Satu sumber pun bisa memuat anime yang sama dua kali (posting seri dan
+ * posting "BATCH ..."). Duplikat di dalam satu daftar dibuang lebih dulu, jadi
+ * tidak ada dua kartu untuk judul yang sama.
+ */
+export function dedupeCards(items: AnimeCardItem[]): AnimeCardItem[] {
+  return dedupeByTitle(items, prefersItem);
+}
+
+/**
+ * Aturan penggabungan: entri Hidori selalu menang, kecuali saat entri itu
+ * berupa posting "BATCH ..." dan arsip punya judul yang bersih. Dalam kasus
+ * itu kartu BATCH dibuang dan diganti kartu arsip, karena isinya anime yang
+ * sama (clone). Entri arsip yang tidak punya padanan di Hidori tetap masuk.
+ */
+function mergeWithArchive<T extends MergeableItem>(
+  primaryItems: T[],
+  archiveItems: T[],
+  index: Set<string>,
+  options: { limit?: number; archiveLimit?: number } = {}
+): T[] {
+  const merged = dedupeByTitle(primaryItems, prefersItem);
+  const slotByKey = new Map<string, number>();
+  merged.forEach((item, position) => {
+    const key = primaryTitleKey(item);
+    if (key) slotByKey.set(key, position);
+  });
+
+  // Sinonim ikut dipakai untuk mencocokkan arsip, tapi tidak untuk saling
+  // menghapus sesama entri arsip (mis. "Naruto" pada sinonim film Naruto).
+  const blockingKeys = buildTitleKeySet(merged, index);
+  const addedPrimary = new Set<string>();
+  for (const item of merged) {
+    const primary = primaryTitleKey(item);
+    if (primary) addedPrimary.add(primary);
+  }
+
+  let added = 0;
+
+  for (const item of archiveItems) {
+    if (options.archiveLimit !== undefined && added >= options.archiveLimit) break;
+
+    const primary = primaryTitleKey(item);
+    const slot = primary ? slotByKey.get(primary) : undefined;
+
+    if (slot !== undefined) {
+      if (isBatchItem(merged[slot]) && !isBatchItem(item)) merged[slot] = item;
+      continue;
+    }
+
+    if (primary && addedPrimary.has(primary)) continue;
+    if (isKnownTitle(item, blockingKeys)) continue;
+
+    if (primary) {
+      slotByKey.set(primary, merged.length);
+      addedPrimary.add(primary);
+    }
+    merged.push(item);
+    added += 1;
+    if (options.limit && merged.length >= options.limit) break;
+  }
+
+  return options.limit ? merged.slice(0, options.limit) : merged;
+}
+
 export function mergeAnimeCards(
   hidoriItems: AnimeCardItem[],
   malzItems: AnimeCardItem[],
   index: Set<string>,
   limit?: number
 ): AnimeCardItem[] {
-  const hidoriKeys = buildTitleKeySet(hidoriItems, index);
-  const merged = [...hidoriItems];
+  return mergeWithArchive(hidoriItems, malzItems, index, { limit });
+}
 
-  // Hanya judul utama yang diingat dari hasil gabungan. Sinonim ikut dipakai
-  // untuk mencocokkan Hidori, tapi tidak untuk saling menghapus sesama entri
-  // arsip (mis. "Naruto" pada sinonim beberapa film Naruto).
-  const addedPrimary = new Set<string>();
-  for (const item of merged) addedPrimary.add(primaryTitleKey(item));
-
-  for (const item of malzItems) {
-    if (isKnownTitle(item, hidoriKeys)) continue;
-    const primary = primaryTitleKey(item);
-    if (addedPrimary.has(primary)) continue;
-    addedPrimary.add(primary);
-    merged.push(item);
-    if (limit && merged.length >= limit) break;
-  }
-
-  return limit ? merged.slice(0, limit) : merged;
+/**
+ * Penggabungan untuk dropdown pencarian cepat. Bedanya, jumlah entri arsip
+ * dibatasi supaya saran tetap ringkas, dan setiap entri yang lolos menandai
+ * judulnya agar arsip tidak mengulang anime yang sama dua kali.
+ */
+export function mergeQuickSearchResults(
+  hidoriItems: QuickSearchItem[],
+  malzItems: QuickSearchItem[],
+  index: Set<string>,
+  malzLimit = 8
+): QuickSearchItem[] {
+  return mergeWithArchive(hidoriItems, malzItems, index, { archiveLimit: malzLimit });
 }
 
 let archivePool: { value: AnimeCardItem[]; expiresAt: number } | null = null;
@@ -330,7 +509,7 @@ const MALZ_SEARCH_PAGE_SIZE = 60;
  */
 export async function searchAcrossSources(query: string, page = 1): Promise<SearchResponse> {
   if (isMalzPoolPage(page)) {
-    const cards = await searchMalzCards(query, toMalzPoolPage(page));
+    const cards = dedupeCards(await searchMalzCards(query, toMalzPoolPage(page)));
     const hasNextPage = cards.length >= MALZ_SEARCH_PAGE_SIZE;
     return {
       query,

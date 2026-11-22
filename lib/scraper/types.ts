@@ -18,6 +18,8 @@ export interface AnimeCardItem {
   episodeNumber: number | null;
   isHot: boolean;
   source: AnimeSource;
+  /** Postingan "BATCH ..." di sumber: duplikat dari halaman seri, bukan anime lain. */
+  isBatch?: boolean;
   /** Judul alternatif dari sumber, dipakai untuk dedupe dan pencocokan trailer. */
   altTitles?: string[];
   genres?: string[];
@@ -249,6 +251,8 @@ export interface QuickSearchItem {
   latestEpisode?: string | null;
   sub?: string | null;
   source: AnimeSource;
+  /** Postingan "BATCH ..." di sumber, dipakai untuk membuang kartu clone. */
+  isBatch?: boolean;
   altTitles?: string[];
 }
 

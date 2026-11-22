@@ -7,6 +7,7 @@ import {
   fetchHtml,
   inferLinkKind,
   normalizeUrl,
+  cleanAnimeTitle,
   parseAnimeCard,
   parsePagination,
   requestText,
@@ -66,7 +67,8 @@ export function parseQuickSearchPayload(rawBody: string): QuickSearchItem[] {
   const items: QuickSearchItem[] = [];
   for (const item of rawItems) {
     if (!item || typeof item !== 'object') continue;
-    const title = (item.post_title || '').replace(/\s+/g, ' ').trim();
+    const rawTitle = (item.post_title || '').replace(/\s+/g, ' ').trim();
+    const title = cleanAnimeTitle(rawTitle);
     const link = normalizeUrl(item.post_link);
     if (!title || !link) continue;
 
@@ -97,6 +99,7 @@ export function parseQuickSearchPayload(rawBody: string): QuickSearchItem[] {
       latestEpisode: item.post_latest?.trim() || null,
       sub: item.post_sub?.trim() || null,
       source: 'hidori',
+      isBatch: /^batch\b/i.test(rawTitle),
     });
   }
 

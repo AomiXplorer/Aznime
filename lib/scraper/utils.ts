@@ -256,6 +256,19 @@ export function parseImgSrc($: CheerioAPI, container: AnyNode | string): string 
   return null;
 }
 
+/**
+ * Judul Hidori membawa penanda rilis di teksnya ("BATCH Gachiakuta Subtitle
+ * Indonesia"). Penanda itu tidak berguna di UI dan membuat anime yang sama
+ * terlihat berbeda dari sumber lain, jadi dibuang dari judul tampilan.
+ */
+export function cleanAnimeTitle(raw: string): string {
+  if (!raw) return '';
+  let text = raw.replace(/\s+/g, ' ').trim();
+  text = text.replace(/^(?:batch|full\s+batch|batch\s+anime)\s+/i, '');
+  text = text.replace(/\s*[-–—]\s*batch$/i, '');
+  return text.replace(/\s+/g, ' ').trim();
+}
+
 export function parseAnimeCard($: CheerioAPI, article: AnyNode): AnimeCardItem {
   const $article = $(article);
   const $a = $article.find('.bsx > a').first();
@@ -273,11 +286,12 @@ export function parseAnimeCard($: CheerioAPI, article: AnyNode): AnimeCardItem {
   const isHot = $article.find('.hotbadge').length > 0;
   const postId = $a.attr('rel') || null;
   const poster = parseImgSrc($, article);
+  const isBatch = /^batch\b/i.test(rawTitle);
 
   return {
     postId,
-    title: rawTitle.replace(/\s+/g, ' ').trim(),
-    seriesTitle: seriesTitle.replace(/\s+/g, ' ').trim(),
+    title: cleanAnimeTitle(rawTitle),
+    seriesTitle: cleanAnimeTitle(seriesTitle),
     slug: extractSlug(url),
     url,
     kind: inferLinkKind(url),
@@ -289,6 +303,7 @@ export function parseAnimeCard($: CheerioAPI, article: AnyNode): AnimeCardItem {
     episodeNumber: epMatch ? parseFloat(epMatch[1]) : null,
     isHot,
     source: 'hidori',
+    isBatch,
   };
 }
 
