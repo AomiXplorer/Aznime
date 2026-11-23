@@ -1,42 +1,47 @@
+import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import type { Contributor, ContributorMotif } from '@/lib/credits';
+import type { Contributor, ContributorAvatar as ContributorAvatarData } from '@/lib/credits';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
 
-interface ContributorMarkProps {
-  motif: ContributorMotif;
+interface ContributorAvatarProps {
+  avatar: ContributorAvatarData;
   active: boolean;
   className?: string;
 }
 
 /**
- * Placeholder artwork berbasis SVG: cakram matahari untuk Aomi, bulan sabit
- * untuk Azura. Tanpa foto wajah dan tanpa emoji, jadi tetap tajam di semua
- * ukuran dan tidak bergantung pada aset biner.
+ * Avatar contributor: foto asli untuk Aomi, siluet netral untuk Azura yang
+ * belum punya foto. Keduanya memakai bingkai lingkaran dan garis rambut yang
+ * sama supaya tinggi optis serta bobotnya konsisten di halaman mana pun.
+ * Gambar ditandai dekoratif karena nama sudah ada di sebelahnya.
  */
-function ContributorMark({ motif, active, className }: ContributorMarkProps) {
-  const hairline = active ? 'rgba(239,232,224,0.38)' : 'rgba(239,232,224,0.18)';
-  const ink = active ? 'rgba(239,232,224,0.82)' : 'rgba(239,232,224,0.42)';
+function ContributorAvatar({ avatar, active, className }: ContributorAvatarProps) {
+  const frame = active ? 'ring-white/20' : 'ring-white/12';
 
   return (
-    <span className={cn('inline-flex shrink-0 items-center justify-center', className)} aria-hidden="true">
-      <svg viewBox="0 0 80 80" className="h-full w-full">
-        <circle cx="40" cy="40" r="39" fill="#131010" stroke="#2b2222" strokeWidth="1" />
-        {motif === 'sun' ? (
-          <g fill="none" strokeLinecap="round">
-            <path d="M14 54h52" stroke={hairline} strokeWidth="1" />
-            <path d="M20 54a20 20 0 0 1 40 0" stroke={ink} strokeWidth="1.4" opacity="0.5" />
-            <path d="M27 54a13 13 0 0 1 26 0" stroke={ink} strokeWidth="1.4" opacity="0.85" />
-            <path d="M34 54a6 6 0 0 1 12 0" fill="#e11d48" stroke="none" />
+    <span
+      aria-hidden="true"
+      className={cn('relative block shrink-0 overflow-hidden rounded-full ring-1', frame, className)}
+    >
+      {avatar.kind === 'image' ? (
+        <Image
+          src={avatar.src}
+          alt=""
+          width={512}
+          height={512}
+          sizes="80px"
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <svg viewBox="0 0 80 80" className="h-full w-full">
+          <rect width="80" height="80" fill="#191414" />
+          <g fill={active ? '#5c5351' : '#524a48'}>
+            <circle cx="40" cy="30" r="12.5" />
+            <path d="M40 46.5c-13.6 0-23.2 8.6-24.6 21.1V80h49.2V67.6C63.2 55.1 53.6 46.5 40 46.5Z" />
           </g>
-        ) : (
-          <g>
-            <circle cx="40" cy="40" r="17" fill={ink} />
-            <circle cx="47.5" cy="33.5" r="15.5" fill="#131010" />
-            <circle cx="40" cy="40" r="26" fill="none" stroke={hairline} strokeWidth="1" />
-          </g>
-        )}
-      </svg>
+        </svg>
+      )}
     </span>
   );
 }
@@ -70,12 +75,12 @@ export function ContributorProfile({
   index,
   className,
 }: ContributorProfileProps) {
-  const { name, role, status, active, motif, note, whatsapp } = contributor;
+  const { name, role, status, active, avatar, note, whatsapp } = contributor;
 
   if (variant === 'inline') {
     return (
       <li className={cn('flex items-start gap-4 border-t border-line py-5', className)}>
-        <ContributorMark motif={motif} active={active} className="h-11 w-11" />
+        <ContributorAvatar avatar={avatar} active={active} className="h-11 w-11" />
         <div className="min-w-0">
           <p className="font-display text-[15px] font-semibold leading-tight tracking-[-0.02em] text-white">
             {name}
@@ -112,7 +117,7 @@ export function ContributorProfile({
         className
       )}
     >
-      <ContributorMark motif={motif} active={active} className="h-14 w-14 sm:h-20 sm:w-20" />
+      <ContributorAvatar avatar={avatar} active={active} className="h-14 w-14 sm:h-20 sm:w-20" />
 
       <div className="min-w-0">
         <p className="flex items-center gap-2.5 text-[10px] font-medium uppercase tracking-[0.26em] text-zinc-500">

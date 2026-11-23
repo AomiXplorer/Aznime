@@ -15,7 +15,10 @@ const nextConfig: NextConfig = {
     // Poster Nekopoi dilayani proksi sendiri: /api/img?u=...
     // Pola lokal ini membuat gambar berproksi tetap sah bila suatu saat
     // dipasang tanpa prop `unoptimized`.
-    localPatterns: [{ pathname: '/api/img', search: '**' }],
+    localPatterns: [
+      { pathname: '/api/img', search: '**' },
+      { pathname: '/contributors/**' },
+    ],
     remotePatterns: [
       {
         protocol: 'https',

@@ -1,4 +1,6 @@
-export type ContributorMotif = 'sun' | 'moon';
+export type ContributorAvatar =
+  | { kind: 'image'; src: string }
+  | { kind: 'anonymous' };
 
 export interface ContributorChannel {
   url: string;
@@ -11,7 +13,7 @@ export interface Contributor {
   role: string;
   status: string;
   active: boolean;
-  motif: ContributorMotif;
+  avatar: ContributorAvatar;
   note: string;
   whatsapp: ContributorChannel | null;
 }
@@ -29,7 +31,7 @@ export const CONTRIBUTORS: Contributor[] = [
     role: 'Contributor',
     status: 'Active',
     active: true,
-    motif: 'sun',
+    avatar: { kind: 'image', src: '/contributors/aomi.jpg' },
     note: 'Merawat katalog dan server. Kanal WhatsApp resmi untuk kabar rilis dan laporan episode rusak.',
     whatsapp: {
       url: 'https://whatsapp.com/channel/0029Vb8AgskLY6dCvnTjxU3c',
@@ -42,7 +44,7 @@ export const CONTRIBUTORS: Contributor[] = [
     role: 'Contributor',
     status: 'Contributor',
     active: false,
-    motif: 'moon',
+    avatar: { kind: 'anonymous' },
     note: 'Ikut mengurus tampilan dan pengecekan judul. Kanal WhatsApp belum tersedia.',
     whatsapp: null,
   },
