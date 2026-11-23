@@ -99,6 +99,11 @@ export function HeroSection({ items }: HeroSectionProps) {
   const detailHref = current.slug ? `/anime/${encodeURIComponent(current.slug)}` : '/anime';
   const banner = current.trailer?.bannerImage || null;
   const hasTrailer = Boolean(current.trailer?.id && current.trailer?.site === 'youtube');
+  /* AniList tidak selalu mengirim thumbnail, jadi pakai thumbnail YouTube
+     bawaan supaya tombol trailer tetap punya gambar. */
+  const trailerThumb = hasTrailer
+    ? current.trailer?.thumbnail || `https://i.ytimg.com/vi/${current.trailer?.id}/hqdefault.jpg`
+    : null;
 
   return (
     <section
@@ -190,22 +195,36 @@ export function HeroSection({ items }: HeroSectionProps) {
                 <button
                   type="button"
                   onClick={() => setTrailerOpen(true)}
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 px-1 text-[13px] font-medium text-zinc-300 underline decoration-white/25 underline-offset-4 transition-colors duration-150 hover:text-white hover:decoration-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label={`Putar trailer ${current.title}`}
+                  className="group inline-flex h-11 cursor-pointer items-center gap-2.5 pr-1 text-[13px] font-medium text-zinc-300 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
-                  <Youtube className="h-4 w-4" aria-hidden="true" />
-                  Trailer
+                  <span className="relative h-11 w-[78px] shrink-0 overflow-hidden rounded-[4px] ring-1 ring-white/20">
+                    <AnimeImage
+                      src={trailerThumb}
+                      alt=""
+                      sizes="78px"
+                      className="object-cover object-center"
+                    />
+                    <span className="absolute inset-0 grid place-items-center bg-black/35 transition-colors duration-150 group-hover:bg-black/20">
+                      <Play className="h-3.5 w-3.5 fill-current text-white" aria-hidden="true" />
+                    </span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Youtube className="h-4 w-4" aria-hidden="true" />
+                    Trailer
+                  </span>
                 </button>
               ) : null}
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {!banner ? (
+        {current.poster ? (
           <Link
             href={detailHref}
             tabIndex={-1}
             aria-hidden="true"
-            className="relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] ring-1 ring-white/15 lg:block"
+            className="relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] shadow-2xl shadow-black/50 ring-1 ring-white/15 lg:block"
           >
             <AnimeImage src={current.poster} alt={current.title} priority sizes="210px" />
           </Link>
