@@ -28,9 +28,8 @@ function ContributorAvatar({ avatar, active, className }: ContributorAvatarProps
         <Image
           src={avatar.src}
           alt=""
-          width={512}
-          height={512}
-          sizes="80px"
+          width={96}
+          height={96}
           className="h-full w-full object-cover"
         />
       ) : (
