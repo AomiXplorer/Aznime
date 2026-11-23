@@ -26,7 +26,7 @@ Vercel dan di `.env.local` untuk pengembangan lokal.
 | `UPSTASH_REDIS_REST_URL` | Ya | URL REST Upstash, bentuk `https://xxx.upstash.io` |
 | `UPSTASH_REDIS_REST_TOKEN` | Ya | Token REST Upstash |
 | `AUTH_SECRET` | Ya | Pepper hash session. Ganti = semua session batal |
-| `AUTH_URL` | Ya | Origin publik, `https://aznime.web.id` |
+| `AUTH_URL` | Ya | Origin publik, `https://aznime.com` |
 | `TURNSTILE_SITE_KEY` | Ya | Site key widget Turnstile (aman di client) |
 | `TURNSTILE_SECRET_KEY` | Ya | Secret key, hanya dipakai server |
 | `TURNSTILE_HOSTNAME` | Opsional | Kalau diisi, hostname balasan Siteverify harus sama |
@@ -104,7 +104,7 @@ jadi tidak ada celah IDOR.
 
 ### Cloudflare Turnstile
 1. dash.cloudflare.com > Turnstile > Add widget.
-2. Nama `Aznime`, hostname `aznime.web.id` dan `www.aznime.web.id`, mode Managed.
+2. Nama `Aznime`, hostname `aznime.com` dan `www.aznime.com`, mode Managed.
 3. Salin Site Key dan Secret Key. Secret key harus diawali `0x4AAAAAAA` dan
    diterima Siteverify; kalau Siteverify menjawab `invalid-input-secret`, nilai
    yang disalin salah atau tidak lengkap.
@@ -113,11 +113,11 @@ jadi tidak ada celah IDOR.
 1. console.cloud.google.com > APIs & Services > OAuth consent screen (External).
 2. Scope `openid`, `email`, `profile`.
 3. Credentials > Create credentials > OAuth client ID > Web application.
-4. Redirect URI: `https://aznime.web.id/api/auth/oauth/google/callback`.
+4. Redirect URI: `https://aznime.com/api/auth/oauth/google/callback`.
 
 ### Discord OAuth
 1. discord.com/developers/applications > New Application.
-2. OAuth2 > Redirects: `https://aznime.web.id/api/auth/oauth/discord/callback`.
+2. OAuth2 > Redirects: `https://aznime.com/api/auth/oauth/discord/callback`.
 3. Salin Application ID (Client ID) dan Client Secret.
 
 ### Vercel
