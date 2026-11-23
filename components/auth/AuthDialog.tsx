@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, Eye, EyeOff, Loader2, X } from 'lucide-react';
 import { TurnstileWidget } from './TurnstileWidget';
 import { clearGuestHistory, readGuestHistory } from '@/lib/guest-history';
+import {
+  normalizeEmail,
+  validateEmail,
+  validatePassword,
+  validatePasswordConfirm,
+  validateUsername,
+} from '@/lib/auth/validation';
 
 export type AuthMode = 'login' | 'signup';
 
@@ -47,9 +54,10 @@ interface TextFieldProps {
   autoComplete: string;
   inputRef?: React.RefObject<HTMLInputElement | null>;
   hint?: string;
+  disabled?: boolean;
 }
 
-function TextField({ id, label, type, value, onChange, placeholder, autoComplete, inputRef, hint }: TextFieldProps) {
+function TextField({ id, label, type, value, onChange, placeholder, autoComplete, inputRef, hint, disabled }: TextFieldProps) {
   return (
     <div className="grid gap-1.5">
       <div className="flex items-baseline justify-between gap-2">
@@ -67,6 +75,7 @@ function TextField({ id, label, type, value, onChange, placeholder, autoComplete
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        disabled={disabled}
         className={INPUT_CLASS}
       />
     </div>
@@ -80,9 +89,10 @@ interface PasswordFieldProps {
   onChange: (value: string) => void;
   placeholder: string;
   autoComplete: string;
+  disabled?: boolean;
 }
 
-function PasswordField({ id, label, value, onChange, placeholder, autoComplete }: PasswordFieldProps) {
+function PasswordField({ id, label, value, onChange, placeholder, autoComplete, disabled }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   return (
     <div className="grid gap-1.5">
@@ -98,14 +108,16 @@ function PasswordField({ id, label, value, onChange, placeholder, autoComplete }
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
+          disabled={disabled}
           className={`${INPUT_CLASS} pr-11`}
         />
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
+          disabled={disabled}
           aria-label={visible ? 'Sembunyikan password' : 'Tampilkan password'}
           aria-pressed={visible}
-          className="absolute right-1 top-1 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] text-zinc-500 transition-colors duration-150 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          className="absolute right-1 top-1 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] text-zinc-500 transition-colors duration-150 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         >
           {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
         </button>
@@ -136,7 +148,16 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
   const [busy, setBusy] = useState(false);
   const [oauthProvider, setOauthProvider] = useState<'google' | 'discord' | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const firstFieldRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  useEffect(() => {
+    if (initialError) setError(initialError);
+  }, [initialError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,18 +173,24 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
   }, []);
 
   useEffect(() => {
-    firstFieldRef.current?.focus();
-  }, []);
+    if (mode === 'signup') {
+      usernameInputRef.current?.focus();
+    } else {
+      emailInputRef.current?.focus();
+    }
+  }, [mode]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        if (!busy && !oauthProvider) {
+          onClose();
+        }
         return;
       }
       if (event.key !== 'Tab' || !panelRef.current) return;
       const focusable = panelRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, [tabindex]:not([tabindex="-1"])'
+        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
       if (focusable.length === 0) return;
       const first = focusable[0];
@@ -178,22 +205,50 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  }, [onClose, busy, oauthProvider]);
 
   const siteKey = config?.turnstileSiteKey || null;
   const providers = config?.providers || { google: false, discord: false };
 
   function startOAuth(provider: 'google' | 'discord') {
-    if (!providers[provider] || oauthProvider) return;
+    if (!providers[provider] || oauthProvider || busy) return;
     setOauthProvider(provider);
-    const target = returnTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
+    const target =
+      returnTo ||
+      (typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/');
     window.location.href = `/api/auth/oauth/${provider}?returnTo=${encodeURIComponent(target)}`;
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || Boolean(oauthProvider)) return;
     setError(null);
+
+    const cleanEmail = normalizeEmail(email);
+    const emailErr = validateEmail(cleanEmail);
+    if (emailErr) {
+      setError(emailErr.message);
+      return;
+    }
+
+    const passErr = validatePassword(password);
+    if (passErr) {
+      setError(passErr.message);
+      return;
+    }
+
+    if (mode === 'signup') {
+      const confirmErr = validatePasswordConfirm(password, confirmPassword);
+      if (confirmErr) {
+        setError(confirmErr.message);
+        return;
+      }
+      const userErr = validateUsername(username.trim());
+      if (userErr) {
+        setError(userErr.message);
+        return;
+      }
+    }
 
     if (siteKey && !token) {
       setError('Selesaikan verifikasi keamanan dulu.');
@@ -203,7 +258,7 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
     setBusy(true);
     try {
       const guestHistory = readGuestHistory();
-      const payload: Record<string, unknown> = { email, password, turnstileToken: token };
+      const payload: Record<string, unknown> = { email: cleanEmail, password, turnstileToken: token };
       if (guestHistory.length > 0) payload.guestHistory = guestHistory;
       if (mode === 'signup') {
         payload.confirmPassword = confirmPassword;
@@ -227,8 +282,11 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
       if (data.synced) clearGuestHistory();
       await onAuthenticated();
       onClose();
-      if (returnTo && typeof window !== 'undefined' && window.location.pathname !== returnTo) {
-        router.push(returnTo);
+      if (returnTo && typeof window !== 'undefined') {
+        const currentTarget = `${window.location.pathname}${window.location.search}`;
+        if (currentTarget !== returnTo) {
+          router.push(returnTo);
+        }
       }
     } catch {
       setError('Tidak bisa menghubungi server. Periksa koneksi lalu coba lagi.');
@@ -274,9 +332,12 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              if (!busy && !oauthProvider) onClose();
+            }}
+            disabled={busy || Boolean(oauthProvider)}
             aria-label="Tutup"
-            className="-mr-1 -mt-0.5 inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-zinc-500 transition-colors duration-150 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            className="-mr-1 -mt-0.5 inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-zinc-500 transition-colors duration-150 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -289,14 +350,15 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
                 key={tab}
                 type="button"
                 role="tab"
+                disabled={busy || Boolean(oauthProvider)}
                 aria-selected={mode === tab}
                 onClick={() => {
                   setMode(tab);
                   setError(null);
                 }}
-                className={`h-8 cursor-pointer rounded-[4px] text-[12.5px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                className={`h-8 rounded-[4px] text-[12.5px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-60 ${
                   mode === tab ? 'bg-white/[0.09] text-white' : 'text-zinc-500 hover:text-zinc-200'
-                }`}
+                } ${busy || oauthProvider ? '' : 'cursor-pointer'}`}
               >
                 {tab === 'login' ? 'Masuk' : 'Daftar'}
               </button>
@@ -314,6 +376,8 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
                 placeholder="Opsional"
                 autoComplete="username"
                 hint="opsional"
+                inputRef={usernameInputRef}
+                disabled={busy || Boolean(oauthProvider)}
               />
             ) : null}
 
@@ -325,7 +389,8 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
               onChange={setEmail}
               placeholder="nama@email.com"
               autoComplete="email"
-              inputRef={firstFieldRef}
+              inputRef={emailInputRef}
+              disabled={busy || Boolean(oauthProvider)}
             />
 
             <PasswordField
@@ -335,6 +400,7 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
               onChange={setPassword}
               placeholder={mode === 'signup' ? 'Minimal 8 karakter' : 'Password kamu'}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              disabled={busy || Boolean(oauthProvider)}
             />
 
             {mode === 'signup' ? (
@@ -345,6 +411,7 @@ export function AuthDialog({ mode: initialMode, returnTo, initialError, onClose,
                 onChange={setConfirmPassword}
                 placeholder="Ketik ulang password"
                 autoComplete="new-password"
+                disabled={busy || Boolean(oauthProvider)}
               />
             ) : null}
 

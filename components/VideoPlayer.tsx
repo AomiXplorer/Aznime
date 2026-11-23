@@ -31,6 +31,7 @@ interface VideoPlayerProps {
   title: string;
   servers: MirrorServer[];
   defaultEmbed: string | null;
+  episodes: EpisodeNavLink[];
   navigation: {
     prev: EpisodeNavLink | null;
     all: EpisodeNavLink | null;
@@ -156,6 +157,7 @@ export function VideoPlayer({
   title,
   servers,
   defaultEmbed,
+  episodes,
   navigation,
   seriesSlug,
   seriesTitle,
@@ -530,8 +532,8 @@ export function VideoPlayer({
               : ''
           }
         >
-          <div className="overflow-hidden bg-surface sm:rounded-lg">
-            <div ref={stageRef} className="relative aspect-video w-full overflow-hidden bg-black [&:fullscreen]:aspect-auto">
+          <div className="bg-surface sm:rounded-lg">
+            <div ref={stageRef} className="relative aspect-video w-full overflow-hidden bg-black sm:rounded-t-lg [&:fullscreen]:aspect-auto">
               {!hasSource ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
                   <AlertCircle className="size-6 text-zinc-500" aria-hidden="true" />
@@ -708,16 +710,79 @@ export function VideoPlayer({
             {/* Navigasi episode: satu baris, tinggi tetap, state kosong tetap terlihat. */}
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-line px-1 py-0.5 sm:px-2">
               <EpisodeNavButton link={navigation.prev} direction="prev" seriesTitle={seriesTitle} />
-              <Link
-                href={allSeriesHref}
-                prefetch={false}
-                title={seriesTitle ? `Semua episode ${seriesTitle}` : 'Semua episode'}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-              >
-                <List className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Semua episode</span>
-                <span className="sr-only sm:hidden">Semua episode</span>
-              </Link>
+              <details className="group relative">
+                <summary
+                  aria-label="Pilih episode"
+                  title="Pilih episode"
+                  className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 [&::-webkit-details-marker]:hidden"
+                >
+                  <List className="size-4" aria-hidden="true" />
+                  <span>Pilih episode</span>
+                </summary>
+                <div className="absolute left-1/2 top-full z-40 mt-2 max-h-[min(60vh,26rem)] w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-md border border-line bg-elevated p-2 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.8)]">
+                  <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                    Episode {seriesTitle ? `· ${seriesTitle}` : ''}
+                  </p>
+                  {episodes.length > 0 ? (
+                    <ul aria-label="Pilih episode" className="grid grid-cols-2 gap-1">
+                      {episodes.map((episode, index) => {
+                        const number = episode.number || episodeNumberFromTitle(episode.title);
+                        const isCurrent = Boolean(
+                          episode.slug &&
+                            (pathname.endsWith(`/${encodeURIComponent(episode.slug)}`) ||
+                              pathname.endsWith(`/${episode.slug}`))
+                        );
+                        return (
+                          <li key={episode.slug || `${episode.title}-${index}`}>
+                            {episode.slug ? (
+                              <Link
+                                href={`/watch/${encodeURIComponent(episode.slug)}`}
+                                prefetch={false}
+                                aria-current={isCurrent ? 'page' : undefined}
+                                title={episode.title}
+                                className={cn(
+                                  'flex min-h-9 items-center gap-2 rounded-sm px-2 text-[11.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+                                  isCurrent
+                                    ? 'bg-white/[0.1] text-white'
+                                    : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white'
+                                )}
+                              >
+                                <span className="shrink-0 font-mono tabular-nums text-zinc-500">
+                                  {number ? `Ep ${number}` : 'Ep'}
+                                </span>
+                                {isCurrent ? (
+                                  <span className="sr-only">Episode sedang diputar: </span>
+                                ) : null}
+                                <span className="min-w-0 truncate">{episode.title}</span>
+                              </Link>
+                            ) : (
+                              <span className="flex min-h-9 items-center gap-2 px-2 text-[11.5px] text-zinc-500">
+                                <span className="shrink-0 font-mono tabular-nums">
+                                  {number ? `Ep ${number}` : 'Ep'}
+                                </span>
+                                <span className="min-w-0 truncate">{episode.title}</span>
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="px-2 py-3 text-[12px] text-zinc-500">
+                      Daftar episode belum tersedia.
+                    </p>
+                  )}
+                  {allSeriesHref ? (
+                    <Link
+                      href={allSeriesHref}
+                      prefetch={false}
+                      className="mt-2 flex min-h-9 items-center rounded-sm border-t border-line px-2 pt-2 text-[11.5px] font-medium text-zinc-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                    >
+                      Buka halaman seri
+                    </Link>
+                  ) : null}
+                </div>
+              </details>
               <EpisodeNavButton link={navigation.next} direction="next" seriesTitle={seriesTitle} />
             </div>
 

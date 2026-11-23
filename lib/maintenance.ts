@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import {
   BYPASS_COOKIE_NAME,
   BYPASS_HINT_COOKIE_NAME,

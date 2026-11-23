@@ -274,6 +274,12 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
               title={data.title}
               servers={data.servers}
               defaultEmbed={data.defaultEmbed}
+              episodes={data.episodes.map((item) => ({
+                title: item.title,
+                slug: item.slug,
+                url: item.url,
+                number: item.number,
+              }))}
               navigation={data.navigation}
               seriesSlug={data.seriesSlug}
               seriesTitle={data.seriesTitle}
@@ -380,6 +386,12 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
               title={cleanTitle}
               servers={episode.servers}
               defaultEmbed={episode.defaultEmbed}
+              episodes={episodes.map((item) => ({
+                title: item.title,
+                slug: item.slug,
+                url: item.url,
+                number: item.number,
+              }))}
               navigation={navigation}
               seriesSlug={seriesSlug}
               seriesTitle={seriesTitle}

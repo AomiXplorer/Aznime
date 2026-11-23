@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Play, Star } from 'lucide-react';
 import type { AniListTrailer } from '@/lib/scraper/types';
 import type { AnimeCardItem, DownloadBox, EpisodeSummary } from '@/lib/scraper/types';
+import { serializeJsonLd } from '@/lib/json-ld';
 import { AnimeImage } from './AnimeImage';
 import { AnimeTrailerSection } from './AnimeTrailerSection';
 import { DownloadBoxes } from './DownloadBoxes';
@@ -201,7 +202,7 @@ export function AnimeDetailLayout({
         ) : null}
       </div>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
     </div>
   );
 }
