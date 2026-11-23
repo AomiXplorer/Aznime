@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   compress: true,
 
   images: {
+    // Optimizer gambar Vercel dibatasi kuota transformasi per bulan; saat habis
+    // semua /_next/image dibalas 402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED dan
+    // poster jatuh ke placeholder. Poster di sini sudah berukuran kartu dari CDN
+    // sumber, jadi langsung pakai URL aslinya: tanpa kuota, tanpa biaya transformasi.
+    unoptimized: true,
     // AVIF/WebP otomatis memangkas ~30-50% byte poster tanpa mengubah kualitas
     // visual pada ukuran kartu.
     formats: ['image/avif', 'image/webp'],
