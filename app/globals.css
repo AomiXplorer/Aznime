@@ -223,3 +223,118 @@ body:has([data-maintenance-screen]) > footer {
 .reveal {
   animation: screen-reveal 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* ---------- Pemutar video ---------- */
+
+/* Garis muat di tepi atas panggung video: bergerak, tanpa angka palsu. */
+@keyframes player-sweep {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(260%, 0, 0);
+  }
+}
+.player-sweep {
+  animation: player-sweep 1.15s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+/* Umpan balik singkat saat lompat waktu / ubah volume. */
+@keyframes player-flash {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  14% {
+    opacity: 1;
+    transform: none;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.player-flash {
+  animation: player-flash 700ms ease-out both;
+}
+
+/* Hitung mundur episode berikutnya: garis menyusut selama 8 detik. */
+@keyframes player-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.player-countdown {
+  transform-origin: left;
+  animation: player-countdown 8s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-sweep {
+    animation: none;
+    transform: none;
+    width: 100% !important;
+    opacity: 0.6;
+  }
+  .player-flash {
+    animation: none;
+    opacity: 1;
+  }
+  .player-countdown {
+    animation: none;
+  }
+}
+
+/* Slider volume bawaan browser, dirapikan agar sejajar dengan garis seek. */
+.player-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+.player-range:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.player-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #fff var(--fill, 0%),
+    rgba(255, 255, 255, 0.25) var(--fill, 0%)
+  );
+}
+.player-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.player-range::-moz-range-progress {
+  height: 3px;
+  border-radius: 2px;
+  background: #fff;
+}
+.player-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+.player-range::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}

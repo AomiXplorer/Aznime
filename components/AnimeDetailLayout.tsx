@@ -196,7 +196,7 @@ export function AnimeDetailLayout({
         {recommendations.length > 0 ? (
           <section aria-label="Rekomendasi anime serupa" className="space-y-4">
             <h2 className="text-lg font-bold text-white">Mungkin kamu suka</h2>
-            <AnimeGrid items={recommendations.slice(0, 14)} />
+            <AnimeGrid items={recommendations.slice(0, 14)} fillRows />
           </section>
         ) : null}
       </div>

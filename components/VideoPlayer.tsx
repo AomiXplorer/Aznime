@@ -2,27 +2,30 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type HlsType from 'hls.js';
 import {
   AlertCircle,
-  Check,
   ChevronLeft,
   ChevronRight,
+  Check,
   Copy,
   Flag,
   List,
   Loader2,
   Maximize2,
-  MessageCircle,
   Monitor,
   RotateCcw,
-  X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { EpisodeNavLink, MirrorServer } from '@/lib/scraper/types';
-import { PRIMARY_WHATSAPP_URL } from '@/lib/credits';
 import { cleanEpisodeTitle, episodeNumberFromTitle } from '@/lib/episode-format';
 import { cn } from '@/lib/cn';
+import { DirectControls } from './player/DirectControls';
+import type { EpisodeTarget, QualityControl } from './player/DirectControls';
+import { ReportDialog } from './player/ReportDialog';
+import { copyText } from './player/copy';
+import { safeStorage } from './player/format';
 
 interface VideoPlayerProps {
   title: string;
@@ -62,25 +65,13 @@ function displayServerName(server: MirrorServer): string {
   return server.name.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const area = document.createElement('textarea');
-      area.value = text;
-      area.style.position = 'fixed';
-      area.style.opacity = '0';
-      document.body.appendChild(area);
-      area.select();
-      const ok = document.execCommand('copy');
-      area.remove();
-      return ok;
-    } catch {
-      return false;
-    }
-  }
+function toTarget(link: EpisodeNavLink | null): EpisodeTarget | null {
+  if (!link?.slug) return null;
+  const number = link.number || episodeNumberFromTitle(link.title);
+  return {
+    href: `/watch/${encodeURIComponent(link.slug)}`,
+    label: number ? `Episode ${number}` : cleanEpisodeTitle(link.title),
+  };
 }
 
 interface IconButtonProps {
@@ -100,11 +91,11 @@ function IconButton({ icon: Icon, label, onClick, active }: IconButtonProps) {
       aria-pressed={active}
       title={label}
       className={cn(
-        'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
-        active ? 'bg-white/[0.12] text-white' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+        'inline-flex size-9 cursor-pointer items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+        active ? 'bg-white/[0.12] text-white' : 'text-zinc-400 hover:bg-white/[0.07] hover:text-zinc-100'
       )}
     >
-      <Icon className="h-4 w-4" aria-hidden="true" />
+      <Icon className="size-[18px]" aria-hidden="true" />
     </button>
   );
 }
@@ -119,7 +110,11 @@ function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProp
   const number = link?.number || (link ? episodeNumberFromTitle(link.title) : null);
   const text = number ? `Ep ${number}` : link ? cleanEpisodeTitle(link.title) : 'Tidak ada';
   const hint = link
-    ? [direction === 'prev' ? 'Episode sebelumnya' : 'Episode berikutnya', seriesTitle, number ? `Episode ${number}` : cleanEpisodeTitle(link.title)]
+    ? [
+        direction === 'prev' ? 'Episode sebelumnya' : 'Episode berikutnya',
+        seriesTitle,
+        number ? `Episode ${number}` : cleanEpisodeTitle(link.title),
+      ]
         .filter(Boolean)
         .join(' · ')
     : direction === 'prev'
@@ -127,18 +122,18 @@ function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProp
       : 'Tidak ada episode berikutnya';
 
   const className = cn(
-    'inline-flex h-8 min-w-0 items-center gap-1 rounded-md px-2 text-[12px] font-medium transition-colors duration-150',
+    'inline-flex h-9 min-w-0 items-center gap-1 rounded-md px-2 text-[12.5px] font-medium transition-colors duration-150',
     direction === 'next' && 'justify-end',
     link
-      ? 'text-zinc-300 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60'
+      ? 'text-zinc-200 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60'
       : 'cursor-default text-zinc-600'
   );
 
   const content = (
     <>
-      {direction === 'prev' ? <ChevronLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
+      {direction === 'prev' ? <ChevronLeft className="size-4 shrink-0" aria-hidden="true" /> : null}
       <span className="truncate">{text}</span>
-      {direction === 'next' ? <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
+      {direction === 'next' ? <ChevronRight className="size-4 shrink-0" aria-hidden="true" /> : null}
     </>
   );
 
@@ -165,6 +160,8 @@ export function VideoPlayer({
   seriesSlug,
   seriesTitle,
 }: VideoPlayerProps) {
+  const pathname = usePathname();
+
   const effectiveServers = useMemo<MirrorServer[]>(() => {
     const base =
       servers.length > 0
@@ -214,19 +211,38 @@ export function VideoPlayer({
   const [serverErrors, setServerErrors] = useState<Set<number>>(new Set());
   const [reloadKey, setReloadKey] = useState(0);
   const [theater, setTheater] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportText, setReportText] = useState('');
-  const [reportCopied, setReportCopied] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [reportText, setReportText] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const [qualityOptions, setQualityOptions] = useState<QualityControl['options']>([]);
+  const [qualityLevel, setQualityLevel] = useState(-1);
 
   const manualRef = useRef(false);
   const triedRef = useRef<Set<number>>(new Set());
-  const frameRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<HlsType | null>(null);
   const copyTimer = useRef<number | undefined>(undefined);
-  const reportTimer = useRef<number | undefined>(undefined);
 
   const activeServer = selectedIdx !== null ? effectiveServers[selectedIdx] || null : null;
+
+  const prevTarget = useMemo(() => toTarget(navigation.prev), [navigation.prev]);
+  const nextTarget = useMemo(() => toTarget(navigation.next), [navigation.next]);
+
+  const selectQuality = useCallback((index: number) => {
+    const hls = hlsRef.current;
+    if (!hls) return;
+    hls.currentLevel = index;
+    setQualityLevel(index);
+  }, []);
+
+  const quality = useMemo<QualityControl | null>(
+    () =>
+      qualityOptions.length > 1
+        ? { options: qualityOptions, current: qualityLevel, onSelect: selectQuality }
+        : null,
+    [qualityOptions, qualityLevel, selectQuality]
+  );
 
   const advanceToNext = useCallback(
     (reason: string): boolean => {
@@ -255,6 +271,9 @@ export function VideoPlayer({
   // 2) Muat server aktif (HLS / video langsung / iframe).
   useEffect(() => {
     setMediaError(null);
+    setQualityOptions([]);
+    setQualityLevel(-1);
+    hlsRef.current = null;
     if (!activeServer || !activeServer.available || !activeServer.url) {
       setIsLoading(false);
       return;
@@ -297,10 +316,22 @@ export function VideoPlayer({
             return;
           }
           hls = new Hls({ enableWorker: true, maxBufferLength: 30 });
+          hlsRef.current = hls;
           hls.loadSource(url);
           hls.attachMedia(videoEl);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            if (!cancelled) setIsLoading(false);
+          hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+            if (cancelled) return;
+            setIsLoading(false);
+            // Satu pilihan per resolusi; kalau ada beberapa bitrate, ambil yang tertinggi.
+            const byHeight = new Map<number, number>();
+            data.levels.forEach((level, index) => {
+              if (level.height > 0) byHeight.set(level.height, index);
+            });
+            setQualityOptions(
+              [...byHeight.entries()]
+                .sort((a, b) => b[0] - a[0])
+                .map(([height, index]) => ({ index, label: `${height}p` }))
+            );
           });
           hls.on(Hls.Events.ERROR, (_event, data) => {
             if (data.fatal) fail('Stream HLS gagal dimuat. Coba server lain di bawah.');
@@ -314,6 +345,7 @@ export function VideoPlayer({
     return () => {
       cancelled = true;
       hls?.destroy();
+      hlsRef.current = null;
       videoEl.removeAttribute('src');
       videoEl.load();
     };
@@ -331,7 +363,47 @@ export function VideoPlayer({
     return () => clearTimeout(t);
   }, [activeServer, isLoading, advanceToNext, selectedIdx]);
 
-  // 4) Pintasan keyboard untuk mode video langsung.
+  // 4) Layar penuh: berlaku untuk semua jenis server (iframe maupun video langsung).
+  const toggleFullscreen = useCallback(async () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else if (stage.requestFullscreen) {
+        await stage.requestFullscreen();
+      } else {
+        // iOS Safari hanya bisa layar penuh lewat elemen <video> itu sendiri.
+        const video = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+        video?.webkitEnterFullscreen?.();
+      }
+    } catch {
+      /* browser menolak layar penuh; abaikan */
+    }
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => {
+      const active = document.fullscreenElement !== null && document.fullscreenElement === stageRef.current;
+      setIsFullscreen(active);
+      try {
+        const orientation = screen.orientation as unknown as {
+          lock?: (mode: string) => Promise<void>;
+          unlock?: () => void;
+        };
+        if (active && window.matchMedia('(pointer: coarse)').matches) {
+          void orientation.lock?.('landscape').catch(() => undefined);
+        } else if (!active) {
+          orientation.unlock?.();
+        }
+      } catch {
+        /* kunci orientasi tidak didukung */
+      }
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -345,56 +417,30 @@ export function VideoPlayer({
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      const video = videoRef.current;
       if (e.key.toLowerCase() === 'f') {
         e.preventDefault();
-        if (document.fullscreenElement) void document.exitFullscreen();
-        else void frameRef.current?.requestFullscreen();
-      } else if (video && activeServer && isDirect(activeServer)) {
-        if (e.key === ' ' || e.key.toLowerCase() === 'k') {
-          e.preventDefault();
-          if (video.paused) void video.play();
-          else video.pause();
-        } else if (e.key.toLowerCase() === 'm') {
-          e.preventDefault();
-          video.muted = !video.muted;
-        } else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 5);
-        } else if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          video.currentTime = Math.max(0, video.currentTime - 5);
-        }
+        void toggleFullscreen();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeServer]);
+  }, [toggleFullscreen]);
 
   // 5) Theater: ingat preferensi, kunci scroll, Esc untuk keluar.
   useEffect(() => {
-    try {
-      if (window.localStorage.getItem(THEATER_KEY) === '1') setTheater(true);
-    } catch {
-      /* localStorage bisa diblokir; abaikan. */
-    }
+    if (safeStorage.get(THEATER_KEY) === '1') setTheater(true);
   }, []);
 
   useEffect(() => {
     document.body.style.overflow = theater ? 'hidden' : '';
-    try {
-      window.localStorage.setItem(THEATER_KEY, theater ? '1' : '0');
-    } catch {
-      /* abaikan */
-    }
+    safeStorage.set(THEATER_KEY, theater ? '1' : '0');
     if (!theater) {
       return () => {
         document.body.style.overflow = '';
       };
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setTheater(false);
+      if (e.key === 'Escape' && !document.fullscreenElement) setTheater(false);
     };
     window.addEventListener('keydown', onKey);
     return () => {
@@ -403,33 +449,7 @@ export function VideoPlayer({
     };
   }, [theater]);
 
-  // 6) Dialog laporan: kunci scroll + Esc.
-  useEffect(() => {
-    if (!reportOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setReportOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [reportOpen]);
-
-  useEffect(
-    () => () => {
-      window.clearTimeout(copyTimer.current);
-      window.clearTimeout(reportTimer.current);
-    },
-    []
-  );
-
-  const handleFullscreen = () => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void frameRef.current?.requestFullscreen();
-  };
+  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
   const pickManually = (idx: number) => {
     manualRef.current = true;
@@ -479,16 +499,9 @@ export function VideoPlayer({
       `Waktu: ${new Date().toISOString()}`,
     ];
     setReportText(lines.join('\n'));
-    setReportCopied(false);
-    setReportOpen(true);
   };
 
-  const copyReport = async () => {
-    const ok = await copyText(reportText);
-    setReportCopied(ok);
-    window.clearTimeout(reportTimer.current);
-    reportTimer.current = window.setTimeout(() => setReportCopied(false), 2200);
-  };
+  const closeReport = useCallback(() => setReportText(null), []);
 
   const allSeriesHref = navigation.all?.slug
     ? `/anime/${encodeURIComponent(navigation.all.slug)}`
@@ -496,24 +509,16 @@ export function VideoPlayer({
       ? `/anime/${encodeURIComponent(seriesSlug)}`
       : '/anime';
 
+  /** Status ditampilkan hanya kalau ada yang perlu diketahui; server sehat cukup ditandai garis bawah. */
   const serverStatus = (idx: number, server: MirrorServer) => {
-    if (!server.available || !server.url) return { label: 'Tidak tersedia', tone: 'off' as const };
-    if (serverErrors.has(idx)) return { label: 'Gagal dimuat', tone: 'error' as const };
-    if (idx === selectedIdx) {
-      return isLoading
-        ? { label: 'Memuat', tone: 'loading' as const }
-        : { label: 'Aktif', tone: 'active' as const };
-    }
-    return { label: '', tone: 'idle' as const };
+    if (!server.available || !server.url) return { label: 'Tidak tersedia', dot: 'bg-zinc-600' };
+    if (serverErrors.has(idx)) return { label: 'Gagal', dot: 'bg-rose-400' };
+    if (idx === selectedIdx && isLoading) return { label: 'Memuat', dot: 'bg-amber-400 animate-pulse' };
+    return { label: '', dot: '' };
   };
 
-  const toneClass = {
-    active: 'bg-emerald-400',
-    loading: 'bg-amber-400 animate-pulse',
-    error: 'bg-rose-400',
-    idle: 'bg-zinc-500',
-    off: 'bg-zinc-700',
-  };
+  const showLoading = isLoading && Boolean(activeServer?.available && activeServer?.url) && !mediaError;
+  const hasSource = Boolean(activeServer?.available && activeServer?.url);
 
   return (
     <>
@@ -521,20 +526,20 @@ export function VideoPlayer({
         <div
           className={
             theater
-              ? 'mx-auto flex min-h-full w-full max-w-[min(1500px,calc((100vh-190px)*16/9))] flex-col justify-center px-2 py-3 sm:px-4'
+              ? 'mx-auto flex min-h-full w-full max-w-[min(1500px,calc((100vh-200px)*16/9))] flex-col justify-center px-2 py-3 sm:px-4'
               : ''
           }
         >
-          <div ref={frameRef} className="overflow-hidden bg-black sm:rounded-lg">
-            <div className="relative aspect-video w-full bg-black">
-              {!activeServer || !activeServer.available || !activeServer.url ? (
+          <div className="overflow-hidden bg-surface sm:rounded-lg">
+            <div ref={stageRef} className="relative aspect-video w-full overflow-hidden bg-black [&:fullscreen]:aspect-auto">
+              {!hasSource ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
-                  <AlertCircle className="h-6 w-6 text-zinc-500" aria-hidden="true" />
-                  <p className="text-[12.5px] font-semibold text-zinc-200">
+                  <AlertCircle className="size-6 text-zinc-500" aria-hidden="true" />
+                  <p className="text-[13px] font-semibold text-zinc-200">
                     {activeServer?.message || 'Sumber video belum tersedia'}
                   </p>
-                  <p className="max-w-sm text-[11px] leading-relaxed text-zinc-500">
-                    Coba server lain di bawah, atau pakai tautan unduhan episode ini.
+                  <p className="max-w-sm text-[12px] leading-relaxed text-zinc-500">
+                    Pilih server lain di bawah, atau pakai tautan unduhan episode ini.
                   </p>
                 </div>
               ) : mediaError ? (
@@ -542,44 +547,58 @@ export function VideoPlayer({
                   role="alert"
                   className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
                 >
-                  <AlertCircle className="h-6 w-6 text-rose-400" aria-hidden="true" />
+                  <AlertCircle className="size-6 text-rose-400" aria-hidden="true" />
                   <div>
-                    <p className="text-[12.5px] font-semibold text-zinc-100">Video gagal dimuat</p>
-                    <p className="mt-1 max-w-md text-[11px] leading-relaxed text-zinc-500">{mediaError}</p>
+                    <p className="text-[13px] font-semibold text-zinc-100">Video gagal dimuat</p>
+                    <p className="mt-1 max-w-md text-[12px] leading-relaxed text-zinc-400">{mediaError}</p>
                   </div>
                   <button
                     type="button"
                     onClick={retryActive}
-                    className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                    className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3.5 text-[12.5px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                    Coba lagi
+                    <RotateCcw className="size-3.5" aria-hidden="true" />
+                    Muat ulang
                   </button>
                 </div>
-              ) : isDirect(activeServer) ? (
-                <video
-                  ref={videoRef}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  onLoadedMetadata={() => setIsLoading(false)}
-                  onLoadedData={() => setIsLoading(false)}
-                  onCanPlay={() => setIsLoading(false)}
-                  onError={() => {
-                    setIsLoading(false);
-                    if (selectedIdx !== null) {
-                      setServerErrors((prev) => new Set(prev).add(selectedIdx));
-                    }
-                    if (!advanceToNext(`${displayServerName(activeServer)} gagal diputar.`)) {
-                      setMediaError('Video gagal diputar dari server ini. Coba server lain.');
-                    }
-                  }}
-                  className="h-full w-full bg-black"
-                />
-              ) : (
+              ) : activeServer && isDirect(activeServer) ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    preload="metadata"
+                    onLoadedMetadata={() => setIsLoading(false)}
+                    onLoadedData={() => setIsLoading(false)}
+                    onCanPlay={() => setIsLoading(false)}
+                    onError={() => {
+                      setIsLoading(false);
+                      if (selectedIdx !== null) {
+                        setServerErrors((prev) => new Set(prev).add(selectedIdx));
+                      }
+                      if (!advanceToNext(`${displayServerName(activeServer)} gagal diputar.`)) {
+                        setMediaError('Video gagal diputar dari server ini. Coba server lain.');
+                      }
+                    }}
+                    className="h-full w-full bg-black"
+                  />
+                  <DirectControls
+                    key={`${selectedIdx}-${reloadKey}`}
+                    videoRef={videoRef}
+                    title={title}
+                    seriesTitle={seriesTitle}
+                    loading={isLoading}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={() => void toggleFullscreen()}
+                    next={nextTarget}
+                    prev={prevTarget}
+                    quality={quality}
+                    storageKey={pathname || title}
+                  />
+                </>
+              ) : activeServer ? (
                 <iframe
                   key={`${activeServer.url}-${reloadKey}`}
-                  src={activeServer.url}
+                  src={activeServer.url ?? undefined}
                   title={`Pemutar ${title} - ${displayServerName(activeServer)}`}
                   allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                   allowFullScreen
@@ -595,85 +614,88 @@ export function VideoPlayer({
                   onLoad={() => setIsLoading(false)}
                   className="h-full w-full border-0"
                 />
-              )}
+              ) : null}
 
-              {isLoading && activeServer?.available && activeServer?.url && !mediaError ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45"
-                >
-                  <span className="inline-flex items-center gap-2 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300">
-                    <Loader2
-                      className="h-3.5 w-3.5 animate-spin text-zinc-400 motion-reduce:animate-none"
-                      aria-hidden="true"
-                    />
-                    Memuat {activeServer ? displayServerName(activeServer) : 'server'}
-                  </span>
-                </div>
+              {showLoading ? (
+                <>
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0 h-[2px] overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    <div className="player-sweep h-full w-2/5 bg-accent" />
+                  </div>
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45"
+                  >
+                    <span className="inline-flex items-center gap-2 text-[12.5px] font-medium text-zinc-200">
+                      <Loader2
+                        className="size-4 animate-spin text-zinc-300 motion-reduce:animate-none"
+                        aria-hidden="true"
+                      />
+                      Memuat {activeServer ? displayServerName(activeServer) : 'server'}
+                    </span>
+                  </div>
+                </>
               ) : null}
 
               {copyState !== 'idle' ? (
                 <div
                   role="status"
-                  className="pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 rounded-md bg-black/85 px-2.5 py-1.5 text-[11px] font-medium text-white"
+                  className="pointer-events-none absolute right-3 top-3 rounded-md bg-black/80 px-3 py-1.5 text-[12px] font-medium text-white"
                 >
-                  {copyState === 'ok' ? 'Tautan episode disalin' : 'Gagal menyalin tautan'}
+                  {copyState === 'ok' ? 'Tautan episode disalin' : 'Tautan gagal disalin'}
                 </div>
               ) : null}
             </div>
 
-            {/* Satu strip kendali: server di kiri (bisa digeser), aksi di kanan. */}
-            <div className="flex items-stretch gap-1 bg-[#0a0c11] py-1.5 pl-1 pr-1 sm:pl-1.5">
-              <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-0.5">
-                <div
-                  role="radiogroup"
-                  aria-label="Server video"
-                  className="flex items-center gap-1"
-                >
+            {/* Server di kiri (bisa digeser), aksi di kanan. */}
+            <div className="flex items-center gap-1 pl-1 pr-1 sm:pl-2">
+              <div className="no-scrollbar flex min-w-0 flex-1 items-center overflow-x-auto">
+                <span className="shrink-0 pl-1.5 pr-1 text-[12px] text-zinc-500">Server</span>
+                <div role="group" aria-label="Pilih server video" className="flex items-center">
                   {effectiveServers.map((server, idx) => {
                     const active = idx === selectedIdx;
                     const status = serverStatus(idx, server);
-                    const state = status.label ? status.label.toLowerCase() : null;
                     return (
                       <button
                         key={`${server.name}-${idx}`}
                         type="button"
-                        role="radio"
-                        aria-checked={active}
+                        aria-pressed={active}
                         disabled={!server.available}
                         onClick={() => pickManually(idx)}
-                        title={`${displayServerName(server)} · ${status.label}`}
+                        title={status.label ? `${displayServerName(server)}: ${status.label}` : displayServerName(server)}
                         className={cn(
-                          'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-40',
+                          "relative inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 px-2.5 text-[13px] font-medium transition-colors duration-150 after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-accent after:transition-opacity after:duration-150 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-40",
                           active
-                            ? 'bg-white/[0.1] text-white ring-1 ring-inset ring-white/[0.14]'
-                            : 'text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100'
+                            ? 'text-white after:opacity-100'
+                            : 'text-zinc-400 after:opacity-0 hover:text-zinc-100'
                         )}
                       >
-                        <span
-                          className={cn('h-1.5 w-1.5 shrink-0 rounded-full', toneClass[status.tone])}
-                          aria-hidden="true"
-                        />
-                        <span className="whitespace-nowrap">{displayServerName(server)}</span>
-                        {state ? (
-                          <span className="whitespace-nowrap text-[10.5px] text-zinc-500">{state}</span>
+                        {status.dot ? (
+                          <span className={cn('size-1.5 shrink-0 rounded-full', status.dot)} aria-hidden="true" />
                         ) : null}
-                        {active ? <Check className="h-3 w-3 shrink-0 text-accent" aria-hidden="true" /> : null}
+                        <span className="whitespace-nowrap">{displayServerName(server)}</span>
+                        {status.label ? (
+                          <span className="whitespace-nowrap text-[11.5px] font-normal text-zinc-500">
+                            {status.label}
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-0.5 border-l border-[#2b2222] pl-1">
+              <div className="flex shrink-0 items-center gap-0.5 border-l border-line pl-1">
                 <IconButton
                   icon={Monitor}
                   label={theater ? 'Keluar mode theater' : 'Mode theater'}
                   active={theater}
                   onClick={() => setTheater((value) => !value)}
                 />
-                <IconButton icon={Maximize2} label="Layar penuh" onClick={handleFullscreen} />
+                <IconButton icon={Maximize2} label="Layar penuh" onClick={() => void toggleFullscreen()} />
                 <IconButton
                   icon={copyState === 'ok' ? Check : Copy}
                   label={copyState === 'ok' ? 'Tautan tersalin' : 'Salin tautan episode'}
@@ -684,15 +706,15 @@ export function VideoPlayer({
             </div>
 
             {/* Navigasi episode: satu baris, tinggi tetap, state kosong tetap terlihat. */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-[#2b2222] bg-[#0a0c11] px-1 py-1 sm:px-1.5">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-line px-1 py-0.5 sm:px-2">
               <EpisodeNavButton link={navigation.prev} direction="prev" seriesTitle={seriesTitle} />
               <Link
                 href={allSeriesHref}
                 prefetch={false}
                 title={seriesTitle ? `Semua episode ${seriesTitle}` : 'Semua episode'}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                <List className="h-3.5 w-3.5" aria-hidden="true" />
+                <List className="size-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Semua episode</span>
                 <span className="sr-only sm:hidden">Semua episode</span>
               </Link>
@@ -702,7 +724,7 @@ export function VideoPlayer({
             {notice ? (
               <p
                 role="status"
-                className="border-t border-[#2b2222] bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-zinc-400"
+                className="border-t border-line bg-white/[0.03] px-3 py-2 text-[12px] text-zinc-400"
               >
                 {notice}
               </p>
@@ -710,86 +732,14 @@ export function VideoPlayer({
           </div>
 
           {theater ? (
-            <p className="py-2 text-center text-[10.5px] text-zinc-500">
+            <p className="py-2 text-center text-[11px] text-zinc-500">
               Tekan Esc atau tombol theater untuk keluar
             </p>
           ) : null}
         </div>
       </div>
 
-      {reportOpen ? (
-        <div
-          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="report-title"
-        >
-          <button
-            type="button"
-            aria-label="Tutup laporan"
-            className="absolute inset-0 cursor-default"
-            onClick={() => setReportOpen(false)}
-            tabIndex={-1}
-          />
-          <div className="relative w-full max-w-md rounded-t-xl bg-[#131010] p-4 sm:rounded-xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 id="report-title" className="text-[13.5px] font-semibold text-white">
-                  Laporkan masalah pemutar
-                </h2>
-                <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
-                  Salin detail di bawah, lalu kirim ke channel WhatsApp pengelola supaya bisa dicek.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setReportOpen(false)}
-                aria-label="Tutup"
-                className="-mr-1 -mt-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors duration-150 hover:bg-white/[0.06] hover:text-zinc-200"
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-
-            <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-black/40 p-3 text-[11px] leading-relaxed text-zinc-300">
-              {reportText}
-            </pre>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void copyReport()}
-                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-semibold text-black transition-colors duration-150 hover:bg-white/85"
-              >
-                {reportCopied ? (
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                )}
-                {reportCopied ? 'Detail tersalin' : 'Salin detail'}
-              </button>
-              {PRIMARY_WHATSAPP_URL ? (
-                <a
-                  href={PRIMARY_WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium text-zinc-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                  Buka WhatsApp
-                </a>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setReportOpen(false)}
-                className="ml-auto inline-flex h-8 cursor-pointer items-center rounded-md px-3 text-[12px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-zinc-200"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {reportText !== null ? <ReportDialog text={reportText} onClose={closeReport} /> : null}
     </>
   );
 }

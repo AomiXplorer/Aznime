@@ -99,10 +99,13 @@ export function Navbar() {
       <header className="sticky top-0 z-40 isolate">
         {/* Latar solid tanpa backdrop-filter: blur pada elemen sticky memaksa
             browser me-render ulang seluruh area di belakangnya setiap frame
-            saat scroll, dan itu penyebab utama scroll tersendat di Android. */}
+            saat scroll, dan itu penyebab utama scroll tersendat di Android.
+            Harus 100% buram (bukan /95): sisa 5% meloloskan poster yang lewat
+            di bawah header, dan di pita terang "Dari arsip" krem ikut
+            mengangkat warna header menjadi lebih terang dari seharusnya. */}
         <div
           aria-hidden="true"
-          className={`absolute inset-0 -z-10 border-b border-[#241d1d] bg-canvas/95 transition-opacity duration-300 ${
+          className={`absolute inset-0 -z-10 border-b border-[#241d1d] bg-canvas transition-opacity duration-300 ${
             transparent ? 'opacity-0' : 'opacity-100'
           }`}
         />
