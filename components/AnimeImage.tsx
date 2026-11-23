@@ -15,6 +15,8 @@ interface AnimeImageProps {
   priority?: boolean;
   /** Lewati optimizer Next untuk gambar dari CDN yang menolak permintaan server. */
   unoptimized?: boolean;
+  /** Kalau diisi, gambar dari host yang didukung diproses lewat /api/img. */
+  proxyWidth?: number;
   className?: string;
   fallbackClassName?: string;
 }
@@ -28,11 +30,13 @@ function AnimeImageComponent({
   sizes = '(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 220px',
   priority = false,
   unoptimized = false,
+  proxyWidth,
   className,
   fallbackClassName,
 }: AnimeImageProps) {
   const [hasError, setHasError] = useState(false);
   const [loaded, setLoaded] = useState(false);
+
 
   if (!src || hasError) {
     return (
@@ -48,9 +52,11 @@ function AnimeImageComponent({
     );
   }
 
+  const displaySrc = proxyWidth ? proxiedImage(src, proxyWidth) : src;
+
   return (
     <Image
-      src={src}
+      src={displaySrc}
       alt={alt}
       fill={fill}
       width={fill ? undefined : width}
@@ -70,6 +76,17 @@ function AnimeImageComponent({
       )}
     />
   );
+}
+
+const PROXYABLE_HOST = /(^|\.)(hidoristream\.online|animein\.net|animeinweb\.com|storages\.animein\.net|nekopoi\.care|anilist\.co|ytimg\.com)$/i;
+
+function proxiedImage(src: string, width: number): string {
+  try {
+    if (!PROXYABLE_HOST.test(new URL(src).hostname)) return src;
+    return `/api/img?u=${encodeURIComponent(src)}&w=${width}&q=72&f=webp`;
+  } catch {
+    return src;
+  }
 }
 
 export const AnimeImage = memo(AnimeImageComponent);
