@@ -2,6 +2,9 @@ import { handleRouteError, isSameOrigin, jsonError, jsonResponse, readJsonBody }
 import { getSessionUser } from '@/lib/auth/session';
 import { syncHistory } from '@/lib/auth/history';
 
+/** Batas entri history tamu yang boleh disinkronkan sekali jalan. */
+const MAX_GUEST_HISTORY_ITEMS = 200;
+
 export const dynamic = 'force-dynamic';
 
 /**
@@ -15,7 +18,9 @@ export async function POST(request: Request) {
     const user = await getSessionUser();
     if (!user) return jsonError(401, 'Masuk dulu untuk menyinkronkan history.');
     const body = await readJsonBody<{ items?: unknown }>(request);
-    const items = Array.isArray(body?.items) ? body.items : [];
+    /* Array dari klien dibatasi: tanpa batas, satu permintaan bisa memaksa
+       server memvalidasi dan menulis ratusan ribu entri sekaligus. */
+    const items = Array.isArray(body?.items) ? body.items.slice(0, MAX_GUEST_HISTORY_ITEMS) : [];
     const result = await syncHistory(user.id, items);
     return jsonResponse(result);
   } catch (error) {

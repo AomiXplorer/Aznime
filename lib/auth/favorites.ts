@@ -1,4 +1,4 @@
-import { hashDel, hashGetAll, hashSetMany, zAdd, zRem, zRevRange } from './redis';
+import { hashDel, hashGetAll, hashSetMany, zAdd, zCard, zRem, zRevRange } from './redis';
 
 export const FAVORITES_LIMIT = 500;
 
@@ -49,6 +49,19 @@ export async function listFavorites(userId: string): Promise<FavoriteItem[]> {
 export async function addFavorite(userId: string, item: FavoriteItem): Promise<FavoriteItem> {
   await zAdd(favoritesKey(userId), item.addedAt, item.animeId);
   await hashSetMany(favoritesDataKey(userId), { [item.animeId]: JSON.stringify(item) });
+
+  /* Batas yang sama seperti daftar yang ditampilkan. Tanpa pemangkasan di sini,
+     daftar favorit bisa tumbuh tanpa batas lewat API walau UI hanya membaca
+     FAVORITES_LIMIT entri. */
+  const total = await zCard(favoritesKey(userId));
+  if (total > FAVORITES_LIMIT) {
+    const overflow = await zRevRange(favoritesKey(userId), FAVORITES_LIMIT, total - 1);
+    if (overflow.length > 0) {
+      await zRem(favoritesKey(userId), ...overflow);
+      await hashDel(favoritesDataKey(userId), ...overflow);
+    }
+  }
+
   return item;
 }
 

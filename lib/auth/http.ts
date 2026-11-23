@@ -20,10 +20,36 @@ export function validationResponse(errors: FieldError[]): Response {
   return jsonResponse({ error: first?.message || 'Data tidak valid.', errors }, 422);
 }
 
+/**
+ * Alamat IP klien untuk kunci rate limit.
+ *
+ * `x-forwarded-for` bisa ditulis klien, jadi entri pertama tidak dipercaya:
+ * yang dipakai adalah `x-real-ip` milik platform (Vercel mengisinya di edge),
+ * lalu entri TERAKHIR XFF yang ditambahkan proxy terdekat. Nilainya juga
+ * disaring ke bentuk IP saja, karena nilai mentah dari header menjadi bagian
+ * kunci Redis dan tidak boleh bisa dipanjangkan sembarang orang.
+ */
+const IP_PATTERN = /^[0-9a-fA-F:.]{3,45}$/;
+
+function sanitizeIp(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return IP_PATTERN.test(trimmed) ? trimmed.toLowerCase() : null;
+}
+
 export function clientIp(request: Request): string {
+  const realIp = sanitizeIp(request.headers.get('x-real-ip'));
+  if (realIp) return realIp;
+
   const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
-  return request.headers.get('x-real-ip') || 'unknown';
+  if (forwarded) {
+    const hops = forwarded.split(',');
+    for (let i = hops.length - 1; i >= 0; i -= 1) {
+      const hop = sanitizeIp(hops[i]);
+      if (hop) return hop;
+    }
+  }
+  return 'unknown';
 }
 
 /**

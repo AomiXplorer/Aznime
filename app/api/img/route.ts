@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { getAniListCover } from '@/lib/anilist';
+import { rateLimitGuard } from '@/lib/api-guard';
 
 /**
  * Proksi + resize gambar Aznime.
@@ -77,6 +78,10 @@ async function fetchUpstream(target: { url: URL; upstream: Upstream }) {
     headers,
     signal: AbortSignal.timeout(8000),
     next: { revalidate: 604800 },
+    /* Host yang lolos allowlist tetap bisa mengalihkan ke alamat lain, termasuk
+       alamat internal jaringan. Server tidak mengikuti pengalihan itu; 3xx
+       dianggap gagal lalu diteruskan ke browser sebagai 302 biasa. */
+    redirect: 'manual',
   });
 }
 
@@ -107,7 +112,16 @@ async function respondWithImage(
       return fallback(target, blockedByEdge);
     }
 
+    /* Batas ukuran: proksi gambar tidak boleh dipakai menarik file besar
+       berulang kali sampai memori fungsi habis. */
+    const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+    const declaredLength = Number(upstream.headers.get('content-length') || 0);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_IMAGE_BYTES) {
+      return fallback(target, true);
+    }
+
     const body = await upstream.arrayBuffer();
+    if (body.byteLength > MAX_IMAGE_BYTES) return fallback(target, true);
     const width = parseWidth(params);
     const format = params.get('f') === 'avif' ? 'avif' : 'webp';
     const quality = Math.min(90, Math.max(40, Number(params.get('q')) || 72));
@@ -166,6 +180,9 @@ async function serveTitlePoster(params: URLSearchParams) {
 }
 
 export async function GET(request: Request) {
+  const limited = await rateLimitGuard(request, { name: 'img', limit: 300, windowSeconds: 60 });
+  if (limited) return limited;
+
   const params = new URL(request.url).searchParams;
 
   if (params.has('t')) return serveTitlePoster(params);
