@@ -5,6 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MaintenanceBypassBanner } from '@/components/MaintenanceBypassBanner';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { serializeJsonLd } from '@/lib/json-ld';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
 /* Dua peran, dua wajah: Figtree untuk teks dan kontrol, Bricolage Grotesque
@@ -134,7 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </AuthProvider>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
         />
       </body>
     </html>
