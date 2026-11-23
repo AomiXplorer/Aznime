@@ -7,6 +7,7 @@ import {
   getMalzDetail,
   getMalzEpisodes,
   malzAnimeIdFromSlug,
+  malzAnimeSlug,
   malzSinonimList,
   malzStatusLabel,
   malzToCard,
@@ -19,6 +20,8 @@ import { EpisodeList } from '@/components/EpisodeList';
 import { MalzEpisodeList } from '@/components/MalzEpisodeList';
 import { ErrorState } from '@/components/ErrorState';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
+import { absoluteUrl } from '@/lib/site';
+import { organizationId } from '@/lib/seo';
 
 export const revalidate = 300;
 
@@ -98,12 +101,16 @@ async function buildMalzDetail(id: string): Promise<AnimeDetailView> {
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'TVSeries',
+      '@id': `${absoluteUrl(`/anime/${encodeURIComponent(malzAnimeSlug(id))}`)}#tvseries`,
       name: anime.judul,
       alternateName: altTitle || undefined,
       description: anime.sinopsis || undefined,
-      image: card.poster || undefined,
+      image: card.poster ? absoluteUrl(card.poster) : undefined,
+      url: absoluteUrl(`/anime/${encodeURIComponent(malzAnimeSlug(id))}`),
+      inLanguage: 'id-ID',
       genre: (detail.genre || []).map((genre) => genre.nama),
       numberOfEpisodes: highestNumber || undefined,
+      publisher: { '@id': organizationId() },
     },
     episodesSlot: (
       <MalzEpisodeList
@@ -140,12 +147,18 @@ async function buildHidoriDetail(detail: AnimeDetail): Promise<AnimeDetailView> 
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'TVSeries',
+      '@id': detail.slug
+        ? `${absoluteUrl(`/anime/${encodeURIComponent(detail.slug)}`)}#tvseries`
+        : undefined,
       name: detail.title,
       alternateName: detail.altTitle || undefined,
       description: detail.synopsis || undefined,
-      image: detail.poster || undefined,
+      image: detail.poster ? absoluteUrl(detail.poster) : undefined,
+      url: detail.slug ? absoluteUrl(`/anime/${encodeURIComponent(detail.slug)}`) : undefined,
+      inLanguage: 'id-ID',
       genre: detail.genres.map((genre) => genre.name),
       numberOfEpisodes: detail.totalEpisodes || undefined,
+      publisher: { '@id': organizationId() },
     },
     episodesSlot: <EpisodeList episodes={detail.episodes} />,
   };

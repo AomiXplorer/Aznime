@@ -18,8 +18,12 @@ export function Footer() {
           <Link href="/" aria-label="Aznime, ke beranda" className="inline-block text-xl">
             <Wordmark />
           </Link>
+          {/* Kalimat brand ini satu-satunya tempat nama "Aznime" muncul sebagai
+              teks biasa di halaman (logotype di atas terpecah dua span warna),
+              jadi mesin pencari punya kalimat nyata yang menjelaskan situsnya. */}
           <p className="mt-2 max-w-[38ch] text-[12px] leading-relaxed text-zinc-500">
-            Streaming anime subtitle Indonesia. Katalog langsung, jadwal tayang harian.
+            Aznime adalah situs streaming anime subtitle Indonesia. Katalog langsung,
+            jadwal tayang harian.
           </p>
         </div>
         <nav aria-label="Tautan footer" className="flex flex-wrap gap-x-5 gap-y-2 text-[12.5px]">

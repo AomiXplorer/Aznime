@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { DownloadBox } from '@/lib/scraper/types';
+import { serializeJsonLd } from '@/lib/json-ld';
+import { breadcrumbJsonLd } from '@/lib/seo';
 import { DownloadBoxes } from './DownloadBoxes';
 
 export interface WatchMetaItem {
@@ -18,6 +20,12 @@ interface WatchLayoutProps {
   downloadHeading: string;
   episodeCount: number;
   episodesSlot: React.ReactNode | null;
+  /**
+   * Path halaman ini (mis. `/watch/naruto-episode-1`). Bila diisi, breadcrumb
+   * terlihat di atas juga dikirim sebagai BreadcrumbList. Bagian dewasa tidak
+   * mengisinya karena halamannya sengaja tidak diindeks.
+   */
+  breadcrumbPath?: string;
 }
 
 export function WatchLayout({
@@ -30,7 +38,18 @@ export function WatchLayout({
   downloadHeading,
   episodeCount,
   episodesSlot,
+  breadcrumbPath,
 }: WatchLayoutProps) {
+  const breadcrumbJson = breadcrumbPath
+    ? breadcrumbJsonLd([
+        { name: 'Beranda', path: '/' },
+        seriesHref
+          ? { name: seriesTitle, path: seriesHref }
+          : { name: 'Katalog anime', path: '/anime' },
+        { name: title, path: breadcrumbPath },
+      ])
+    : null;
+
   return (
     <div className="mx-auto max-w-6xl px-4 pb-14 pt-4 sm:px-6 sm:pt-6 lg:px-8">
       <header className="mb-3 sm:mb-4">
@@ -98,6 +117,13 @@ export function WatchLayout({
           </section>
         ) : null}
       </div>
+
+      {breadcrumbJson ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJson) }}
+        />
+      ) : null}
     </div>
   );
 }
