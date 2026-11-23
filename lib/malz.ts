@@ -5,6 +5,7 @@ import type {
   QuickSearchItem,
 } from './scraper/types';
 import { UpstreamError } from './scraper/utils';
+import { isBlockedPosterHost, posterUrlWithTitleFallback } from './posters';
 
 export const MALZ_BASE_URL = (
   process.env.MALZ_API_BASE_URL || 'https://malz-official.com/api/v2'
@@ -238,6 +239,19 @@ export function malzSinonimList(anime: Pick<MalzAnime, 'judul' | 'sinonim'>): st
   );
 }
 
+/**
+ * Poster Malz lewat /api/img karena CDN-nya menolak hotlink. Host yang kini
+ * diblokir Cloudflare ditukar dengan cover AniList pada judul yang sama,
+ * sehingga kartunya tetap punya gambar.
+ */
+function malzPoster(anime: MalzAnime): string | null {
+  const raw = normalizeMalzAsset(anime.poster) || normalizeMalzAsset(anime.cover);
+  if (raw && isBlockedPosterHost(raw)) {
+    return posterUrlWithTitleFallback(raw, anime.judul.trim(), malzSinonimList(anime)[0] || null);
+  }
+  return malzImageUrl(anime.poster) || malzImageUrl(anime.cover);
+}
+
 export function malzToCard(anime: MalzAnime): AnimeCardItem {
   return {
     postId: anime.id,
@@ -246,7 +260,7 @@ export function malzToCard(anime: MalzAnime): AnimeCardItem {
     slug: malzAnimeSlug(anime.id),
     url: `${MALZ_BASE_URL}/detail/${anime.id}`,
     kind: 'anime',
-    poster: malzImageUrl(anime.poster) || malzImageUrl(anime.cover),
+    poster: malzPoster(anime),
     type: anime.tipe ? malzTypeLabel(anime.tipe) : null,
     status: anime.status ? malzStatusLabel(anime.status) : null,
     sub: 'Sub',

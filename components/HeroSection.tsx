@@ -18,6 +18,15 @@ interface HeroSectionProps {
 const AUTOPLAY_MS = 8000;
 
 function heroSrc(src: string, width: number, sharpen = false): string {
+  /* Poster Malz sudah berupa URL proksi (?t=<judul>); membungkusnya lagi akan
+     meminta proksi mengambil URL relatifnya sendiri. */
+  if (src.startsWith('/api/img?')) {
+    const params = new URLSearchParams(src.slice(src.indexOf('?') + 1));
+    params.set('w', String(width));
+    params.set('q', sharpen ? '78' : '72');
+    params.set('f', 'webp');
+    return `/api/img?${params.toString()}`;
+  }
   return `/api/img?u=${encodeURIComponent(src)}&w=${width}&q=${sharpen ? 78 : 72}&f=webp${sharpen ? '&s=1' : ''}`;
 }
 

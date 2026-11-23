@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import sharp from 'sharp';
+import { getAniListCover } from '@/lib/anilist';
 
 /**
  * Proksi + resize gambar Aznime.
@@ -8,6 +9,11 @@ import sharp from 'sharp';
  * bergantung pada /_next/image. Rute ini mengambil gambar dari host yang
  * diizinkan, lalu (kalau ada `w`) mengecilkan dan mengubahnya ke WebP/AVIF
  * dengan sharp. Hasilnya di-cache immutable di CDN.
+ *
+ * Dua bentuk permintaan:
+ *   ?u=<url gambar>      gambar sumber langsung
+ *   ?t=<judul>&a=<alias> poster arsip Malz yang CDN-nya diblokir Cloudflare;
+ *                        cover diambil dari AniList berdasarkan judul
  */
 
 const ANIMEIN_HOSTS = new Set([
@@ -52,13 +58,14 @@ function refererFor(upstream: Upstream): string | undefined {
   return undefined;
 }
 
-export async function GET(request: Request) {
-  const params = new URL(request.url).searchParams;
-  const target = resolveTarget(params.get('u'));
-  if (!target) {
-    return NextResponse.json({ error: 'Parameter u tidak valid' }, { status: 400 });
-  }
+const CACHE_IMMUTABLE = 'public, max-age=31536000, s-maxage=31536000, immutable';
 
+function parseWidth(params: URLSearchParams): number | null {
+  const width = Number(params.get('w'));
+  return Number.isFinite(width) && width >= 64 ? Math.min(Math.round(width), 1920) : null;
+}
+
+async function fetchUpstream(target: { url: URL; upstream: Upstream }) {
   const headers: Record<string, string> = {
     'User-Agent': BROWSER_USER_AGENT,
     Accept: 'image/avif,image/webp,image/*,*/*;q=0.8',
@@ -66,27 +73,49 @@ export async function GET(request: Request) {
   const referer = refererFor(target.upstream);
   if (referer) headers.Referer = referer;
 
-  try {
-    const upstream = await fetch(target.url.toString(), {
-      headers,
-      signal: AbortSignal.timeout(8000),
-      next: { revalidate: 604800 },
-    });
+  return fetch(target.url.toString(), {
+    headers,
+    signal: AbortSignal.timeout(8000),
+    next: { revalidate: 604800 },
+  });
+}
 
+async function respondWithImage(
+  target: { url: URL; upstream: Upstream },
+  params: URLSearchParams,
+  allowTitleFallback = true
+) {
+  try {
+    const upstream = await fetchUpstream(target);
     const contentType = upstream.headers.get('content-type') || '';
+    /* Cloudflare Bot Management membalas halaman HTML untuk host animein.
+       Dulu kasus ini dialihkan 302 ke URL sumber, jadi browser mengulang
+       perjalanan yang sama dan tetap ditolak: kartu kosong setelah jeda
+       panjang. Sekarang kegagalannya dijawab 404 yang di-cache CDN, sehingga
+       permintaan berikutnya selesai tanpa menyentuh fungsi. */
+    const blockedByEdge =
+      Boolean(upstream.headers.get('cf-mitigated')) || contentType.includes('text/html');
     if (!upstream.ok || !contentType.startsWith('image/')) {
-      return fallback(target);
+      /* Poster Malz membawa judulnya sendiri (parameter t). Kalau CDN sumber
+         menolak, cover AniList untuk judul itu dipakai sebagai pengganti, lalu
+         hasilnya di-cache CDN di URL yang sama. */
+      if (allowTitleFallback && params.has('t')) {
+        const cover = await getAniListCover((params.get('t') || '').trim(), params.get('a'));
+        const coverTarget = resolveTarget(cover);
+        if (coverTarget) return respondWithImage(coverTarget, params, false);
+      }
+      return fallback(target, blockedByEdge);
     }
 
     const body = await upstream.arrayBuffer();
-    const width = Number(params.get('w'));
+    const width = parseWidth(params);
     const format = params.get('f') === 'avif' ? 'avif' : 'webp';
     const quality = Math.min(90, Math.max(40, Number(params.get('q')) || 72));
 
-    if (Number.isFinite(width) && width >= 64) {
+    if (width) {
       try {
         const resized = await sharp(Buffer.from(body))
-          .resize({ width: Math.min(Math.round(width), 1920), withoutEnlargement: true })
+          .resize({ width, withoutEnlargement: true })
           .toFormat(format, { quality })
           .toBuffer();
 
@@ -94,7 +123,7 @@ export async function GET(request: Request) {
           headers: {
             'Content-Type': `image/${format}`,
             'Content-Length': String(resized.byteLength),
-            'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+            'Cache-Control': CACHE_IMMUTABLE,
           },
         });
       } catch {
@@ -106,19 +135,65 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': contentType,
         'Content-Length': String(body.byteLength),
-        'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+        'Cache-Control': CACHE_IMMUTABLE,
       },
     });
   } catch {
-    return fallback(target);
+    return fallback(target, true);
   }
 }
 
-function fallback(target: { url: URL; upstream: Upstream }) {
+/** Poster Malz: cari cover AniList untuk judulnya, lalu sajikan seperti biasa. */
+async function serveTitlePoster(params: URLSearchParams) {
+  const title = (params.get('t') || '').trim();
+  if (!title) return badRequest();
+
+  const cover = await getAniListCover(title, params.get('a'));
+  if (!cover) {
+    /* Judul tanpa padanan di AniList. Cache singkat supaya percobaan ulang
+       tetap murah tetapi tidak mengunci judul yang baru muncul di AniList. */
+    return new NextResponse(null, {
+      status: 404,
+      headers: { 'Cache-Control': 'public, max-age=600, s-maxage=600' },
+    });
+  }
+
+  const target = resolveTarget(cover);
+  if (!target) {
+    return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'public, max-age=600' } });
+  }
+  return respondWithImage(target, params);
+}
+
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams;
+
+  if (params.has('t')) return serveTitlePoster(params);
+
+  const target = resolveTarget(params.get('u'));
+  if (!target) return badRequest();
+
+  return respondWithImage(target, params);
+}
+
+function badRequest() {
+  return NextResponse.json({ error: 'Parameter gambar tidak valid' }, { status: 400 });
+}
+
+function fallback(target: { url: URL; upstream: Upstream }, hardFailure = false) {
   if (target.upstream === 'nekopoi') {
     return new NextResponse(null, {
       status: 404,
       headers: { 'Cache-Control': 'public, max-age=300' },
+    });
+  }
+  /* Host yang memblokir bot tidak akan berubah pikiran dalam beberapa menit,
+     jadi kegagalan di-cache sehari: satu percobaan per poster, bukan satu per
+     kunjungan. */
+  if (hardFailure && target.upstream === 'animein') {
+    return new NextResponse(null, {
+      status: 404,
+      headers: { 'Cache-Control': 'public, max-age=86400, s-maxage=86400' },
     });
   }
   return NextResponse.redirect(target.url.toString(), 302);
