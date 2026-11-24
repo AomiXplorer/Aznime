@@ -75,7 +75,7 @@ export default async function HomePage() {
       {heroItems.length > 0 ? <HeroSection items={heroItems} /> : null}
       <div className="relative z-10 mx-auto max-w-7xl space-y-12 px-4 pt-8 sm:px-6 lg:px-8">
         <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
-        <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
+        <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" priorityCount={2} />
         <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
         {archiveRow.length > 0 ? (
           <section aria-label="Dari arsip">

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimitGuard, upstreamFailure } from '@/lib/api-guard';
 import { getMalzEpisodes, malzToEpisodeSummary } from '@/lib/malz';
 
 export async function GET(req: NextRequest) {
+  const limited = await rateLimitGuard(req, { name: 'malz-episodes', limit: 60, windowSeconds: 60 });
+  if (limited) return limited;
+
   const { searchParams } = req.nextUrl;
   const id = (searchParams.get('id') || '').trim();
   const pageRaw = Number(searchParams.get('page') || '0');
@@ -22,7 +26,6 @@ export async function GET(req: NextRequest) {
       { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' } }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Gagal memuat episode';
-    return NextResponse.json({ error: message }, { status: 502 });
+    return upstreamFailure('malz-episodes', error, 'Daftar episode sedang tidak tersedia. Coba lagi sebentar lagi.');
   }
 }

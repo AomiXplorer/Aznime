@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { rateLimitGuard, upstreamFailure } from '@/lib/api-guard';
 import { nekopoiIsHentaiItem, nekopoiToCard, searchNekopoiCatalog } from '@/lib/nekopoi';
 
 /**
@@ -12,6 +13,9 @@ import { nekopoiIsHentaiItem, nekopoiToCard, searchNekopoiCatalog } from '@/lib/
 const MAX_ITEMS = 18;
 
 export async function GET(request: Request) {
+  const limited = await rateLimitGuard(request, { name: 'nekopoi-search', limit: 30, windowSeconds: 60 });
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get('q') || '').trim().slice(0, 100);
 
@@ -31,10 +35,6 @@ export async function GET(request: Request) {
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Pencarian gagal.';
-    return NextResponse.json(
-      { error: message },
-      { status: 502, headers: { 'Cache-Control': 'no-store' } }
-    );
+    return upstreamFailure('nekopoi-search', error, 'Pencarian sedang tidak tersedia. Coba lagi sebentar lagi.');
   }
 }

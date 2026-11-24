@@ -7,6 +7,9 @@ import { isTurnstileSecretUsable, verifyTurnstile, turnstileSiteKey } from '@/li
 import { syncHistory } from '@/lib/auth/history';
 import { normalizeEmail, validateEmail } from '@/lib/auth/validation';
 
+/** Batas entri history tamu yang boleh disinkronkan sekali jalan. */
+const MAX_GUEST_HISTORY_ITEMS = 200;
+
 export const dynamic = 'force-dynamic';
 
 interface LoginBody {
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
 
     let synced = false;
     if (Array.isArray(body.guestHistory) && body.guestHistory.length > 0) {
-      await syncHistory(user.id, body.guestHistory);
+      await syncHistory(user.id, body.guestHistory.slice(0, MAX_GUEST_HISTORY_ITEMS));
       synced = true;
     }
 

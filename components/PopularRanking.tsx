@@ -83,6 +83,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
               <AnimeImage
                 src={champion.poster}
                 alt={champion.title}
+                proxyWidth={520}
                 unoptimized={champion.source === 'malz'}
                 sizes="(max-width: 640px) 42vw, 260px"
               />
@@ -152,6 +153,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
                       <AnimeImage
                         src={item.poster}
                         alt={item.title}
+                        proxyWidth={isRunnerUp ? 180 : 160}
                         unoptimized={item.source === 'malz'}
                         sizes={isRunnerUp ? '64px' : '56px'}
                       />

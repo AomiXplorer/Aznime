@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Play, Youtube } from 'lucide-react';
 import type { AniListTrailer, FeaturedAnime } from '@/lib/scraper/types';
 import { AnimeImage } from './AnimeImage';
@@ -18,6 +17,31 @@ interface HeroSectionProps {
 
 const AUTOPLAY_MS = 8000;
 
+function heroSrc(src: string, width: number, sharpen = false): string {
+  /* Poster Malz sudah berupa URL proksi (?t=<judul>); membungkusnya lagi akan
+     meminta proksi mengambil URL relatifnya sendiri. */
+  if (src.startsWith('/api/img?')) {
+    const params = new URLSearchParams(src.slice(src.indexOf('?') + 1));
+    params.set('w', String(width));
+    params.set('q', sharpen ? '78' : '72');
+    params.set('f', 'webp');
+    return `/api/img?${params.toString()}`;
+  }
+  return `/api/img?u=${encodeURIComponent(src)}&w=${width}&q=${sharpen ? 78 : 72}&f=webp${sharpen ? '&s=1' : ''}`;
+}
+
+/** Poster Hidori punya versi asli tanpa akhiran -215x300. */
+function highResPoster(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (!/(^|\.)hidoristream\.online$/i.test(parsed.hostname)) return url;
+    parsed.pathname = parsed.pathname.replace(/-\d+x\d+(\.(?:png|jpe?g|webp))$/i, '$1');
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 export function HeroSection({ items }: HeroSectionProps) {
   const slides = items.slice(0, 6);
   const [index, setIndex] = useState(0);
@@ -29,15 +53,14 @@ export function HeroSection({ items }: HeroSectionProps) {
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipeAtRef = useRef(0);
 
-  /* Slide pertama harus langsung terlihat. Sebelumnya gambar hero memulai dari
-     opacity 0 lalu dianimasikan setelah hydration, sehingga Largest Contentful
-     Paint tertunda sampai JS selesai (~3,2 s di mobile). Sekarang fade-in hanya
-     berlaku untuk pergantian slide, bukan untuk paint pertama. */
-  const isFirstPaint = useRef(true);
+  const [reduce, setReduce] = useState(false);
   useEffect(() => {
-    isFirstPaint.current = false;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduce(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
   }, []);
-  const reduce = useReducedMotion();
 
   const go = useCallback(
     (n: number) => {
@@ -99,6 +122,11 @@ export function HeroSection({ items }: HeroSectionProps) {
   const detailHref = current.slug ? `/anime/${encodeURIComponent(current.slug)}` : '/anime';
   const banner = current.trailer?.bannerImage || null;
   const hasTrailer = Boolean(current.trailer?.id && current.trailer?.site === 'youtube');
+  /* AniList tidak selalu mengirim thumbnail, jadi pakai thumbnail YouTube
+     bawaan supaya tombol trailer tetap punya gambar. */
+  const trailerThumb = hasTrailer
+    ? current.trailer?.thumbnail || `https://i.ytimg.com/vi/${current.trailer?.id}/hqdefault.jpg`
+    : null;
 
   return (
     <section
@@ -121,46 +149,43 @@ export function HeroSection({ items }: HeroSectionProps) {
       className="relative -mt-16 w-full touch-pan-y overflow-hidden bg-canvas"
     >
       <div className="absolute inset-0" aria-hidden="true">
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={`bg-${index}`}
-            className="absolute inset-0"
-            /* Hanya opacity: animasi scale pada gambar selebar viewport
-               memaksa rasterisasi ulang layer besar tiap frame. */
-            initial={isFirstPaint.current || reduce ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.45, ease: 'easeOut' }}
-          >
-            {banner ? (
-              <AnimeImage src={banner} alt="" priority sizes="100vw" className="object-cover object-center" />
-            ) : (
-              /* Tanpa filter blur: blur 2xl pada gambar selebar layar adalah
-                 salah satu operasi paint termahal dan selalu aktif. */
-              <AnimeImage
-                src={current.poster}
-                alt=""
-                priority
-                sizes="100vw"
-                className="object-cover object-top opacity-30"
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <div key={`bg-${index}`} className="absolute inset-0">
+          {banner ? (
+            <img
+              src={heroSrc(banner, 1280)}
+              srcSet={`${heroSrc(banner, 640)} 640w, ${heroSrc(banner, 960)} 960w, ${heroSrc(banner, 1280)} 1280w, ${heroSrc(banner, 1600)} 1600w`}
+              sizes="100vw"
+              alt=""
+              fetchPriority={index === 0 ? 'high' : 'auto'}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              className="h-full w-full object-cover object-center"
+            />
+          ) : current.poster ? (
+            <img
+              src={heroSrc(highResPoster(current.poster), 900, true)}
+              onError={(event) => {
+                const img = event.currentTarget;
+                if (img.dataset.fallback) return;
+                img.dataset.fallback = '1';
+                img.src = heroSrc(current.poster!, 800, true);
+              }}
+              alt=""
+              fetchPriority={index === 0 ? 'high' : 'auto'}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              className="h-full w-full object-cover object-center"
+            />
+          ) : (
+            <div className="h-full w-full bg-[#0c0908]" />
+          )}
+        </div>
         <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/60 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-canvas to-transparent" />
       </div>
 
       <div className="relative mx-auto flex min-h-[68vh] max-w-7xl items-end gap-10 px-4 pb-20 pt-32 sm:px-6 lg:min-h-[78vh] lg:px-8">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={`txt-${index}`}
-            initial={isFirstPaint.current || reduce ? false : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="max-w-xl flex-1 space-y-3.5"
-          >
+        <div key={`txt-${index}`} className="max-w-xl flex-1 space-y-3.5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-zinc-300">
               {current.status ? (
                 <span className="rounded-[3px] bg-accent px-1.5 py-[3px] text-[11px] font-semibold leading-none text-white">{current.status}</span>
@@ -190,24 +215,52 @@ export function HeroSection({ items }: HeroSectionProps) {
                 <button
                   type="button"
                   onClick={() => setTrailerOpen(true)}
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 px-1 text-[13px] font-medium text-zinc-300 underline decoration-white/25 underline-offset-4 transition-colors duration-150 hover:text-white hover:decoration-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label={`Putar trailer ${current.title}`}
+                  className="group inline-flex h-11 cursor-pointer items-center gap-2.5 pr-1 text-[13px] font-medium text-zinc-300 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
-                  <Youtube className="h-4 w-4" aria-hidden="true" />
-                  Trailer
+                  <span className="relative h-11 w-[78px] shrink-0 overflow-hidden rounded-[4px] ring-1 ring-white/20">
+                    <AnimeImage
+                      src={trailerThumb}
+                      alt=""
+                      sizes="78px"
+                      className="object-cover object-center"
+                    />
+                    <span className="absolute inset-0 grid place-items-center bg-black/35 transition-colors duration-150 group-hover:bg-black/20">
+                      <Play className="h-3.5 w-3.5 fill-current text-white" aria-hidden="true" />
+                    </span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Youtube className="h-4 w-4" aria-hidden="true" />
+                    Trailer
+                  </span>
                 </button>
               ) : null}
             </div>
-          </motion.div>
-        </AnimatePresence>
+        </div>
 
-        {!banner ? (
+        {current.poster ? (
           <Link
             href={detailHref}
             tabIndex={-1}
             aria-hidden="true"
-            className="relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] ring-1 ring-white/15 lg:block"
+            className="relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] shadow-2xl shadow-black/50 ring-1 ring-white/15 lg:block"
           >
-            <AnimeImage src={current.poster} alt={current.title} priority sizes="210px" />
+            <img
+              src={heroSrc(highResPoster(current.poster), 400)}
+              srcSet={`${heroSrc(highResPoster(current.poster), 200)} 200w, ${heroSrc(highResPoster(current.poster), 400)} 400w`}
+              sizes="200px"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+              onError={(event) => {
+                const img = event.currentTarget;
+                if (img.dataset.fallback) return;
+                img.dataset.fallback = '1';
+                img.src = heroSrc(current.poster!, 400);
+              }}
+              className="h-full w-full object-cover"
+            />
           </Link>
         ) : null}
       </div>
