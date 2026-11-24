@@ -58,11 +58,25 @@ test('malzToCard memetakan field API ke kartu katalog', () => {
   assert.equal(card.kind, 'anime');
   assert.equal(card.type, 'TV');
   assert.equal(card.status, 'Completed');
+<<<<<<< HEAD
   assert.equal(
     card.poster,
     '/api/img?u=' +
       encodeURIComponent('https://xyz-api.animein.net/assets_xyz/images/movie/poster/abc.jpg')
   );
+=======
+  /* CDN animein diblokir Cloudflare, jadi poster ditukar dengan cover AniList
+     yang dicari lewat judul (parameter t) saat gambar diminta. */
+  const poster = new URL(card.poster!, 'https://aznime.com');
+  assert.equal(poster.pathname, '/api/img');
+  assert.equal(
+    poster.searchParams.get('u'),
+    'https://xyz-api.animein.net/assets_xyz/images/movie/poster/abc.jpg'
+  );
+  assert.equal(poster.searchParams.get('t'), 'Naruto: Shippuuden');
+  assert.equal(poster.searchParams.get('a'), 'Naruto: Shippuden');
+  assert.equal(poster.searchParams.get('w'), '340');
+>>>>>>> c5dfbd0 (Update maintennace)
   assert.deepEqual(card.genres, ['Action', 'Shounen', 'Super Power']);
   assert.deepEqual(card.altTitles, ['Naruto: Shippuden', 'NARUTO-ナルト- 疾風伝']);
 });

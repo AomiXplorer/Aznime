@@ -56,6 +56,7 @@ test('formatDurationLabel menghasilkan label ramah bahasa Indonesia', () => {
   assert.equal(formatDurationLabel(90), '1 jam 30 menit');
 });
 
+<<<<<<< HEAD
 test('createBypassToken dan verifyBypassToken memvalidasi tanda tangan dan masa berlaku', async () => {
   const now = 1_800_000_000;
   const token = await createBypassToken(600, now);
@@ -67,6 +68,19 @@ test('createBypassToken dan verifyBypassToken memvalidasi tanda tangan dan masa 
   assert.equal(await verifyBypassToken(tampered, now + 100), false);
   assert.equal(await verifyBypassToken('invalid-token', now), false);
 });
+=======
+// test('createBypassToken dan verifyBypassToken memvalidasi tanda tangan dan masa berlaku', async () => {
+//   const now = 1_800_000_000;
+//   const token = await createBypassToken(600, now);
+//   assert.equal(await verifyBypassToken(token, now + 100), true);
+//   assert.equal(await verifyBypassToken(token, now + 700), false);
+
+//   const [exp, sig] = token.split('.');
+//   const tampered = `${exp}.${sig.slice(0, -1)}${sig.endsWith('a') ? 'b' : 'a'}`;
+//   assert.equal(await verifyBypassToken(tampered, now + 100), false);
+//   assert.equal(await verifyBypassToken('invalid-token', now), false);
+// });
+>>>>>>> c5dfbd0 (Update maintennace)
 
 test('timingSafeEqualString membandingkan panjang dan isi secara akurat', () => {
   assert.equal(timingSafeEqualString('secret-123', 'secret-123'), true);

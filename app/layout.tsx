@@ -5,7 +5,19 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MaintenanceBypassBanner } from '@/components/MaintenanceBypassBanner';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+<<<<<<< HEAD
 import { SITE_NAME, SITE_URL } from '@/lib/site';
+=======
+import { serializeJsonLd } from '@/lib/json-ld';
+import { siteJsonLd } from '@/lib/seo';
+import {
+  HOME_URL,
+  SITE_DESCRIPTION,
+  SITE_LOCALE,
+  SITE_NAME,
+  SITE_URL,
+} from '@/lib/site';
+>>>>>>> c5dfbd0 (Update maintennace)
 
 /* Dua peran, dua wajah: Figtree untuk teks dan kontrol, Bricolage Grotesque
    untuk judul. Satu wajah untuk semuanya adalah salah satu tanda paling khas
@@ -25,8 +37,12 @@ const bricolage = Bricolage_Grotesque({
 });
 
 const TITLE = 'Aznime – Streaming Anime Subtitle Indonesia';
+<<<<<<< HEAD
 const DESCRIPTION =
   'Watch anime with Indonesian subtitles. Fresh episodes, a daily airing schedule, AniList trailers, and a player that picks the fastest server for you.';
+=======
+const DESCRIPTION = SITE_DESCRIPTION;
+>>>>>>> c5dfbd0 (Update maintennace)
 
 /** 1200x630 key visual, dibuat khusus untuk preview WhatsApp/Discord/Telegram/X. */
 const OG_IMAGE = `${SITE_URL}/og/aznime-og-v3.jpg`;
@@ -41,6 +57,10 @@ export const metadata: Metadata = {
   },
   description: DESCRIPTION,
   keywords: [
+<<<<<<< HEAD
+=======
+    'Aznime',
+>>>>>>> c5dfbd0 (Update maintennace)
     'streaming anime',
     'anime subtitle indonesia',
     'nonton anime',
@@ -50,7 +70,13 @@ export const metadata: Metadata = {
   ],
   category: 'entertainment',
   alternates: {
+<<<<<<< HEAD
     canonical: '/',
+=======
+    // Selalu bentuk berakhir garis miring, sama seperti yang dilaporkan
+    // Search Console sebagai canonical pilihan pengguna.
+    canonical: HOME_URL,
+>>>>>>> c5dfbd0 (Update maintennace)
   },
   robots: {
     index: true,
@@ -65,9 +91,15 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
+<<<<<<< HEAD
     locale: 'id_ID',
     siteName: SITE_NAME,
     url: SITE_URL,
+=======
+    locale: SITE_LOCALE,
+    siteName: SITE_NAME,
+    url: HOME_URL,
+>>>>>>> c5dfbd0 (Update maintennace)
     title: TITLE,
     description: DESCRIPTION,
     images: [
@@ -100,6 +132,7 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+<<<<<<< HEAD
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
@@ -117,6 +150,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="id" className={`dark ${figtree.variable}`}>
+=======
+  const jsonLd = siteJsonLd();
+
+  return (
+    <html lang="id" className={`dark ${figtree.variable} ${bricolage.variable}`}>
+>>>>>>> c5dfbd0 (Update maintennace)
       <body className="flex min-h-screen flex-col bg-canvas text-[#f4f4f5] selection:bg-accent-strong selection:text-white">
         <a
           href="#main-content"
@@ -134,7 +173,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </AuthProvider>
         <script
           type="application/ld+json"
+<<<<<<< HEAD
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+=======
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+>>>>>>> c5dfbd0 (Update maintennace)
         />
       </body>
     </html>

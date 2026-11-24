@@ -9,7 +9,11 @@ import {
 const ALLOWLIST_EXACT = new Set([
   '/maintenance',
   '/api/telegram/webhook',
+<<<<<<< HEAD
   '/api/maintenance/bypass',
+=======
+  // '/api/maintenance/bypass',
+>>>>>>> c5dfbd0 (Update maintennace)
   '/api/maintenance/status',
   '/favicon.ico',
   '/apple-icon.png',
@@ -44,10 +48,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+<<<<<<< HEAD
   const bypassToken = request.cookies.get(BYPASS_COOKIE_NAME)?.value;
   if (await verifyBypassToken(bypassToken)) {
     return NextResponse.next();
   }
+=======
+  // const bypassToken = request.cookies.get(BYPASS_COOKIE_NAME)?.value;
+  // if (await verifyBypassToken(bypassToken)) {
+  //   return NextResponse.next();
+  // }
+>>>>>>> c5dfbd0 (Update maintennace)
 
   const retryAfter = String(computeRetryAfterSeconds(state.endsAt));
   const headers = {

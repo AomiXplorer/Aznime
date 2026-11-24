@@ -1,5 +1,9 @@
 # dependencies
 node_modules/
+<<<<<<< HEAD
+=======
+.agents/skills/
+>>>>>>> c5dfbd0 (Update maintennace)
 .pnp
 .pnp.js
 

@@ -18,6 +18,10 @@ import {
   parsePagination,
   resolveAnimeUrl,
   resolvePostUrl,
+<<<<<<< HEAD
+=======
+  validateScraperUrl,
+>>>>>>> c5dfbd0 (Update maintennace)
 } from './utils';
 
 test('normalizeUrl upgrades protocol-relative and hidoristream http URLs and blocks unsafe protocols', () => {
@@ -51,6 +55,18 @@ test('extractSlug and link resolution handle anime and episode URLs including en
   );
 });
 
+<<<<<<< HEAD
+=======
+test('scraper request URLs stay on the configured upstream host and port', () => {
+  const base = 'https://v10.hidoristream.online';
+  assert.equal(validateScraperUrl('/anime/frieren/', base), `${base}/anime/frieren/`);
+  assert.throws(() => validateScraperUrl('https://127.0.0.1/private', base), UpstreamError);
+  assert.throws(() => validateScraperUrl('https://attacker.example/', base), UpstreamError);
+  assert.throws(() => validateScraperUrl('https://v10.hidoristream.online:8443/', base), UpstreamError);
+  assert.throws(() => validateScraperUrl('https://user@v10.hidoristream.online/', base), UpstreamError);
+});
+
+>>>>>>> c5dfbd0 (Update maintennace)
 test('parseImgSrc skips SVG base64 placeholders and falls back to noscript', () => {
   const $ = cheerio.load(`
     <div class="thumb">

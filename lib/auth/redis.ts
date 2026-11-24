@@ -38,6 +38,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
       },
       body: JSON.stringify(body),
       cache: 'no-store',
+<<<<<<< HEAD
+=======
+      /* Tanpa batas waktu, Redis yang menggantung menahan request sampai
+         fungsi Vercel kehabisan waktu. 5 detik cukup untuk REST Upstash. */
+      signal: AbortSignal.timeout(5000),
+>>>>>>> c5dfbd0 (Update maintennace)
     });
   } catch {
     throw new RedisError('Tidak bisa menghubungi Redis', 503);

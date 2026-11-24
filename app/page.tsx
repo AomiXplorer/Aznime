@@ -48,9 +48,12 @@ export default async function HomePage() {
   const archive = poolRes.status === 'fulfilled' ? poolRes.value : [];
   const hidoriIndex = indexRes.status === 'fulfilled' ? indexRes.value : new Set<string>();
 
+<<<<<<< HEAD
   // Trailer AniList hanya memperkaya hero. Batas tunggunya dijaga ketat supaya
   // tidak menahan TTFB/LCP: kalau AniList lambat, hero tetap tampil dengan poster.
   // Beranda bersih dari judul 18+; bagian itu hanya hidup di /hentai.
+=======
+>>>>>>> c5dfbd0 (Update maintennace)
   const heroItems = await Promise.all(
     withoutAdult(home.featured)
       .slice(0, 6)
@@ -78,6 +81,7 @@ export default async function HomePage() {
       {heroItems.length > 0 ? <HeroSection items={heroItems} /> : null}
       <div className="relative z-10 mx-auto max-w-7xl space-y-12 px-4 pt-8 sm:px-6 lg:px-8">
         <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
+<<<<<<< HEAD
         <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
         <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
         {/* Pita terang warna tulang: satu-satunya blok terang di halaman, jadi
@@ -106,6 +110,24 @@ export default async function HomePage() {
               </div>
               <AnimeGrid items={archiveRow.slice(0, 14)} tone="light" className="xl:grid-cols-7" />
             </div>
+=======
+        <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" priorityCount={2} />
+        <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
+        {archiveRow.length > 0 ? (
+          <section aria-label="Dari arsip">
+            <div className="mb-5 flex items-end justify-between gap-4 border-b border-line pb-2.5">
+              <h2 className="font-display text-[19px] font-semibold tracking-[-0.02em] text-white">
+                Dari arsip
+              </h2>
+              <Link
+                href="/anime"
+                className="inline-flex items-center gap-0.5 text-[12px] font-medium text-zinc-400 transition-colors duration-150 hover:text-white"
+              >
+                Semua
+              </Link>
+            </div>
+            <AnimeGrid items={archiveRow} fillRows />
+>>>>>>> c5dfbd0 (Update maintennace)
           </section>
         ) : null}
         <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />

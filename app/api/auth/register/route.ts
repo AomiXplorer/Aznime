@@ -14,6 +14,12 @@ import {
   type FieldError,
 } from '@/lib/auth/validation';
 
+<<<<<<< HEAD
+=======
+/** Batas entri history tamu yang boleh disinkronkan sekali jalan. */
+const MAX_GUEST_HISTORY_ITEMS = 200;
+
+>>>>>>> c5dfbd0 (Update maintennace)
 export const dynamic = 'force-dynamic';
 
 interface RegisterBody {
@@ -81,7 +87,11 @@ export async function POST(request: Request) {
 
     let synced = false;
     if (Array.isArray(body.guestHistory) && body.guestHistory.length > 0) {
+<<<<<<< HEAD
       await syncHistory(user.id, body.guestHistory);
+=======
+      await syncHistory(user.id, body.guestHistory.slice(0, MAX_GUEST_HISTORY_ITEMS));
+>>>>>>> c5dfbd0 (Update maintennace)
       synced = true;
     }
 

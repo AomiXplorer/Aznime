@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+<<<<<<< HEAD
+=======
+import { rateLimitGuard, upstreamFailure } from '@/lib/api-guard';
+>>>>>>> c5dfbd0 (Update maintennace)
 import { getAnimeList } from '@/lib/scraper';
 import {
   MALZ_PAGE_BASE,
@@ -26,6 +30,12 @@ function archivePagination(currentPage: number, poolLength: number, served: numb
 }
 
 export async function GET(req: NextRequest) {
+<<<<<<< HEAD
+=======
+  const limited = await rateLimitGuard(req, { name: 'anime', limit: 120, windowSeconds: 60 });
+  if (limited) return limited;
+
+>>>>>>> c5dfbd0 (Update maintennace)
   try {
     const { searchParams } = req.nextUrl;
     const pageRaw = Number(searchParams.get('page') || '1');
@@ -113,7 +123,11 @@ export async function GET(req: NextRequest) {
       { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' } }
     );
   } catch (error) {
+<<<<<<< HEAD
     const message = error instanceof Error ? error.message : 'Gagal memuat katalog anime';
     return NextResponse.json({ error: message }, { status: 502 });
+=======
+    return upstreamFailure('anime', error, 'Katalog sedang tidak tersedia. Coba lagi sebentar lagi.');
+>>>>>>> c5dfbd0 (Update maintennace)
   }
 }

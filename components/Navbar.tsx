@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
+<<<<<<< HEAD
 import { Menu, Search, X } from 'lucide-react';
+=======
+import { Menu, Search, Users, X } from 'lucide-react';
+>>>>>>> c5dfbd0 (Update maintennace)
 import { Wordmark } from './Wordmark';
 import { useAuth } from './auth/AuthProvider';
 
@@ -99,10 +103,20 @@ export function Navbar() {
       <header className="sticky top-0 z-40 isolate">
         {/* Latar solid tanpa backdrop-filter: blur pada elemen sticky memaksa
             browser me-render ulang seluruh area di belakangnya setiap frame
+<<<<<<< HEAD
             saat scroll, dan itu penyebab utama scroll tersendat di Android. */}
         <div
           aria-hidden="true"
           className={`absolute inset-0 -z-10 border-b border-[#241d1d] bg-canvas/95 transition-opacity duration-300 ${
+=======
+            saat scroll, dan itu penyebab utama scroll tersendat di Android.
+            Harus 100% buram (bukan /95): sisa 5% meloloskan poster yang lewat
+            di bawah header, dan di pita terang "Dari arsip" krem ikut
+            mengangkat warna header menjadi lebih terang dari seharusnya. */}
+        <div
+          aria-hidden="true"
+          className={`absolute inset-0 -z-10 border-b border-[#241d1d] bg-canvas transition-opacity duration-300 ${
+>>>>>>> c5dfbd0 (Update maintennace)
             transparent ? 'opacity-0' : 'opacity-100'
           }`}
         />
@@ -215,9 +229,16 @@ export function Navbar() {
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-panel"
               aria-label={mobileOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
+<<<<<<< HEAD
               className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] border border-white/10 text-zinc-200 transition-colors duration-150 hover:border-white/25 hover:text-white md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               {mobileOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
+=======
+              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 px-2.5 text-zinc-200 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              {mobileOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
+              <span className="hidden text-[12.5px] font-medium sm:inline">Menu</span>
+>>>>>>> c5dfbd0 (Update maintennace)
             </button>
           </div>
         </div>
@@ -225,6 +246,7 @@ export function Navbar() {
         {mobileOpen ? (
           <nav
             id="mobile-nav-panel"
+<<<<<<< HEAD
             aria-label="Navigasi mobile"
             className="page-enter border-t border-[#241d1d] bg-canvas px-4 pb-4 pt-3 md:hidden"
           >
@@ -298,6 +320,81 @@ export function Navbar() {
                   Masuk atau daftar
                 </button>
               )}
+=======
+            aria-label="Menu navigasi"
+            className="page-enter max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-[#241d1d] bg-canvas"
+          >
+            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+              <ul className="grid gap-1 md:grid-cols-2 md:gap-x-10">
+                {NAV_LINKS.map((link) => {
+                  const active = isActive(pathname, link.href);
+                  return (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        aria-current={active ? 'page' : undefined}
+                        className={`flex items-center justify-between rounded-[4px] px-3 py-2.5 text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                          active
+                            ? 'bg-white/[0.07] font-semibold text-white'
+                            : 'font-medium text-zinc-400 hover:bg-white/[0.04] hover:text-white'
+                        }`}
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+
+                <li className="mt-1 border-t border-[#241d1d] pt-1 md:col-span-2">
+                  <Link
+                    href="/credit"
+                    aria-current={isActive(pathname, '/credit') ? 'page' : undefined}
+                    className={`flex items-center justify-between gap-3 rounded-[4px] px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                      isActive(pathname, '/credit')
+                        ? 'bg-white/[0.07] text-white'
+                        : 'text-zinc-300 hover:bg-white/[0.04] hover:text-white'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5 text-[13.5px] font-medium">
+                      <Users className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                      Credits
+                    </span>
+                    <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">
+                      Aomi &amp; Azura
+                    </span>
+                  </Link>
+                </li>
+              </ul>
+
+              <div className="mt-3 grid gap-1 border-t border-[#241d1d] pt-3 md:grid-cols-2 md:gap-x-10">
+                {user ? (
+                  [
+                    { href: '/history', label: 'Riwayat tontonan' },
+                    { href: '/favorites', label: 'Favorit' },
+                    { href: '/profile', label: 'Profil' },
+                  ].map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="rounded-[4px] px-3 py-2.5 text-[13.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.04] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                    >
+                      {link.label}
+                    </Link>
+                  ))
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      openAuth('login', pathname);
+                    }}
+                    className="cursor-pointer rounded-[4px] px-3 py-2.5 text-left text-[13.5px] font-semibold text-white transition-colors duration-150 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  >
+                    Masuk atau daftar
+                  </button>
+                )}
+              </div>
+>>>>>>> c5dfbd0 (Update maintennace)
             </div>
           </nav>
         ) : null}

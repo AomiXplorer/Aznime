@@ -5,7 +5,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Aznime – Streaming Anime Subtitle Indonesia',
     short_name: 'Aznime',
     description:
+<<<<<<< HEAD
       'Stream anime with Indonesian subtitles, a fast catalog, daily airing schedules, and a player that picks the fastest server.',
+=======
+      'Aznime adalah situs streaming anime subtitle Indonesia: katalog cepat, jadwal tayang harian, dan pemutar yang memilih server tercepat.',
+>>>>>>> c5dfbd0 (Update maintennace)
     start_url: '/',
     scope: '/',
     display: 'standalone',

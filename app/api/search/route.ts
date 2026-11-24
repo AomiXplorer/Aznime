@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+<<<<<<< HEAD
+=======
+import { rateLimitGuard, upstreamFailure } from '@/lib/api-guard';
+>>>>>>> c5dfbd0 (Update maintennace)
 import { quickSearch } from '@/lib/scraper';
 import type { PaginationInfo, QuickSearchItem } from '@/lib/scraper/types';
 import { getMalzSearch, malzToQuickItem } from '@/lib/malz';
@@ -52,6 +56,12 @@ async function mergeQuickResults(query: string, hidori: QuickSearchItem[]) {
 }
 
 export async function GET(req: NextRequest) {
+<<<<<<< HEAD
+=======
+  const limited = await rateLimitGuard(req, { name: 'search', limit: 60, windowSeconds: 60 });
+  if (limited) return limited;
+
+>>>>>>> c5dfbd0 (Update maintennace)
   try {
     const { searchParams } = req.nextUrl;
     const q = (searchParams.get('q') || '').trim();
@@ -97,7 +107,11 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
+<<<<<<< HEAD
     const message = error instanceof Error ? error.message : 'Gagal mencari anime';
     return NextResponse.json({ error: message }, { status: 502 });
+=======
+    return upstreamFailure('search', error, 'Pencarian sedang tidak tersedia. Coba lagi sebentar lagi.');
+>>>>>>> c5dfbd0 (Update maintennace)
   }
 }

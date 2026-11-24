@@ -81,9 +81,16 @@ export async function requestText(
   targetUrl: string,
   options: RequestOptions = {}
 ): Promise<{ status: number; url: string; body: string }> {
+<<<<<<< HEAD
   const fullUrl = targetUrl.startsWith('http')
     ? targetUrl
     : `${BASE_URL}${targetUrl.startsWith('/') ? '' : '/'}${targetUrl}`;
+=======
+  const requestedUrl = /^https?:\/\//i.test(targetUrl)
+    ? targetUrl
+    : `${BASE_URL}${targetUrl.startsWith('/') ? '' : '/'}${targetUrl}`;
+  const fullUrl = validateScraperUrl(requestedUrl);
+>>>>>>> c5dfbd0 (Update maintennace)
 
   const method = options.method || 'GET';
   const ttl = options.revalidate ?? (method === 'GET' ? 180 : 0);
@@ -104,6 +111,7 @@ export async function requestText(
     ...options.headers,
   };
 
+<<<<<<< HEAD
   let res: Response;
   try {
     res = await fetch(fullUrl, {
@@ -117,6 +125,46 @@ export async function requestText(
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Network error';
     throw new UpstreamError(`Gagal terhubung ke server sumber (${msg})`, { url: fullUrl });
+=======
+  let currentUrl = fullUrl;
+  let currentMethod = method;
+  let currentBody = options.body;
+  let res: Response;
+  for (let redirects = 0; ; redirects += 1) {
+    try {
+      res = await fetch(currentUrl, {
+        method: currentMethod,
+        headers,
+        body: currentBody,
+        redirect: 'manual',
+        signal: AbortSignal.timeout(options.timeoutMs ?? 15000),
+        next: ttl > 0 ? { revalidate: ttl } : { revalidate: 0 },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      throw new UpstreamError(`Gagal terhubung ke server sumber (${msg})`, { url: currentUrl });
+    }
+
+    const location = res.headers.get('location');
+    if (![301, 302, 303, 307, 308].includes(res.status) || !location) break;
+    if (redirects >= 5) {
+      await res.body?.cancel();
+      throw new UpstreamError('Server sumber terlalu banyak mengalihkan permintaan', {
+        status: 502,
+        url: currentUrl,
+      });
+    }
+
+    const nextUrl = validateScraperUrl(location, currentUrl);
+    await res.body?.cancel();
+    if (res.status === 303 || ((res.status === 301 || res.status === 302) && currentMethod === 'POST')) {
+      currentMethod = 'GET';
+      currentBody = undefined;
+      delete headers['Content-Type'];
+      delete headers['content-type'];
+    }
+    currentUrl = nextUrl;
+>>>>>>> c5dfbd0 (Update maintennace)
   }
 
   const body = await res.text();
@@ -133,7 +181,11 @@ export async function requestText(
 
   return {
     status: res.status,
+<<<<<<< HEAD
     url: res.url || fullUrl,
+=======
+    url: res.url || currentUrl,
+>>>>>>> c5dfbd0 (Update maintennace)
     body,
   };
 }
@@ -170,6 +222,34 @@ const BASE_HOST = (() => {
   }
 })();
 
+<<<<<<< HEAD
+=======
+export function validateScraperUrl(value: string, baseUrl = BASE_URL): string {
+  let url: URL;
+  let base: URL;
+  try {
+    base = new URL(baseUrl);
+    url = new URL(value, base);
+  } catch {
+    throw new UpstreamError('URL server sumber tidak valid', { status: 400 });
+  }
+
+  const allowedPort = base.port || (base.protocol === 'https:' ? '443' : '80');
+  const targetPort = url.port || (url.protocol === 'https:' ? '443' : '80');
+  if (
+    (url.protocol !== 'https:' && url.protocol !== 'http:') ||
+    url.hostname !== base.hostname ||
+    targetPort !== allowedPort ||
+    url.username ||
+    url.password
+  ) {
+    throw new UpstreamError('URL server sumber tidak diizinkan', { status: 400, url: url.toString() });
+  }
+
+  return url.toString();
+}
+
+>>>>>>> c5dfbd0 (Update maintennace)
 export function normalizeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   let clean = url.trim();

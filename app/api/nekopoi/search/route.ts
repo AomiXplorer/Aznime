@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+<<<<<<< HEAD
+=======
+import { rateLimitGuard, upstreamFailure } from '@/lib/api-guard';
+>>>>>>> c5dfbd0 (Update maintennace)
 import { nekopoiIsHentaiItem, nekopoiToCard, searchNekopoiCatalog } from '@/lib/nekopoi';
 
 /**
@@ -12,6 +16,12 @@ import { nekopoiIsHentaiItem, nekopoiToCard, searchNekopoiCatalog } from '@/lib/
 const MAX_ITEMS = 18;
 
 export async function GET(request: Request) {
+<<<<<<< HEAD
+=======
+  const limited = await rateLimitGuard(request, { name: 'nekopoi-search', limit: 30, windowSeconds: 60 });
+  if (limited) return limited;
+
+>>>>>>> c5dfbd0 (Update maintennace)
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get('q') || '').trim().slice(0, 100);
 
@@ -31,10 +41,14 @@ export async function GET(request: Request) {
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } }
     );
   } catch (error) {
+<<<<<<< HEAD
     const message = error instanceof Error ? error.message : 'Pencarian gagal.';
     return NextResponse.json(
       { error: message },
       { status: 502, headers: { 'Cache-Control': 'no-store' } }
     );
+=======
+    return upstreamFailure('nekopoi-search', error, 'Pencarian sedang tidak tersedia. Coba lagi sebentar lagi.');
+>>>>>>> c5dfbd0 (Update maintennace)
   }
 }

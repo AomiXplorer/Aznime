@@ -1,4 +1,13 @@
+<<<<<<< HEAD
 import { BYPASS_COOKIE_NAME, BYPASS_HINT_COOKIE_NAME } from './maintenance-constants';
+=======
+import crypto from 'node:crypto';
+import {
+  BYPASS_COOKIE_NAME,
+  BYPASS_HINT_COOKIE_NAME,
+  DEFAULT_MAINTENANCE_MESSAGE,
+} from './maintenance-constants';
+>>>>>>> c5dfbd0 (Update maintennace)
 
 const MAINTENANCE_STATE_KEY = 'aznime:maintenance:state';
 const MAINTENANCE_PENDING_PREFIX = 'aznime:maintenance:pending:';
@@ -7,10 +16,14 @@ const PENDING_TTL_SECONDS = 300;
 const DEFAULT_BYPASS_TTL_SECONDS = 12 * 60 * 60;
 const MAX_DURATION_MINUTES = 7 * 24 * 60;
 
+<<<<<<< HEAD
 export { BYPASS_COOKIE_NAME, BYPASS_HINT_COOKIE_NAME };
 
 export const DEFAULT_MAINTENANCE_MESSAGE =
   'Kami sedang melakukan pembaruan dan perbaikan server agar streaming kembali lancar.';
+=======
+export { BYPASS_COOKIE_NAME, BYPASS_HINT_COOKIE_NAME, DEFAULT_MAINTENANCE_MESSAGE };
+>>>>>>> c5dfbd0 (Update maintennace)
 
 export interface MaintenanceState {
   enabled: boolean;
@@ -380,6 +393,7 @@ export function timingSafeEqualString(a: string, b: string): boolean {
   return diff === 0;
 }
 
+<<<<<<< HEAD
 export async function createBypassToken(
   ttlSeconds = DEFAULT_BYPASS_TTL_SECONDS,
   nowSec = Math.floor(Date.now() / 1000)
@@ -405,3 +419,30 @@ export async function verifyBypassToken(
   const expectedSig = await signPayload(expRaw, getSigningSecret());
   return timingSafeEqualString(sigRaw, expectedSig);
 }
+=======
+// export async function createBypassToken(
+//   ttlSeconds = DEFAULT_BYPASS_TTL_SECONDS,
+//   nowSec = Math.floor(Date.now() / 1000)
+// ): Promise<string> {
+//   const exp = String(nowSec + Math.max(60, ttlSeconds));
+//   const sig = await signPayload(exp, getSigningSecret());
+//   return `${exp}.${sig}`;
+// }
+
+// export async function verifyBypassToken(
+//   token: string | undefined | null,
+//   nowSec = Math.floor(Date.now() / 1000)
+// ): Promise<boolean> {
+//   if (!token || typeof token !== 'string') return false;
+//   const parts = token.trim().split('.');
+//   if (parts.length !== 2) return false;
+//   const [expRaw, sigRaw] = parts;
+//   if (!/^\d+$/.test(expRaw) || !/^[A-Za-z0-9_-]+$/.test(sigRaw)) return false;
+
+//   const exp = Number.parseInt(expRaw, 10);
+//   if (!Number.isFinite(exp) || exp <= nowSec) return false;
+
+//   const expectedSig = await signPayload(expRaw, getSigningSecret());
+//   return timingSafeEqualString(sigRaw, expectedSig);
+// }
+>>>>>>> c5dfbd0 (Update maintennace)

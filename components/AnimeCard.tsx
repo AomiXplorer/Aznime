@@ -76,6 +76,10 @@ function AnimeCardComponent({
             src={item.poster}
             alt={displayTitle}
             priority={priority}
+<<<<<<< HEAD
+=======
+            proxyWidth={340}
+>>>>>>> c5dfbd0 (Update maintennace)
             unoptimized={item.source === 'malz' || item.source === 'nekopoi'}
             sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 170px"
             fallbackClassName={

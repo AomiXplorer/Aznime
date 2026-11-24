@@ -191,9 +191,32 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
       const episode = stream.episode;
       if (!episode) return { title: 'Nonton anime' };
       const label = cleanEpisodeTitle(episode.judul || `Episode ${episode.episode}`);
+<<<<<<< HEAD
       return {
         title: label,
         description: `Nonton streaming ${label} subtitle Indonesia di Aznime. Pilih kualitas video yang tersedia.`,
+=======
+
+      /* Judul episode dari arsip sering cuma "Episode 2", jadi puluhan halaman
+         berbeda akan punya judul identik. Nama seri ditempel di depan supaya
+         setiap halaman punya judul unik; detail seri sudah di-cache 900 detik
+         dan dipakai juga saat merender halaman, jadi tidak menambah beban. */
+      const seriesTitle = episode.id_anime
+        ? await getMalzDetail(episode.id_anime)
+            .then((detail) => cleanEpisodeTitle(detail.anime.judul))
+            .catch(() => null)
+        : null;
+
+      const generic = /^episode\b/i.test(label);
+      const uniqueLabel =
+        seriesTitle && !label.toLowerCase().includes(seriesTitle.toLowerCase())
+          ? `${seriesTitle} ${generic ? label : `Episode ${episode.episode}`}`
+          : label;
+
+      return {
+        title: uniqueLabel,
+        description: `Nonton streaming ${uniqueLabel} subtitle Indonesia di Aznime. Pilih kualitas video yang tersedia.`,
+>>>>>>> c5dfbd0 (Update maintennace)
         alternates: { canonical: `/watch/${encodeURIComponent(decodedSlug)}` },
       };
     } catch {
@@ -236,6 +259,10 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
     <WatchLayout
       seriesTitle={data.seriesTitle}
       seriesHref={data.seriesHref}
+<<<<<<< HEAD
+=======
+      breadcrumbPath={`/watch/${encodeURIComponent(episodeSlug)}`}
+>>>>>>> c5dfbd0 (Update maintennace)
       title={data.title}
       meta={episodeMeta(data.episodeNumber, data.year, data.status)}
       downloadBoxes={[]}
@@ -274,6 +301,15 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
               title={data.title}
               servers={data.servers}
               defaultEmbed={data.defaultEmbed}
+<<<<<<< HEAD
+=======
+              episodes={data.episodes.map((item) => ({
+                title: item.title,
+                slug: item.slug,
+                url: item.url,
+                number: item.number,
+              }))}
+>>>>>>> c5dfbd0 (Update maintennace)
               navigation={data.navigation}
               seriesSlug={data.seriesSlug}
               seriesTitle={data.seriesTitle}
@@ -348,6 +384,10 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
     <WatchLayout
       seriesTitle={seriesTitle}
       seriesHref={seriesSlug ? `/anime/${encodeURIComponent(seriesSlug)}` : null}
+<<<<<<< HEAD
+=======
+      breadcrumbPath={`/watch/${encodeURIComponent(decodedSlug)}`}
+>>>>>>> c5dfbd0 (Update maintennace)
       title={cleanTitle}
       meta={episodeMeta(episodeNumber, season, status)}
       downloadBoxes={locked ? [] : episode.downloads}
@@ -380,6 +420,15 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
               title={cleanTitle}
               servers={episode.servers}
               defaultEmbed={episode.defaultEmbed}
+<<<<<<< HEAD
+=======
+              episodes={episodes.map((item) => ({
+                title: item.title,
+                slug: item.slug,
+                url: item.url,
+                number: item.number,
+              }))}
+>>>>>>> c5dfbd0 (Update maintennace)
               navigation={navigation}
               seriesSlug={seriesSlug}
               seriesTitle={seriesTitle}

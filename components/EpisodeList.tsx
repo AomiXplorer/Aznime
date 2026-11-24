@@ -47,7 +47,11 @@ export function EpisodeList({ episodes, currentSlug, hrefBase = '/watch' }: Epis
 
   return (
     <div>
+<<<<<<< HEAD
       <div className="flex items-center gap-2 py-2.5">
+=======
+      <div className="flex items-center gap-2 py-2">
+>>>>>>> c5dfbd0 (Update maintennace)
         <div className="relative min-w-0 flex-1">
           <label htmlFor="episode-filter-input" className="sr-only">
             Cari nomor atau judul episode
@@ -62,7 +66,11 @@ export function EpisodeList({ episodes, currentSlug, hrefBase = '/watch' }: Epis
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             placeholder="Cari episode"
+<<<<<<< HEAD
             className="h-8 w-full rounded-md bg-white/[0.04] pl-8 pr-2.5 text-[12.5px] text-zinc-100 placeholder:text-zinc-500 transition-colors duration-150 focus:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-accent/60"
+=======
+            className="h-9 w-full rounded-md bg-white/[0.04] pl-8 pr-2.5 text-[12.5px] text-zinc-100 placeholder:text-zinc-500 transition-colors duration-150 focus:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-accent/60"
+>>>>>>> c5dfbd0 (Update maintennace)
           />
         </div>
 
@@ -71,7 +79,11 @@ export function EpisodeList({ episodes, currentSlug, hrefBase = '/watch' }: Epis
           onClick={() => setReverseOrder((prev) => !prev)}
           aria-pressed={reverseOrder}
           title={reverseOrder ? 'Urutan: terlama dahulu' : 'Urutan: terbaru dahulu'}
+<<<<<<< HEAD
           className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+=======
+          className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+>>>>>>> c5dfbd0 (Update maintennace)
         >
           <ArrowDownUp className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">{reverseOrder ? 'Terlama' : 'Terbaru'}</span>
@@ -101,28 +113,44 @@ export function EpisodeList({ episodes, currentSlug, hrefBase = '/watch' }: Epis
             const href = ep.slug ? `${hrefBase}/${encodeURIComponent(ep.slug)}` : '/anime';
             const isActive = Boolean(currentSlug && ep.slug === currentSlug);
             return (
+<<<<<<< HEAD
               <li key={`${ep.slug || idx}`} className="ep-item border-b border-[#241d1d]">
+=======
+              <li key={`${ep.slug || idx}`} className="ep-item border-b border-line-soft last:border-b-0">
+>>>>>>> c5dfbd0 (Update maintennace)
                 <Link
                   href={href}
                   prefetch={false}
                   aria-current={isActive ? 'page' : undefined}
                   title={ep.title}
                   className={cn(
+<<<<<<< HEAD
                     'group flex h-10 items-center gap-2.5 pr-1 text-[12.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+=======
+                    'group flex min-h-11 items-center gap-2.5 pr-1 text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:min-h-10 sm:text-[12.5px]',
+>>>>>>> c5dfbd0 (Update maintennace)
                     isActive ? 'text-white' : 'text-zinc-300 hover:text-white'
                   )}
                 >
                   <span
                     className={cn(
                       'w-8 shrink-0 font-mono text-[11.5px] font-semibold tabular-nums',
+<<<<<<< HEAD
                       isActive ? 'text-accent' : 'text-zinc-500 group-hover:text-zinc-400'
+=======
+                      isActive ? 'text-accent-soft' : 'text-zinc-500 group-hover:text-zinc-400'
+>>>>>>> c5dfbd0 (Update maintennace)
                     )}
                   >
                     {ep.number || '—'}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{ep.title}</span>
                   {isActive ? (
+<<<<<<< HEAD
                     <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
+=======
+                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent-soft">
+>>>>>>> c5dfbd0 (Update maintennace)
                       Diputar
                     </span>
                   ) : (

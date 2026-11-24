@@ -9,7 +9,11 @@
     "start": "next start -p 3000 -H 0.0.0.0",
     "clean": "rm -rf .next dist",
     "lint": "tsc --noEmit",
+<<<<<<< HEAD
     "test": "tsx --test \"lib/**/*.test.ts\""
+=======
+    "test": "tsx --test lib/*.test.ts lib/**/*.test.ts"
+>>>>>>> c5dfbd0 (Update maintennace)
   },
   "dependencies": {
     "cheerio": "^1.2.0",
@@ -20,9 +24,17 @@
     "next": "^16.4.6",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+<<<<<<< HEAD
     "tailwind-merge": "^3.7.1"
   },
   "devDependencies": {
+=======
+    "sharp": "^0.35.5",
+    "tailwind-merge": "^3.7.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.3.5",
+>>>>>>> c5dfbd0 (Update maintennace)
     "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",

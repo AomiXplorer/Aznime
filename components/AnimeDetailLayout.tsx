@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { Play, Star } from 'lucide-react';
 import type { AniListTrailer } from '@/lib/scraper/types';
 import type { AnimeCardItem, DownloadBox, EpisodeSummary } from '@/lib/scraper/types';
+<<<<<<< HEAD
+=======
+import { serializeJsonLd } from '@/lib/json-ld';
+>>>>>>> c5dfbd0 (Update maintennace)
 import { AnimeImage } from './AnimeImage';
 import { AnimeTrailerSection } from './AnimeTrailerSection';
 import { DownloadBoxes } from './DownloadBoxes';
@@ -196,12 +200,20 @@ export function AnimeDetailLayout({
         {recommendations.length > 0 ? (
           <section aria-label="Rekomendasi anime serupa" className="space-y-4">
             <h2 className="text-lg font-bold text-white">Mungkin kamu suka</h2>
+<<<<<<< HEAD
             <AnimeGrid items={recommendations.slice(0, 14)} />
+=======
+            <AnimeGrid items={recommendations.slice(0, 14)} fillRows />
+>>>>>>> c5dfbd0 (Update maintennace)
           </section>
         ) : null}
       </div>
 
+<<<<<<< HEAD
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+=======
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+>>>>>>> c5dfbd0 (Update maintennace)
     </div>
   );
 }

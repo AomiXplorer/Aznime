@@ -22,6 +22,26 @@ export function isOAuthProvider(value: string): value is OAuthProvider {
   return value === 'google' || value === 'discord';
 }
 
+<<<<<<< HEAD
+=======
+export function normalizeOAuthReturnTo(value: string | null | undefined, requestUrl: string): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/';
+
+  try {
+    const origin = new URL(requestUrl).origin;
+    const target = new URL(value, origin);
+    if (target.origin !== origin) return '/';
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return '/';
+  }
+}
+
+export function oauthStateCookieName(provider: OAuthProvider): string {
+  return `aznime_oauth_state_${provider}`;
+}
+
+>>>>>>> c5dfbd0 (Update maintennace)
 export function oauthConfig(provider: OAuthProvider): ProviderConfig | null {
   if (provider === 'google') {
     const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
