@@ -1,0 +1,344 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  /* Netralnya hangat, bukan abu-abu murni: seluruh tangga permukaan digeser
+     ke rona rose supaya tidak terbaca sebagai template dark-mode generik. */
+  --color-canvas: #0c0909;
+  --color-surface: #131010;
+  --color-elevated: #1b1515;
+  --color-line: #2b2222;
+  --color-line-soft: #241d1d;
+  --color-bone: #efe8e0;
+  --color-ink: #1a1414;
+  --color-accent: #e11d48;
+  --color-accent-strong: #be123c;
+  /* Varian lebih terang khusus teks kecil di atas permukaan gelap:
+     #e11d48 hanya mencapai 4,0:1, sedangkan ini 5,2:1 (AA). */
+  --color-accent-soft: #f43f5e;
+  --color-muted: #a49b9a;
+
+  /* Skala zinc bawaan diganti versi hangat. Semua teks sekunder di seluruh
+     situs ikut menghangat tanpa perlu menyentuh tiap komponen. */
+  --color-zinc-100: #f4eeed;
+  --color-zinc-200: #e4dcda;
+  --color-zinc-300: #cbc1bf;
+  --color-zinc-400: #a99f9d;
+  --color-zinc-500: #867c7a;
+  --color-zinc-600: #665d5b;
+  --color-zinc-700: #4a4241;
+  --color-zinc-800: #2f2928;
+  --color-zinc-900: #1d1818;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  font-size: 15px;
+  background-color: #0c0909;
+  color: #f6f1f0;
+}
+
+body {
+  background-color: #0c0909;
+  color: #f6f1f0;
+  font-family: var(--font-sans);
+  /* `clip` (bukan `hidden`) supaya body tidak menjadi scroll container,
+     sehingga `position: sticky` pada navbar tetap bekerja dan tidak memicu
+     repaint tambahan saat scroll. */
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeSpeed;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Judul memakai Bricolage Grotesque dengan berat 600 dan tracking rapat.
+   Berat 800 di semua judul adalah salah satu pola paling khas UI generator,
+   jadi bobot dibatasi dan jarak huruf diatur per peran. */
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Item grid yang jauh dari viewport tidak dirender/dilayout sampai dibutuhkan.
+   `auto` pada contain-intrinsic-size membuat browser mengingat ukuran nyata
+   setelah render pertama, jadi tidak menimbulkan layout shift. */
+.cv-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+/* Angka peringkat Top 10 (outline) */
+.rank-numeral {
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.3);
+  transition: -webkit-text-stroke-color 200ms ease;
+}
+.group:hover .rank-numeral,
+.group:focus-visible .rank-numeral {
+  -webkit-text-stroke-color: #e11d48;
+}
+
+/* Tingkat kepentingan nomor: runner-up lebih tegas, peringkat 4-5 lebih redup. */
+.rank-numeral-strong {
+  -webkit-text-stroke-color: rgba(255, 255, 255, 0.55);
+}
+.rank-numeral-soft {
+  -webkit-text-stroke-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Transisi halaman: hanya opacity (compositor-only), tanpa transform pada
+   seluruh dokumen yang memaksa layer besar dibuat ulang. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.page-enter {
+  animation: page-enter 200ms ease-out both;
+}
+
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Shimmer skeleton: animasi transform pada pseudo-element (GPU) alih-alih
+   menganimasikan background-position yang memicu repaint tiap frame. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translate3d(-100%, 0, 0);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+
+/* Panel filter katalog: masuk dari bawah di HP, muncul halus di desktop.
+   Hanya opacity/transform supaya tetap jalan di compositor. */
+.picker-backdrop {
+  animation: picker-fade 180ms ease-out;
+}
+.picker-sheet {
+  animation: picker-rise 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+@keyframes picker-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes picker-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.985);
+  }
+}
+@media (min-width: 640px) {
+  @keyframes picker-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0) scale(0.98);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .shimmer::after {
+    display: none;
+  }
+}
+
+/* Item episode panjang (ratusan judul) tidak dilayout sampai mendekati viewport.
+   Semua episode tetap ada di halaman, jadi tidak ada lagi daftar yang tersembunyi
+   di dalam kotak scroll kecil. */
+.ep-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
+
+/* Sembunyikan navbar dan footer situs saat layar maintenance dirender lewat
+   rewrite proxy. Hanya elemen milik layout (anak langsung body) yang disembunyikan,
+   supaya header/footer milik layar maintenance sendiri tetap tampil. */
+body:has([data-maintenance-screen]) > header,
+body:has([data-maintenance-screen]) > footer {
+  display: none;
+}
+
+/* Masuknya layar maintenance: hanya opacity dan transform, 240ms. Blok
+   reduced-motion di atas sudah mematikan durasinya. */
+@keyframes screen-reveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.reveal {
+  animation: screen-reveal 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Pemutar video ---------- */
+
+/* Garis muat di tepi atas panggung video: bergerak, tanpa angka palsu. */
+@keyframes player-sweep {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(260%, 0, 0);
+  }
+}
+.player-sweep {
+  animation: player-sweep 1.15s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+/* Umpan balik singkat saat lompat waktu / ubah volume. */
+@keyframes player-flash {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  14% {
+    opacity: 1;
+    transform: none;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.player-flash {
+  animation: player-flash 700ms ease-out both;
+}
+
+/* Hitung mundur episode berikutnya: garis menyusut selama 8 detik. */
+@keyframes player-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.player-countdown {
+  transform-origin: left;
+  animation: player-countdown 8s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-sweep {
+    animation: none;
+    transform: none;
+    width: 100% !important;
+    opacity: 0.6;
+  }
+  .player-flash {
+    animation: none;
+    opacity: 1;
+  }
+  .player-countdown {
+    animation: none;
+  }
+}
+
+/* Slider volume bawaan browser, dirapikan agar sejajar dengan garis seek. */
+.player-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+.player-range:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.player-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #fff var(--fill, 0%),
+    rgba(255, 255, 255, 0.25) var(--fill, 0%)
+  );
+}
+.player-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.player-range::-moz-range-progress {
+  height: 3px;
+  border-radius: 2px;
+  background: #fff;
+}
+.player-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+.player-range::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
