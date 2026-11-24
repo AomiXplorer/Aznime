@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, MessageCircle, X } from 'lucide-react';
 import { PRIMARY_WHATSAPP_URL } from '@/lib/credits';
 import { copyText } from './copy';
@@ -14,20 +14,35 @@ interface ReportDialogProps {
 export function ReportDialog({ text, onClose }: ReportDialogProps) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | undefined>(undefined);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  const closeDialog = useCallback(() => {
+    if (dialogRef.current?.open) dialogRef.current.close();
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const handleCancel = (event: Event) => {
+      event.preventDefault();
+      closeDialog();
     };
-    window.addEventListener('keydown', onKey);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closeDialog();
+    };
+    dialog.addEventListener('cancel', handleCancel);
+    document.addEventListener('keydown', handleKeyDown, true);
+    dialog.showModal();
     return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener('keydown', onKey);
+      dialog.removeEventListener('cancel', handleCancel);
+      document.removeEventListener('keydown', handleKeyDown, true);
+      if (dialog.open) dialog.close();
       window.clearTimeout(timer.current);
     };
-  }, [onClose]);
+  }, [closeDialog]);
 
   const copy = async () => {
     const ok = await copyText(text);
@@ -37,19 +52,14 @@ export function ReportDialog({ text, onClose }: ReportDialogProps) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
       aria-labelledby="report-title"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) closeDialog();
+      }}
+      className="fixed inset-0 m-0 flex h-dvh w-full max-h-none max-w-none items-end justify-center border-0 bg-transparent p-0 backdrop:bg-black/70 sm:items-center sm:p-4"
     >
-      <button
-        type="button"
-        aria-label="Tutup laporan"
-        className="absolute inset-0 cursor-default"
-        onClick={onClose}
-        tabIndex={-1}
-      />
       <div className="relative w-full max-w-md rounded-t-xl bg-surface p-4 ring-1 ring-white/10 sm:rounded-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -62,7 +72,7 @@ export function ReportDialog({ text, onClose }: ReportDialogProps) {
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeDialog}
             aria-label="Tutup"
             className="-mr-1 -mt-1 inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors duration-150 hover:bg-white/[0.06] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
@@ -101,13 +111,13 @@ export function ReportDialog({ text, onClose }: ReportDialogProps) {
           ) : null}
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeDialog}
             className="ml-auto inline-flex h-9 cursor-pointer items-center rounded-md px-3 text-[12.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
             Tutup
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

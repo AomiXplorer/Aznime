@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { Play, Star } from 'lucide-react';
 import type { AniListTrailer } from '@/lib/scraper/types';
 import type { AnimeCardItem, DownloadBox, EpisodeSummary } from '@/lib/scraper/types';
+import { getAniListTrailer } from '@/lib/anilist';
+import { getHidoriTitleIndex, isKnownTitle } from '@/lib/sources';
 import { serializeJsonLd } from '@/lib/json-ld';
 import { AnimeImage } from './AnimeImage';
 import { AnimeTrailerSection } from './AnimeTrailerSection';
@@ -22,9 +25,11 @@ export interface AnimeDetailView {
   startEpisode: EpisodeSummary | null;
   latestEpisode: EpisodeSummary | null;
   trailer: AniListTrailer | null;
+  deferTrailer?: boolean;
   banner: string | null;
   downloadBoxes: DownloadBox[];
   recommendations: AnimeCardItem[];
+  filterKnownRecommendations?: boolean;
   jsonLd: Record<string, unknown>;
   episodesSlot: React.ReactNode;
   /** Awalan rute pemutar untuk tombol "Mulai menonton" (default /watch). */
@@ -36,6 +41,34 @@ export interface AnimeDetailView {
 function epSuffix(number: string | null): string {
   if (!number) return '';
   return /^\d+(\.\d+)?$/.test(number) ? ` (Ep ${number})` : ` (${number})`;
+}
+
+async function DeferredAnimeTrailer({
+  title,
+  altTitle,
+}: {
+  title: string;
+  altTitle: string | null;
+}) {
+  const trailer = await getAniListTrailer(title, altTitle).catch(() => null);
+  return <AnimeTrailerSection title={title} trailer={trailer} />;
+}
+
+async function DeferredAnimeRecommendations({
+  items,
+}: {
+  items: AnimeCardItem[];
+}) {
+  const index = await getHidoriTitleIndex();
+  const filtered = items.filter((item) => !isKnownTitle(item, index));
+  if (filtered.length === 0) return null;
+
+  return (
+    <section aria-label="Rekomendasi anime serupa" className="space-y-4">
+      <h2 className="text-lg font-bold text-white">Mungkin kamu suka</h2>
+      <AnimeGrid items={filtered.slice(0, 14)} fillRows />
+    </section>
+  );
 }
 
 export function AnimeDetailLayout({
@@ -51,9 +84,11 @@ export function AnimeDetailLayout({
   startEpisode,
   latestEpisode,
   trailer,
+  deferTrailer = false,
   banner,
   downloadBoxes,
   recommendations,
+  filterKnownRecommendations = false,
   jsonLd,
   episodesSlot,
   episodeHrefBase = '/watch',
@@ -111,7 +146,7 @@ export function AnimeDetailLayout({
               ) : null}
               {info.Status ? <span>{info.Status}</span> : null}
               {info.Tipe || info.Type ? <span>{info.Tipe || info.Type}</span> : null}
-              <span>{totalEpisodes} episode</span>
+              {totalEpisodes > 1 ? <span>{totalEpisodes} episode</span> : null}
             </div>
 
             {genres.length > 0 ? (
@@ -182,19 +217,31 @@ export function AnimeDetailLayout({
           </section>
         ) : null}
 
-        <AnimeTrailerSection title={title} trailer={trailer} />
+        {deferTrailer ? (
+          <Suspense fallback={null}>
+            <DeferredAnimeTrailer title={title} altTitle={altTitle} />
+          </Suspense>
+        ) : (
+          <AnimeTrailerSection title={title} trailer={trailer} />
+        )}
 
         <section aria-label="Daftar episode" className="space-y-4">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-bold text-white">Episode</h2>
-            <span className="text-xs text-muted">{totalEpisodes} episode</span>
+            {totalEpisodes > 1 ? (
+              <span className="text-xs text-muted">{totalEpisodes} episode</span>
+            ) : null}
           </div>
           {episodesSlot}
         </section>
 
         <DownloadBoxes boxes={downloadBoxes} heading="Unduh paket batch" />
 
-        {recommendations.length > 0 ? (
+        {filterKnownRecommendations ? (
+          <Suspense fallback={null}>
+            <DeferredAnimeRecommendations items={recommendations} />
+          </Suspense>
+        ) : recommendations.length > 0 ? (
           <section aria-label="Rekomendasi anime serupa" className="space-y-4">
             <h2 className="text-lg font-bold text-white">Mungkin kamu suka</h2>
             <AnimeGrid items={recommendations.slice(0, 14)} fillRows />

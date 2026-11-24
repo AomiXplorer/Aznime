@@ -383,6 +383,67 @@ export async function getMalzEpisodes(id: string, page = 0): Promise<MalzEpisode
   return { items: data.items || [], perHalaman };
 }
 
+export async function getMalzMinimumEpisode(
+  id: string,
+  highestEpisode: number,
+  perPage: number
+): Promise<number | null> {
+  if (!Number.isFinite(highestEpisode) || highestEpisode <= 0 || perPage <= 0) return null;
+
+  const expectedLastPage = Math.max(0, Math.ceil(highestEpisode / perPage) - 1);
+  let low = 0;
+  let high = expectedLastPage;
+  let lastPage = 0;
+
+  if (expectedLastPage > 0) {
+    const expectedPage = await getMalzEpisodes(id, expectedLastPage);
+    if (expectedPage.items.length > 0) {
+      lastPage = expectedLastPage;
+      if (expectedPage.items.length >= perPage) {
+        low = expectedLastPage;
+        high = Math.max(expectedLastPage + 1, expectedLastPage * 2);
+        let upperPage = await getMalzEpisodes(id, high);
+        while (upperPage.items.length >= perPage && high < 100_000) {
+          low = high;
+          high *= 2;
+          upperPage = await getMalzEpisodes(id, high);
+        }
+        if (upperPage.items.length > 0) lastPage = high;
+        else {
+          while (low + 1 < high) {
+            const middle = Math.floor((low + high) / 2);
+            const middlePage = await getMalzEpisodes(id, middle);
+            if (middlePage.items.length > 0) {
+              low = middle;
+              lastPage = middle;
+            } else {
+              high = middle;
+            }
+          }
+        }
+      }
+    } else {
+      high = expectedLastPage;
+      while (low + 1 < high) {
+        const middle = Math.floor((low + high) / 2);
+        const middlePage = await getMalzEpisodes(id, middle);
+        if (middlePage.items.length > 0) {
+          low = middle;
+          lastPage = middle;
+        } else {
+          high = middle;
+        }
+      }
+    }
+  }
+
+  const last = await getMalzEpisodes(id, lastPage);
+  const numbers = last.items
+    .map((episode) => Number(episode.episode))
+    .filter((number) => Number.isFinite(number) && number > 0);
+  return numbers.length > 0 ? Math.min(...numbers) : null;
+}
+
 export async function getMalzStream(episodeId: string): Promise<MalzStreamPayload> {
   const clean = episodeId.trim();
   if (!clean) throw new UpstreamError('ID episode Malz kosong', { status: 400 });

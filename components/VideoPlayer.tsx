@@ -11,7 +11,6 @@ import {
   Check,
   Copy,
   Flag,
-  List,
   Loader2,
   Maximize2,
   Monitor,
@@ -24,6 +23,7 @@ import { cn } from '@/lib/cn';
 import { DirectControls } from './player/DirectControls';
 import type { EpisodeTarget, QualityControl } from './player/DirectControls';
 import { ReportDialog } from './player/ReportDialog';
+import { EpisodePicker } from './player/EpisodePicker';
 import { copyText } from './player/copy';
 import { safeStorage } from './player/format';
 
@@ -39,6 +39,12 @@ interface VideoPlayerProps {
   };
   seriesSlug: string | null;
   seriesTitle?: string | null;
+  poster?: string | null;
+  totalEpisodes?: number;
+  malzSearch?: {
+    animeId: string;
+    perPage: number;
+  };
 }
 
 /** Hanya dua server ini yang dipakai; sisanya disembunyikan. */
@@ -92,7 +98,7 @@ function IconButton({ icon: Icon, label, onClick, active }: IconButtonProps) {
       aria-pressed={active}
       title={label}
       className={cn(
-        'inline-flex size-9 cursor-pointer items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+        'inline-flex size-10 cursor-pointer items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
         active ? 'bg-white/[0.12] text-white' : 'text-zinc-400 hover:bg-white/[0.07] hover:text-zinc-100'
       )}
     >
@@ -138,7 +144,7 @@ function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProp
 
   const chevronClass = cn(
     'size-4 shrink-0 transition-colors duration-150',
-    link ? 'text-zinc-500 group-hover:text-white' : 'text-zinc-700'
+    link ? 'text-zinc-500 group-hover:text-white' : 'text-zinc-500'
   );
 
   const content = (
@@ -150,7 +156,7 @@ function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProp
         <span
           className={cn(
             'text-[10px] font-semibold uppercase leading-none tracking-[0.12em]',
-            link ? 'text-zinc-500' : 'text-zinc-700'
+            'text-zinc-500'
           )}
         >
           {label}
@@ -159,7 +165,7 @@ function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProp
           className={cn(
             'mt-1 w-full min-w-0 truncate text-[13px] leading-tight',
             alignEnd && 'text-right',
-            link ? 'font-medium' : 'text-zinc-600'
+            link ? 'font-medium' : 'text-zinc-500'
           )}
         >
           {value}
@@ -194,6 +200,9 @@ export function VideoPlayer({
   navigation,
   seriesSlug,
   seriesTitle,
+  poster,
+  totalEpisodes,
+  malzSearch,
 }: VideoPlayerProps) {
   const pathname = usePathname();
 
@@ -246,6 +255,7 @@ export function VideoPlayer({
   const [serverErrors, setServerErrors] = useState<Set<number>>(new Set());
   const [reloadKey, setReloadKey] = useState(0);
   const [theater, setTheater] = useState(false);
+  const [episodePickerOpen, setEpisodePickerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [reportText, setReportText] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
@@ -258,6 +268,7 @@ export function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
   const copyTimer = useRef<number | undefined>(undefined);
+  const reportTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const activeServer = selectedIdx !== null ? effectiveServers[selectedIdx] || null : null;
 
@@ -393,7 +404,8 @@ export function VideoPlayer({
       if (selectedIdx !== null) {
         setServerErrors((prev) => new Set(prev).add(selectedIdx));
       }
-      advanceToNext(`${displayServerName(activeServer)} terlalu lama dimuat.`);
+      const message = `${displayServerName(activeServer)} terlalu lama dimuat. Coba server lain atau muat ulang.`;
+      if (!advanceToNext(message)) setMediaError(message);
     }, STALL_MS);
     return () => clearTimeout(t);
   }, [activeServer, isLoading, advanceToNext, selectedIdx]);
@@ -525,6 +537,8 @@ export function VideoPlayer({
   };
 
   const openReport = () => {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLButtonElement) reportTriggerRef.current = activeElement;
     const lines = [
       'Laporan pemutar Aznime',
       `Judul: ${title}`,
@@ -536,17 +550,10 @@ export function VideoPlayer({
     setReportText(lines.join('\n'));
   };
 
-  const closeReport = useCallback(() => setReportText(null), []);
-
-  /* Posisi episode yang sedang diputar, dibaca dari daftar episode yang sudah
-     dimuat. Dipakai tombol tengah navigasi ("3 / 12") tanpa mengubah rute. */
-  const episodePosition = useMemo(() => {
-    const segment = decodeURIComponent(pathname?.split('/').filter(Boolean).pop() || '');
-    const index = episodes.findIndex((episode) => episode.slug && episode.slug === segment);
-    if (index < 0) return null;
-    const number = episodes[index].number || episodeNumberFromTitle(episodes[index].title);
-    return { number, total: episodes.length };
-  }, [episodes, pathname]);
+  const closeReport = useCallback(() => {
+    setReportText(null);
+    window.requestAnimationFrame(() => reportTriggerRef.current?.focus());
+  }, []);
 
   const allSeriesHref = navigation.all?.slug
     ? `/anime/${encodeURIComponent(navigation.all.slug)}`
@@ -558,7 +565,9 @@ export function VideoPlayer({
   const serverStatus = (idx: number, server: MirrorServer) => {
     if (!server.available || !server.url) return { label: 'Tidak tersedia', dot: 'bg-zinc-600' };
     if (serverErrors.has(idx)) return { label: 'Gagal', dot: 'bg-rose-400' };
-    if (idx === selectedIdx && isLoading) return { label: 'Memuat', dot: 'bg-amber-400 animate-pulse' };
+    if (idx === selectedIdx && isLoading) {
+      return { label: 'Memuat', dot: 'bg-amber-400 animate-pulse motion-reduce:animate-none' };
+    }
     return { label: '', dot: '' };
   };
 
@@ -575,7 +584,12 @@ export function VideoPlayer({
               : ''
           }
         >
-          <div className="bg-surface sm:rounded-lg">
+          <div
+            className={cn(
+              'border border-white/10 bg-[#0b0b0d] shadow-[0_20px_60px_-32px_rgba(0,0,0,0.9)] sm:rounded-lg',
+              episodePickerOpen ? 'relative z-50 overflow-visible' : 'overflow-hidden'
+            )}
+          >
             <div ref={stageRef} className="relative aspect-video w-full overflow-hidden bg-black sm:rounded-t-lg [&:fullscreen]:aspect-auto">
               {!hasSource ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
@@ -610,6 +624,7 @@ export function VideoPlayer({
                 <>
                   <video
                     ref={videoRef}
+                    poster={poster || undefined}
                     playsInline
                     preload="metadata"
                     onLoadedMetadata={() => setIsLoading(false)}
@@ -696,147 +711,122 @@ export function VideoPlayer({
             </div>
 
             {/* Server di kiri (bisa digeser), aksi di kanan. */}
-            <div className="flex items-center gap-1 pl-1 pr-1 sm:pl-2">
-              <div className="no-scrollbar flex min-w-0 flex-1 items-center overflow-x-auto">
-                <span className="shrink-0 pl-1.5 pr-1 text-[12px] text-zinc-500">Server</span>
-                <div role="group" aria-label="Pilih server video" className="flex items-center">
-                  {effectiveServers.map((server, idx) => {
-                    const active = idx === selectedIdx;
-                    const status = serverStatus(idx, server);
-                    return (
-                      <button
-                        key={`${server.name}-${idx}`}
-                        type="button"
-                        aria-pressed={active}
-                        disabled={!server.available}
-                        onClick={() => pickManually(idx)}
-                        title={status.label ? `${displayServerName(server)}: ${status.label}` : displayServerName(server)}
-                        className={cn(
-                          "relative inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 px-2.5 text-[13px] font-medium transition-colors duration-150 after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-accent after:transition-opacity after:duration-150 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-40",
-                          active
-                            ? 'text-white after:opacity-100'
-                            : 'text-zinc-400 after:opacity-0 hover:text-zinc-100'
-                        )}
-                      >
-                        {status.dot ? (
-                          <span className={cn('size-1.5 shrink-0 rounded-full', status.dot)} aria-hidden="true" />
-                        ) : null}
-                        <span className="whitespace-nowrap">{displayServerName(server)}</span>
-                        {status.label ? (
-                          <span className="whitespace-nowrap text-[11.5px] font-normal text-zinc-500">
-                            {status.label}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
+            <div className="border-t border-white/10 bg-[#101012]">
+              <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+                    Sumber video
+                  </p>
+                  <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                    <span
+                      className={cn(
+                        'size-1.5 shrink-0 rounded-full motion-reduce:animate-none',
+                        !activeServer || !activeServer.available || !activeServer.url
+                          ? 'bg-zinc-600'
+                          : mediaError || (selectedIdx !== null && serverErrors.has(selectedIdx))
+                            ? 'bg-rose-400'
+                            : isLoading
+                              ? 'bg-amber-400 animate-pulse'
+                              : 'bg-emerald-400'
+                      )}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate text-[12px] font-medium text-zinc-200">
+                      {activeServer ? displayServerName(activeServer) : 'Tidak tersedia'}
+                    </span>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] leading-none',
+                        !activeServer || !activeServer.available || !activeServer.url
+                          ? 'border-white/10 bg-white/[0.03] text-zinc-400'
+                          : mediaError || (selectedIdx !== null && serverErrors.has(selectedIdx))
+                            ? 'border-rose-400/20 bg-rose-400/[0.08] text-rose-300'
+                            : isLoading
+                              ? 'border-amber-400/20 bg-amber-400/[0.08] text-amber-200'
+                              : 'border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-200'
+                      )}
+                    >
+                      {!activeServer || !activeServer.available || !activeServer.url
+                        ? 'Tidak tersedia'
+                        : mediaError || (selectedIdx !== null && serverErrors.has(selectedIdx))
+                          ? 'Gagal'
+                          : isLoading
+                            ? 'Menghubungkan'
+                            : 'Siap'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-0.5 border-l border-white/10 pl-1">
+                  <IconButton
+                    icon={Monitor}
+                    label={theater ? 'Keluar mode theater' : 'Mode theater'}
+                    active={theater}
+                    onClick={() => setTheater((value) => !value)}
+                  />
+                  <IconButton icon={Maximize2} label="Layar penuh" onClick={() => void toggleFullscreen()} />
+                  <IconButton
+                    icon={copyState === 'ok' ? Check : Copy}
+                    label={copyState === 'ok' ? 'Tautan tersalin' : 'Salin tautan episode'}
+                    onClick={() => void copyEpisodeUrl()}
+                  />
+                  <IconButton icon={Flag} label="Laporkan masalah pemutar" onClick={openReport} />
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-0.5 border-l border-line pl-1">
-                <IconButton
-                  icon={Monitor}
-                  label={theater ? 'Keluar mode theater' : 'Mode theater'}
-                  active={theater}
-                  onClick={() => setTheater((value) => !value)}
-                />
-                <IconButton icon={Maximize2} label="Layar penuh" onClick={() => void toggleFullscreen()} />
-                <IconButton
-                  icon={copyState === 'ok' ? Check : Copy}
-                  label={copyState === 'ok' ? 'Tautan tersalin' : 'Salin tautan episode'}
-                  onClick={() => void copyEpisodeUrl()}
-                />
-                <IconButton icon={Flag} label="Laporkan masalah pemutar" onClick={openReport} />
+              <div
+                role="group"
+                aria-label="Pilih server video"
+                className="no-scrollbar flex snap-x snap-mandatory items-center gap-2 overflow-x-auto px-3 pb-3"
+              >
+                {effectiveServers.map((server, idx) => {
+                  const active = idx === selectedIdx;
+                  const status = serverStatus(idx, server);
+                  return (
+                    <button
+                      key={`${server.name}-${idx}`}
+                      type="button"
+                      aria-pressed={active}
+                      disabled={!server.available || !server.url}
+                      onClick={() => pickManually(idx)}
+                      title={status.label ? `${displayServerName(server)}: ${status.label}` : displayServerName(server)}
+                      className={cn(
+                        'inline-flex h-9 shrink-0 snap-start cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[11.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-40',
+                        active
+                          ? 'border-accent/45 bg-accent/15 text-white'
+                          : 'border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:bg-white/[0.07] hover:text-zinc-100'
+                      )}
+                    >
+                      {status.dot ? (
+                        <span className={cn('size-1.5 shrink-0 rounded-full', status.dot)} aria-hidden="true" />
+                      ) : null}
+                      <span className="whitespace-nowrap">{displayServerName(server)}</span>
+                      {status.label && active ? (
+                        <span className="whitespace-nowrap text-[10px] font-normal text-zinc-400">
+                          {status.label}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Navigasi episode: satu baris dengan tinggi tetap, state kosong tetap terlihat. */}
             <nav
               aria-label="Navigasi episode"
-              className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-line px-1 py-0.5 sm:px-2"
+              className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-line bg-white/[0.015] px-1 py-1 sm:px-2"
             >
               <EpisodeNavButton link={navigation.prev} direction="prev" seriesTitle={seriesTitle} />
-              <details className="group relative">
-                <summary
-                  aria-label="Pilih episode"
-                  title="Pilih episode"
-                  className="flex h-12 cursor-pointer list-none flex-col items-center justify-center rounded-md px-2.5 transition-colors duration-150 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:h-11 [&::-webkit-details-marker]:hidden"
-                >
-                  <span className="text-[10px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-500">
-                    Episode
-                  </span>
-                  <span className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-semibold leading-none tabular-nums text-zinc-100">
-                    <List className="size-3.5 text-zinc-400" strokeWidth={1.75} aria-hidden="true" />
-                    {episodePosition?.number || '—'}
-                    {episodePosition ? (
-                      <span className="text-[11px] font-normal text-zinc-500">/ {episodePosition.total}</span>
-                    ) : null}
-                  </span>
-                </summary>
-                <div className="absolute left-1/2 top-full z-40 mt-2 max-h-[min(60vh,26rem)] w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-md border border-line bg-elevated p-2 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.8)]">
-                  <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
-                    Episode {seriesTitle ? `· ${seriesTitle}` : ''}
-                  </p>
-                  {episodes.length > 0 ? (
-                    <ul aria-label="Pilih episode" className="grid grid-cols-2 gap-1">
-                      {episodes.map((episode, index) => {
-                        const number = episode.number || episodeNumberFromTitle(episode.title);
-                        const isCurrent = Boolean(
-                          episode.slug &&
-                            (pathname.endsWith(`/${encodeURIComponent(episode.slug)}`) ||
-                              pathname.endsWith(`/${episode.slug}`))
-                        );
-                        return (
-                          <li key={episode.slug || `${episode.title}-${index}`}>
-                            {episode.slug ? (
-                              <Link
-                                href={`/watch/${encodeURIComponent(episode.slug)}`}
-                                prefetch={false}
-                                aria-current={isCurrent ? 'page' : undefined}
-                                title={episode.title}
-                                className={cn(
-                                  'flex min-h-9 items-center gap-2 rounded-sm px-2 text-[11.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
-                                  isCurrent
-                                    ? 'bg-white/[0.1] text-white'
-                                    : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white'
-                                )}
-                              >
-                                <span className="shrink-0 font-mono tabular-nums text-zinc-500">
-                                  {number ? `Ep ${number}` : 'Ep'}
-                                </span>
-                                {isCurrent ? (
-                                  <span className="sr-only">Episode sedang diputar: </span>
-                                ) : null}
-                                <span className="min-w-0 truncate">{episode.title}</span>
-                              </Link>
-                            ) : (
-                              <span className="flex min-h-9 items-center gap-2 px-2 text-[11.5px] text-zinc-500">
-                                <span className="shrink-0 font-mono tabular-nums">
-                                  {number ? `Ep ${number}` : 'Ep'}
-                                </span>
-                                <span className="min-w-0 truncate">{episode.title}</span>
-                              </span>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <p className="px-2 py-3 text-[12px] text-zinc-500">
-                      Daftar episode belum tersedia.
-                    </p>
-                  )}
-                  {allSeriesHref ? (
-                    <Link
-                      href={allSeriesHref}
-                      prefetch={false}
-                      className="mt-2 flex min-h-9 items-center rounded-sm border-t border-line px-2 pt-2 text-[11.5px] font-medium text-zinc-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                    >
-                      Buka halaman seri
-                    </Link>
-                  ) : null}
-                </div>
-              </details>
+              <EpisodePicker
+                episodes={episodes}
+                currentPath={pathname || ''}
+                allEpisodesHref={allSeriesHref}
+                seriesTitle={seriesTitle}
+                totalEpisodes={totalEpisodes}
+                onOpenChange={setEpisodePickerOpen}
+                malzSearch={malzSearch}
+              />
               <EpisodeNavButton link={navigation.next} direction="next" seriesTitle={seriesTitle} />
             </nav>
 

@@ -13,6 +13,7 @@ import {
   malzEpisodeSlug,
   malzServersToMirrors,
   malzStatusLabel,
+  malzToCard,
   malzToEpisodeSummary,
   type MalzEpisode,
 } from '@/lib/malz';
@@ -25,6 +26,7 @@ import { getSessionUser } from '@/lib/auth/session';
 import { isEpisodeLocked } from '@/lib/auth/episode-policy';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { WatchRecorder } from '@/components/history/WatchRecorder';
+import { posterUrlWithTitleFallback } from '@/lib/posters';
 
 export const revalidate = 120;
 
@@ -97,7 +99,9 @@ interface MalzWatchData {
   loadedPage: number;
   perPage: number;
   totalEpisodes: number;
+  minAvailableEpisode: number | null;
   poster: string | null;
+  episodePoster: string | null;
 }
 
 async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
@@ -152,9 +156,14 @@ async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
     const value = Number.parseFloat(item.number || '');
     return Number.isFinite(value) ? Math.max(max, value) : max;
   }, 0);
-
+  const highestEpisode = Math.max(
+    totalEpisodes,
+    ...firstPage.items.map((item) => Number.parseFloat(item.episode) || 0)
+  );
   const servers = malzServersToMirrors(stream.servers);
   const firstDirect = servers.find((server) => server.type === 'video' || server.type === 'hls');
+  const posterTitle = cleanEpisodeTitle(detail?.anime.judul || 'Anime');
+  const seriesPoster = detail ? malzToCard(detail.anime).poster : null;
 
   return {
     animeId,
@@ -175,8 +184,13 @@ async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
     episodes: summaries,
     loadedPage,
     perPage: perHalaman,
-    poster: malzImageUrl(detail?.anime.poster || detail?.anime.cover || null),
-    totalEpisodes: totalEpisodes || summaries.length,
+    poster: seriesPoster,
+    totalEpisodes: highestEpisode || summaries.length,
+    minAvailableEpisode: null,
+    episodePoster:
+      (episode.gambar
+        ? posterUrlWithTitleFallback(episode.gambar, posterTitle, null, 640)
+        : null) || seriesPoster,
   };
 }
 
@@ -267,6 +281,8 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
             initialPage={data.loadedPage}
             perPage={data.perPage}
             currentSlug={malzEpisodeSlug(episodeId)}
+            totalCount={data.totalEpisodes}
+            minAvailableEpisode={data.minAvailableEpisode}
           />
         ) : null
       }
@@ -301,6 +317,9 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
               navigation={data.navigation}
               seriesSlug={data.seriesSlug}
               seriesTitle={data.seriesTitle}
+              poster={data.episodePoster}
+              totalEpisodes={data.totalEpisodes}
+              malzSearch={{ animeId: data.animeId, perPage: data.perPage }}
             />
           </>
         )
@@ -414,6 +433,7 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
               navigation={navigation}
               seriesSlug={seriesSlug}
               seriesTitle={seriesTitle}
+              poster={seriesDetail?.poster || null}
             />
           </>
         )
