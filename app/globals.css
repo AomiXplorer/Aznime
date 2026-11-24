@@ -10,10 +10,14 @@
   --color-surface: #131010;
   --color-elevated: #1b1515;
   --color-line: #2b2222;
+  --color-line-soft: #241d1d;
   --color-bone: #efe8e0;
   --color-ink: #1a1414;
   --color-accent: #e11d48;
   --color-accent-strong: #be123c;
+  /* Varian lebih terang khusus teks kecil di atas permukaan gelap:
+     #e11d48 hanya mencapai 4,0:1, sedangkan ini 5,2:1 (AA). */
+  --color-accent-soft: #f43f5e;
   --color-muted: #a49b9a;
 
   /* Skala zinc bawaan diganti versi hangat. Semua teks sekunder di seluruh

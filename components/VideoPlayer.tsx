@@ -109,7 +109,8 @@ interface EpisodeNavButtonProps {
 
 function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProps) {
   const number = link?.number || (link ? episodeNumberFromTitle(link.title) : null);
-  const text = number ? `Ep ${number}` : link ? cleanEpisodeTitle(link.title) : 'Tidak ada';
+  const label = direction === 'prev' ? 'Sebelumnya' : 'Berikutnya';
+  const value = number ? `Episode ${number}` : link ? cleanEpisodeTitle(link.title) : 'Tidak tersedia';
   const hint = link
     ? [
         direction === 'prev' ? 'Episode sebelumnya' : 'Episode berikutnya',
@@ -122,19 +123,51 @@ function EpisodeNavButton({ link, direction, seriesTitle }: EpisodeNavButtonProp
       ? 'Tidak ada episode sebelumnya'
       : 'Tidak ada episode berikutnya';
 
+  /* Dua baris: label arah yang kecil di atas, nomor episode sebagai titik baca
+     utama. Slot tanpa episode tetap dirender supaya lebar kiri dan kanan sama
+     dan tombol tengah tidak bergeser. */
+  const alignEnd = direction === 'next';
+
   const className = cn(
-    'inline-flex h-9 min-w-0 items-center gap-1 rounded-md px-2 text-[12.5px] font-medium transition-colors duration-150',
-    direction === 'next' && 'justify-end',
+    'group flex h-12 min-w-0 max-w-full items-center gap-1.5 rounded-md px-2 transition-colors duration-150 sm:h-11',
+    alignEnd ? 'justify-end justify-self-end' : 'justify-start justify-self-start',
     link
-      ? 'text-zinc-200 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60'
-      : 'cursor-default text-zinc-600'
+      ? 'text-zinc-100 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60'
+      : 'cursor-default'
+  );
+
+  const chevronClass = cn(
+    'size-4 shrink-0 transition-colors duration-150',
+    link ? 'text-zinc-500 group-hover:text-white' : 'text-zinc-700'
   );
 
   const content = (
     <>
-      {direction === 'prev' ? <ChevronLeft className="size-4 shrink-0" aria-hidden="true" /> : null}
-      <span className="truncate">{text}</span>
-      {direction === 'next' ? <ChevronRight className="size-4 shrink-0" aria-hidden="true" /> : null}
+      {direction === 'prev' ? (
+        <ChevronLeft className={chevronClass} strokeWidth={1.75} aria-hidden="true" />
+      ) : null}
+      <span className={cn('flex min-w-0 flex-1 flex-col', alignEnd ? 'items-end' : 'items-start')}>
+        <span
+          className={cn(
+            'text-[10px] font-semibold uppercase leading-none tracking-[0.12em]',
+            link ? 'text-zinc-500' : 'text-zinc-700'
+          )}
+        >
+          {label}
+        </span>
+        <span
+          className={cn(
+            'mt-1 w-full min-w-0 truncate text-[13px] leading-tight',
+            alignEnd && 'text-right',
+            link ? 'font-medium' : 'text-zinc-600'
+          )}
+        >
+          {value}
+        </span>
+      </span>
+      {direction === 'next' ? (
+        <ChevronRight className={chevronClass} strokeWidth={1.75} aria-hidden="true" />
+      ) : null}
     </>
   );
 
@@ -505,6 +538,16 @@ export function VideoPlayer({
 
   const closeReport = useCallback(() => setReportText(null), []);
 
+  /* Posisi episode yang sedang diputar, dibaca dari daftar episode yang sudah
+     dimuat. Dipakai tombol tengah navigasi ("3 / 12") tanpa mengubah rute. */
+  const episodePosition = useMemo(() => {
+    const segment = decodeURIComponent(pathname?.split('/').filter(Boolean).pop() || '');
+    const index = episodes.findIndex((episode) => episode.slug && episode.slug === segment);
+    if (index < 0) return null;
+    const number = episodes[index].number || episodeNumberFromTitle(episodes[index].title);
+    return { number, total: episodes.length };
+  }, [episodes, pathname]);
+
   const allSeriesHref = navigation.all?.slug
     ? `/anime/${encodeURIComponent(navigation.all.slug)}`
     : seriesSlug
@@ -707,17 +750,28 @@ export function VideoPlayer({
               </div>
             </div>
 
-            {/* Navigasi episode: satu baris, tinggi tetap, state kosong tetap terlihat. */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t border-line px-1 py-0.5 sm:px-2">
+            {/* Navigasi episode: satu baris dengan tinggi tetap, state kosong tetap terlihat. */}
+            <nav
+              aria-label="Navigasi episode"
+              className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-line px-1 py-0.5 sm:px-2"
+            >
               <EpisodeNavButton link={navigation.prev} direction="prev" seriesTitle={seriesTitle} />
               <details className="group relative">
                 <summary
                   aria-label="Pilih episode"
                   title="Pilih episode"
-                  className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 [&::-webkit-details-marker]:hidden"
+                  className="flex h-12 cursor-pointer list-none flex-col items-center justify-center rounded-md px-2.5 transition-colors duration-150 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:h-11 [&::-webkit-details-marker]:hidden"
                 >
-                  <List className="size-4" aria-hidden="true" />
-                  <span>Pilih episode</span>
+                  <span className="text-[10px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-500">
+                    Episode
+                  </span>
+                  <span className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-semibold leading-none tabular-nums text-zinc-100">
+                    <List className="size-3.5 text-zinc-400" strokeWidth={1.75} aria-hidden="true" />
+                    {episodePosition?.number || '—'}
+                    {episodePosition ? (
+                      <span className="text-[11px] font-normal text-zinc-500">/ {episodePosition.total}</span>
+                    ) : null}
+                  </span>
                 </summary>
                 <div className="absolute left-1/2 top-full z-40 mt-2 max-h-[min(60vh,26rem)] w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-md border border-line bg-elevated p-2 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.8)]">
                   <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
@@ -784,7 +838,7 @@ export function VideoPlayer({
                 </div>
               </details>
               <EpisodeNavButton link={navigation.next} direction="next" seriesTitle={seriesTitle} />
-            </div>
+            </nav>
 
             {notice ? (
               <p
