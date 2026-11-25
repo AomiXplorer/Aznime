@@ -59,6 +59,21 @@ export function malzAnimeIdFromSlug(slug: string): string | null {
 const MALZ_ANIME_SLUG_CACHE_PREFIX = 'malz:anime-slug:';
 const MALZ_ANIME_SLUG_CACHE_TTL = 60 * 60 * 24 * 90;
 
+/** Cari anime dari daftar katalog Malz tanpa memanggil endpoint search. */
+async function findMalzAnimeBySlug(titleSlug: string): Promise<MalzAnime | null> {
+  const [recent, trending, home] = await Promise.all([
+    getMalzRecent(100).catch(() => []),
+    getMalzTrending(100).catch(() => []),
+    getMalzHome(100)
+      .then((data) => data.items || [])
+      .catch(() => []),
+  ]);
+  for (const anime of [...recent, ...trending, ...home]) {
+    if (slugifyMalzTitle(anime.judul) === titleSlug) return anime;
+  }
+  return null;
+}
+
 /**
  * Nama anime Malz bisa dipakai sebagai slug, tapi rute tetap perlu ID asli
  * untuk mengambil detail. Pencarian hanya dilakukan sekali per slug, lalu
@@ -73,6 +88,16 @@ export async function resolveMalzAnimeId(slug: string): Promise<string | null> {
     if (cached) return cached;
   } catch {
     // Redis opsional; pencarian langsung tetap jalan.
+  }
+
+  const direct = await findMalzAnimeBySlug(titleSlug);
+  if (direct) {
+    try {
+      await kvSet(cacheKey, direct.id, MALZ_ANIME_SLUG_CACHE_TTL);
+    } catch {
+      // cache opsional
+    }
+    return direct.id;
   }
 
   const words = titleSlug.split('-').filter(Boolean);
@@ -128,17 +153,19 @@ export async function resolveMalzEpisodeId(slug: string): Promise<string | null>
     // Redis tidak tersedia: lanjut ke pencarian.
   }
 
+  const direct = await findMalzAnimeBySlug(parsed.titleSlug);
   const query = parsed.titleSlug.replace(/-/g, ' ');
-  const candidates = await getMalzSearch(query).catch(() => []);
-  const ranked = candidates
-    .map((anime) => {
-      const animeSlug = slugifyMalzTitle(anime.judul);
-      const score = animeSlug === parsed.titleSlug ? 2 : animeSlug.includes(parsed.titleSlug) ? 1 : 0;
-      return { anime, score };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+  const candidates = direct ? [direct] : await getMalzSearch(query).catch(() => []);
+  const ranked = direct
+    ? [{ anime: direct, score: 2 }]
+    : candidates
+        .map((anime) => {
+          const animeSlug = slugifyMalzTitle(anime.judul);
+          const score = animeSlug === parsed.titleSlug ? 2 : 0;
+          return { anime, score };
+        })
+        .filter((item) => item.score > 0)
+        .slice(0, 3);
 
   for (const { anime } of ranked) {
     const firstPage = await getMalzEpisodes(anime.id, 0).catch(() => null);
