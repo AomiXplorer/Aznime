@@ -81,7 +81,7 @@ test('parseAdminIds dan isAuthorizedTelegramAdmin membatasi ID admin', () => {
     const parsed = parseAdminIds();
     assert.deepEqual([...parsed], [111222, 333444]);
     assert.equal(isAuthorizedTelegramAdmin(111222, 999), true);
-    assert.equal(isAuthorizedTelegramAdmin(999, 333444), true);
+    assert.equal(isAuthorizedTelegramAdmin(999, 333444), false);
     assert.equal(isAuthorizedTelegramAdmin(555, 666), false);
   } finally {
     if (prev === undefined) delete process.env.TELEGRAM_ADMIN_IDS;

@@ -18,6 +18,7 @@ import {
   Pause,
   PictureInPicture2,
   Play,
+  Rewind,
   RotateCcw,
   Settings,
   SkipForward,
@@ -59,6 +60,7 @@ interface DirectControlsProps {
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 /** Panjang standar opening anime; tombol "Lompat 85 dtk". */
 const SKIP_SECONDS = 85;
+const SEEK_SECONDS = 10;
 const HIDE_AFTER_MS = 2800;
 const NEXT_COUNTDOWN = 8;
 const VOLUME_KEY = 'aznime:volume';
@@ -97,7 +99,7 @@ function BarButton({ label, onClick, children, pressed, className, ref }: BarBut
       aria-pressed={pressed}
       title={label}
       className={cn(
-        'inline-flex h-9 min-w-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-1.5 text-white transition-colors duration-150 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+        'pointer-events-auto inline-flex h-9 min-w-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-1.5 text-white transition-colors duration-150 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
         pressed && 'bg-white/[0.14]',
         className
       )}
@@ -573,8 +575,8 @@ export function DirectControls({
       // Ketuk dua kali: kiri mundur, kanan maju, tengah putar/jeda.
       lastTap.current = 0;
       window.clearTimeout(tapTimer.current);
-      if (x < 0.34) seekBy(-10, 'l');
-      else if (x > 0.66) seekBy(10, 'r');
+      if (x < 0.34) seekBy(-SEEK_SECONDS, 'l');
+      else if (x > 0.66) seekBy(SEEK_SECONDS, 'r');
       else togglePlay();
       return;
     }
@@ -697,11 +699,39 @@ export function DirectControls({
           type="button"
           onClick={togglePlay}
           aria-label="Putar video"
-          className="absolute left-1/2 top-1/2 inline-flex size-16 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-accent text-white transition-transform duration-150 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="absolute left-1/2 top-1/2 inline-flex size-16 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-accent text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] transition-[background-color,box-shadow] duration-150 hover:bg-accent-strong hover:shadow-[0_10px_34px_rgba(0,0,0,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           <Play className="ml-0.5 size-7 fill-current" aria-hidden="true" />
         </button>
       ) : null}
+
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-0 z-10 sm:hidden',
+          showBar ? 'opacity-100' : 'pointer-events-none opacity-0'
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => seekBy(-SEEK_SECONDS, 'l')}
+          aria-label={`Mundur ${SEEK_SECONDS} detik`}
+          title={`Mundur ${SEEK_SECONDS} detik`}
+          className="pointer-events-auto absolute left-1/2 top-1/2 inline-flex size-11 -translate-x-[6.5rem] -translate-y-1/2 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full border border-white/25 bg-black/65 text-white shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-colors duration-150 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          <Rewind className="size-4 fill-current" aria-hidden="true" />
+          <span className="text-[9px] font-semibold leading-none">10</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => seekBy(SEEK_SECONDS, 'r')}
+          aria-label={`Maju ${SEEK_SECONDS} detik`}
+          title={`Maju ${SEEK_SECONDS} detik`}
+          className="pointer-events-auto absolute left-1/2 top-1/2 inline-flex size-11 translate-x-[3.75rem] -translate-y-1/2 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full border border-white/25 bg-black/65 text-white shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-colors duration-150 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          <FastForward className="size-4 fill-current" aria-hidden="true" />
+          <span className="text-[9px] font-semibold leading-none">10</span>
+        </button>
+      </div>
 
       {buffering && !loading && !paused ? (
         <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -730,7 +760,10 @@ export function DirectControls({
       {resumeFrom !== null ? (
         <div
           role="status"
-          className="absolute bottom-[4.75rem] left-3 flex items-center gap-3 rounded-lg bg-surface px-3 py-2 text-[12.5px] text-zinc-300 ring-1 ring-white/10"
+          className={cn(
+            'absolute left-3 flex items-center gap-3 rounded-lg bg-surface px-3 py-2 text-[12.5px] text-zinc-300 ring-1 ring-white/10',
+            isFullscreen ? 'top-12' : 'top-3'
+          )}
         >
           <span>
             Dilanjutkan dari{' '}
@@ -773,7 +806,7 @@ export function DirectControls({
               </button>
             </div>
           </div>
-          <div className="h-[3px] bg-white/10" aria-hidden="true">
+          <div className="h-[3px] bg-zinc-600" aria-hidden="true">
             <div className="player-countdown h-full bg-accent" />
           </div>
         </div>
@@ -782,7 +815,7 @@ export function DirectControls({
       {menuOpen ? (
         <div
           ref={menuRef}
-          role="dialog"
+          role="group"
           aria-label="Pengaturan pemutar"
           className="absolute bottom-[4.5rem] right-2 max-h-[calc(100%-5.5rem)] w-60 overflow-y-auto rounded-lg bg-surface p-3 ring-1 ring-white/10 sm:right-3"
         >
@@ -843,7 +876,7 @@ export function DirectControls({
                 aria-hidden="true"
                 className={cn(
                   'relative h-5 w-9 shrink-0 rounded-full transition-colors',
-                  autoNext ? 'bg-accent' : 'bg-white/20'
+                  autoNext ? 'bg-accent' : 'bg-zinc-500'
                 )}
               >
                 <span
@@ -868,7 +901,7 @@ export function DirectControls({
         }}
         onBlurCapture={() => setFocusWithin(false)}
         className={cn(
-          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-2 pb-2 pt-12 transition-opacity duration-200 sm:px-3.5',
+          'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-2 pb-2 pt-12 transition-opacity duration-200 sm:px-3.5',
           showBar ? 'opacity-100' : 'pointer-events-none opacity-0'
         )}
       >
@@ -886,7 +919,7 @@ export function DirectControls({
           onPointerCancel={() => setScrub(null)}
           onPointerLeave={() => setHover(null)}
           onKeyDown={onSeekKeyDown}
-          className="group/seek relative h-5 cursor-pointer touch-none rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="pointer-events-auto group/seek relative h-5 cursor-pointer touch-none rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           <div
             ref={trackRef}
@@ -910,8 +943,8 @@ export function DirectControls({
           <div
             aria-hidden="true"
             className={cn(
-              'absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent transition-transform duration-150 group-hover/seek:scale-100 group-focus-visible/seek:scale-100',
-              scrub !== null ? 'scale-100' : 'scale-0'
+              'absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent opacity-0 transition-opacity duration-150 group-hover/seek:opacity-100 group-focus-visible/seek:opacity-100',
+              scrub !== null && 'opacity-100'
             )}
             style={{ left: `${progress * 100}%` }}
           />
@@ -949,7 +982,7 @@ export function DirectControls({
               value={effectiveVolume}
               aria-label="Volume"
               onChange={(e) => changeVolume(Number(e.target.value))}
-              className="player-range hidden w-0 opacity-0 transition-[width,opacity] duration-200 group-hover/vol:w-20 group-hover/vol:opacity-100 group-has-[:focus-visible]/vol:w-20 group-has-[:focus-visible]/vol:opacity-100 sm:block"
+              className="player-range pointer-events-auto hidden w-0 opacity-0 transition-[width,opacity] duration-200 group-hover/vol:w-20 group-hover/vol:opacity-100 group-has-[:focus-visible]/vol:w-20 group-has-[:focus-visible]/vol:opacity-100 sm:block"
               style={{ '--fill': `${effectiveVolume * 100}%` } as CSSProperties}
             />
           </div>

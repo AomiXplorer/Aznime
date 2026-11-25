@@ -3,7 +3,7 @@ import { createSession, setSessionCookie } from '@/lib/auth/session';
 import { findUserByEmail, toPublicUser } from '@/lib/auth/users';
 import { verifyPassword } from '@/lib/auth/crypto';
 import { consumeRateLimit } from '@/lib/auth/rate-limit';
-import { isTurnstileSecretUsable, verifyTurnstile, turnstileSiteKey } from '@/lib/auth/turnstile';
+import { verifyTurnstile, turnstileSiteKey } from '@/lib/auth/turnstile';
 import { syncHistory } from '@/lib/auth/history';
 import { normalizeEmail, validateEmail } from '@/lib/auth/validation';
 
@@ -42,19 +42,17 @@ export async function POST(request: Request) {
       return jsonError(422, 'Password wajib diisi.');
     }
 
-    if (turnstileSiteKey() && (await isTurnstileSecretUsable())) {
+    if (turnstileSiteKey()) {
       const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : '';
       const result = await verifyTurnstile(token, { ip });
       if (!result.ok) {
-        if (result.reason === 'misconfigured') {
-          console.warn('[auth] TURNSTILE_SECRET_KEY ditolak Cloudflare; verifikasi dilewati sementara.');
-        } else {
-          const message =
-            result.reason === 'expired'
-              ? 'Verifikasi kedaluwarsa. Ulangi verifikasi lalu coba lagi.'
+        const message =
+          result.reason === 'expired'
+            ? 'Verifikasi kedaluwarsa. Ulangi verifikasi lalu coba lagi.'
+            : result.reason === 'unavailable'
+              ? 'Layanan verifikasi keamanan sedang tidak tersedia. Coba lagi sebentar lagi.'
               : 'Verifikasi keamanan gagal. Ulangi verifikasi lalu coba lagi.';
-          return jsonResponse({ error: message, code: `turnstile_${result.reason}` }, 400);
-        }
+        return jsonResponse({ error: message, code: `turnstile_${result.reason}` }, 400);
       }
     }
 

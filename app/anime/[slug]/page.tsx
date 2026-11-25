@@ -1,11 +1,11 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getDetail, UpstreamError } from '@/lib/scraper';
-import { getAniListTrailer } from '@/lib/anilist';
-import { getHidoriTitleIndex, isKnownTitle } from '@/lib/sources';
 import {
   getMalzDetail,
   getMalzEpisodes,
+  getMalzSearch,
   malzAnimeIdFromSlug,
   malzAnimeSlug,
   resolveMalzAnimeId,
@@ -15,6 +15,7 @@ import {
   malzToEpisodeSummary,
   malzTypeLabel,
 } from '@/lib/malz';
+import { normalizeTitle } from '@/lib/sources';
 import type { AnimeDetail, EpisodeSummary } from '@/lib/scraper/types';
 import { AnimeDetailLayout, type AnimeDetailView } from '@/components/AnimeDetailLayout';
 import { EpisodeList } from '@/components/EpisodeList';
@@ -37,40 +38,78 @@ function episodeNumberValue(episode: EpisodeSummary | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-async function buildMalzDetail(id: string): Promise<AnimeDetailView> {
-  const detail = await getMalzDetail(id);
-  const anime = detail.anime;
-
-  const firstPage = await getMalzEpisodes(id, 0);
-  let episodes = firstPage.items;
-  let loadedPage = 0;
-
-  if (firstPage.items.length >= firstPage.perHalaman) {
-    const secondPage = await getMalzEpisodes(id, 1).catch(() => null);
-    if (secondPage && secondPage.items.length > 0) {
-      episodes = [...firstPage.items, ...secondPage.items];
-      loadedPage = 1;
-    }
+async function HidoriEpisodeCatalog({ detail }: { detail: AnimeDetail }) {
+  const firstAvailable = Math.min(
+    ...detail.episodes
+      .map((episode) => episodeNumberValue(episode))
+      .filter((number) => number > 0)
+  );
+  if (!Number.isFinite(firstAvailable) || firstAvailable <= 1) {
+    return <EpisodeList episodes={detail.episodes} />;
   }
+
+  try {
+    const archiveQuery = normalizeTitle(detail.title);
+    const archive = (await getMalzSearch(archiveQuery, 0, 'title')).find(
+      (item) => normalizeTitle(item.judul) === normalizeTitle(detail.title)
+    );
+    if (!archive) return <EpisodeList episodes={detail.episodes} />;
+
+    const [archiveDetail, firstPage] = await Promise.all([
+      getMalzDetail(archive.id),
+      getMalzEpisodes(archive.id, 0),
+    ]);
+    const episodes = firstPage.items.map(malzToEpisodeSummary);
+    const totalCount = Math.max(
+      episodeNumberValue(
+        archiveDetail.episode_terakhir
+          ? malzToEpisodeSummary(archiveDetail.episode_terakhir)
+          : undefined
+      ),
+      ...episodes.map(episodeNumberValue)
+    );
+
+    return (
+      <div>
+        <p className="pb-2 text-[11.5px] text-zinc-400">
+          Episode lama tersedia melalui arsip.
+        </p>
+        <MalzEpisodeList
+          animeId={archive.id}
+          initialEpisodes={episodes}
+          initialPage={0}
+          perPage={firstPage.perHalaman}
+          totalCount={totalCount}
+        />
+      </div>
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
+    return (
+      <div>
+        <p role="alert" className="pb-2 text-[11.5px] text-rose-400">
+          Episode arsip gagal dimuat: {message}
+        </p>
+        <EpisodeList episodes={detail.episodes} />
+      </div>
+    );
+  }
+}
 
   const episodeSummaries = episodes.map((episode) => malzToEpisodeSummary(episode, anime.judul));
   const startEpisode = detail.episode_terakhir
     ? malzToEpisodeSummary(detail.episode_terakhir, anime.judul)
     : episodeSummaries[episodeSummaries.length - 1] || null;
-  const latestEpisode = episodeSummaries[0] || null;
+  const latestEpisode = episodeSummaries[0] || startEpisode;
   const highestNumber = episodeSummaries.reduce(
-    (max, episode) => Math.max(max, episodeNumberValue(episode)),
-    0
+    (highest, episode) => Math.max(highest, episodeNumberValue(episode)),
+    episodeNumberValue(startEpisode || undefined)
   );
-
   const card = malzToCard(anime);
   const altTitle = malzSinonimList(anime).join(', ') || null;
-  const trailer = await getAniListTrailer(anime.judul, altTitle).catch(() => null);
-
-  const hidoriIndex = await getHidoriTitleIndex();
   const recommendations = (detail.season || [])
     .map(malzToCard)
-    .filter((card) => card.slug !== `malz-${id}` && !isKnownTitle(card, hidoriIndex));
+    .filter((card) => card.slug !== `malz-${id}`);
 
   const info: Record<string, string> = {
     Status: anime.status ? malzStatusLabel(anime.status) : '',
@@ -92,13 +131,15 @@ async function buildMalzDetail(id: string): Promise<AnimeDetailView> {
     synopsis: anime.sinopsis || null,
     info,
     genres: (detail.genre || []).map((genre) => ({ name: genre.nama, slug: null })),
-    totalEpisodes: highestNumber || episodeSummaries.length,
+    totalEpisodes: highestNumber,
     startEpisode,
     latestEpisode,
-    trailer,
-    banner: trailer?.bannerImage || null,
+    trailer: null,
+    banner: null,
+    deferTrailer: true,
     downloadBoxes: [],
     recommendations,
+    filterKnownRecommendations: true,
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'TVSeries',
@@ -117,16 +158,37 @@ async function buildMalzDetail(id: string): Promise<AnimeDetailView> {
       <MalzEpisodeList
         animeId={id}
         initialEpisodes={episodeSummaries}
-        initialPage={loadedPage}
+        initialPage={0}
         perPage={firstPage.perHalaman}
+        totalCount={highestNumber}
       />
     ),
   };
 }
 
-async function buildHidoriDetail(detail: AnimeDetail): Promise<AnimeDetailView> {
-  const trailer = await getAniListTrailer(detail.title, detail.altTitle).catch(() => null);
+async function MalzAnimeDetail({ id, slug }: { id: string; slug: string }) {
+  try {
+    const view = await buildMalzDetail(id);
+    return (
+      <AnimeDetailLayout
+        {...view}
+        favoriteSlot={
+          <FavoriteButton animeId={slug} title={view.title} poster={view.poster} />
+        }
+      />
+    );
+  } catch (err) {
+    if (err instanceof UpstreamError && err.isNotFound) notFound();
+    const message = err instanceof Error ? err.message : 'Gagal memuat detail anime dari arsip.';
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <ErrorState title="Gagal memuat detail anime" message={message} />
+      </div>
+    );
+  }
+}
 
+async function buildHidoriDetail(detail: AnimeDetail): Promise<AnimeDetailView> {
   const firstEpisode = detail.episodes.length > 0 ? detail.episodes[detail.episodes.length - 1] : null;
   const latestEpisode = detail.episodes.length > 0 ? detail.episodes[0] : null;
 
@@ -138,11 +200,15 @@ async function buildHidoriDetail(detail: AnimeDetail): Promise<AnimeDetailView> 
     synopsis: detail.synopsis,
     info: detail.info,
     genres: detail.genres.map((genre) => ({ name: genre.name, slug: genre.slug })),
-    totalEpisodes: detail.totalEpisodes,
+    totalEpisodes: Math.max(
+      detail.totalEpisodes || 0,
+      ...detail.episodes.map(episodeNumberValue)
+    ),
     startEpisode: firstEpisode,
     latestEpisode,
-    trailer,
-    banner: trailer?.bannerImage || null,
+    trailer: null,
+    banner: null,
+    deferTrailer: true,
     downloadBoxes: detail.batchDownloads,
     recommendations: detail.recommendations,
     jsonLd: {
@@ -161,7 +227,17 @@ async function buildHidoriDetail(detail: AnimeDetail): Promise<AnimeDetailView> 
       numberOfEpisodes: detail.totalEpisodes || undefined,
       publisher: { '@id': organizationId() },
     },
-    episodesSlot: <EpisodeList episodes={detail.episodes} />,
+    episodesSlot: (
+      <Suspense
+        fallback={
+          <p role="status" className="py-5 text-[12.5px] text-zinc-400">
+            Memuat daftar episode…
+          </p>
+        }
+      >
+        <HidoriEpisodeCatalog detail={detail} />
+      </Suspense>
+    ),
   };
 }
 

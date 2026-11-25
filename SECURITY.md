@@ -215,8 +215,10 @@ Dikirim untuk semua respons dari `next.config.ts`:
 
 CSP masih memuat `script-src 'unsafe-inline'` dan `style-src 'unsafe-inline'`
 karena Next menyisipkan skrip bootstrap inline tanpa nonce. Menghapusnya akan
-mematikan hidrasi React. Sisa direktif tetap menutup plugin/objek, penyalahgunaan
-`<base>`, pengiriman form lintas domain, dan clickjacking.
+mematikan hidrasi React. `script-src 'unsafe-eval'` hanya ditambahkan pada
+development untuk stack trace React; header production tidak mengizinkannya.
+Sisa direktif tetap menutup plugin/objek, penyalahgunaan `<base>`, pengiriman
+form lintas domain, dan clickjacking.
 
 ---
 

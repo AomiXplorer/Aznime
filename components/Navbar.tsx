@@ -32,6 +32,7 @@ export function Navbar() {
   const { user, loading: authLoading, openAuth } = useAuth();
   // Di bagian dewasa, tombol cari ikut mencari katalog Nekopoi.
   const adult = pathname === '/hentai' || pathname.startsWith('/hentai/');
+  const watchPage = pathname === '/watch' || pathname.startsWith('/watch/');
   const [searchOpen, setSearchOpen] = useState(false);
   // Sekali dibuka, dialog tetap terpasang supaya animasi keluar berjalan normal.
   const [searchMounted, setSearchMounted] = useState(false);
@@ -96,7 +97,7 @@ export function Navbar() {
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-0 h-6 w-px"
       />
-      <header className="sticky top-0 z-40 isolate">
+      <header className={`${watchPage ? 'relative' : 'sticky top-0'} z-40 isolate`}>
         {/* Latar solid tanpa backdrop-filter: blur pada elemen sticky memaksa
             browser me-render ulang seluruh area di belakangnya setiap frame
             saat scroll, dan itu penyebab utama scroll tersendat di Android.

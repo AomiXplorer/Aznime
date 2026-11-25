@@ -329,9 +329,7 @@ export function parseAdminIds(raw = process.env.TELEGRAM_ADMIN_IDS): Set<number>
 export function isAuthorizedTelegramAdmin(userId?: number | null, chatId?: number | null): boolean {
   const admins = parseAdminIds();
   if (admins.size === 0) return false;
-  if (typeof userId === 'number' && admins.has(userId)) return true;
-  if (typeof chatId === 'number' && admins.has(chatId)) return true;
-  return false;
+  return typeof userId === 'number' && admins.has(userId);
 }
 
 function getSigningSecret(): string {
