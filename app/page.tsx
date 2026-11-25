@@ -8,6 +8,7 @@ import {
   getMalzArchivePool,
   mergeAnimeCards,
   getHidoriTitleIndex,
+  getMalzPopularRanking,
   topUpPopularRanking,
 } from '@/lib/sources';
 import { HeroSection } from '@/components/HeroSection';
@@ -57,11 +58,22 @@ export default async function HomePage() {
       }))
   );
 
-  const [weekly, monthly, alltime] = await Promise.all([
-    topUpPopularRanking(home.popular.weekly).then(withoutAdult),
-    topUpPopularRanking(home.popular.monthly).then(withoutAdult),
-    topUpPopularRanking(home.popular.alltime).then(withoutAdult),
-  ]);
+  /* Sumber utama peringkat: arsip Malz (views + favorit). Daftar populer
+     Hidori hanya dipakai kalau Malz sedang tidak bisa dihubungi, supaya
+     bagian ini tidak pernah kosong. */
+  const malzRanking = await getMalzPopularRanking(5).catch(() => null);
+  const popular =
+    malzRanking && malzRanking.trending.length > 0
+      ? malzRanking
+      : await Promise.all([
+          topUpPopularRanking(home.popular.weekly).then(withoutAdult),
+          topUpPopularRanking(home.popular.monthly).then(withoutAdult),
+          topUpPopularRanking(home.popular.alltime).then(withoutAdult),
+        ]).then(([weekly, monthly, alltime]) => ({
+          trending: weekly,
+          favorite: monthly,
+          mostViewed: alltime,
+        }));
 
   const ongoingWithArchive = withoutAdult(
     mergeAnimeCards(ongoing, archiveByStatus(archive, 'Ongoing', 8), hidoriIndex)
@@ -74,7 +86,11 @@ export default async function HomePage() {
     <>
       {heroItems.length > 0 ? <HeroSection items={heroItems} /> : null}
       <div className="relative z-10 mx-auto max-w-7xl space-y-12 px-4 pt-8 sm:px-6 lg:px-8">
-        <PopularRanking weekly={weekly} monthly={monthly} alltime={alltime} />
+        <PopularRanking
+          trending={withoutAdult(popular.trending)}
+          favorite={withoutAdult(popular.favorite)}
+          mostViewed={withoutAdult(popular.mostViewed)}
+        />
         <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" priorityCount={2} />
         <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
         {archiveRow.length > 0 ? (

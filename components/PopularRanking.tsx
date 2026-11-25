@@ -8,37 +8,37 @@ import { AnimeImage } from './AnimeImage';
 import { cn } from '@/lib/cn';
 
 interface PopularRankingProps {
-  weekly: PopularAnimeItem[];
-  monthly: PopularAnimeItem[];
-  alltime: PopularAnimeItem[];
+  trending: PopularAnimeItem[];
+  favorite: PopularAnimeItem[];
+  mostViewed: PopularAnimeItem[];
 }
 
-type PeriodKey = 'weekly' | 'monthly' | 'alltime';
+type PeriodKey = 'trending' | 'favorite' | 'mostViewed';
 
 const PERIODS: Array<{ key: PeriodKey; label: string }> = [
-  { key: 'weekly', label: 'Minggu ini' },
-  { key: 'monthly', label: 'Bulan ini' },
-  { key: 'alltime', label: 'Sepanjang masa' },
+  { key: 'trending', label: 'Trending' },
+  { key: 'favorite', label: 'Terfavorit' },
+  { key: 'mostViewed', label: 'Paling ditonton' },
 ];
 
 const CHAMPION_TAG: Record<PeriodKey, string> = {
-  weekly: 'Juara minggu ini',
-  monthly: 'Juara bulan ini',
-  alltime: 'Juara terbaik',
+  trending: 'Paling hangat',
+  favorite: 'Paling difavoritkan',
+  mostViewed: 'Paling banyak ditonton',
 };
 
 function itemHref(item: PopularAnimeItem): string {
   return item.slug ? `/anime/${encodeURIComponent(item.slug)}` : '/anime';
 }
 
-export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps) {
-  const [period, setPeriod] = useState<PeriodKey>('weekly');
-  const map: Record<PeriodKey, PopularAnimeItem[]> = { weekly, monthly, alltime };
+export function PopularRanking({ trending, favorite, mostViewed }: PopularRankingProps) {
+  const [period, setPeriod] = useState<PeriodKey>('trending');
+  const map: Record<PeriodKey, PopularAnimeItem[]> = { trending, favorite, mostViewed };
   const list = map[period].slice(0, 5);
   const champion = list[0] || null;
   const runners = list.slice(1);
 
-  if (weekly.length === 0 && monthly.length === 0 && alltime.length === 0) return null;
+  if (trending.length === 0 && favorite.length === 0 && mostViewed.length === 0) return null;
 
   return (
     <section aria-label="Top 5 anime populer" className="space-y-4">
@@ -46,7 +46,7 @@ export function PopularRanking({ weekly, monthly, alltime }: PopularRankingProps
         <div>
           <h2 className="text-[1.1rem] font-bold text-white">Top 5 populer</h2>
           <p className="mt-0.5 text-[12px] text-zinc-500">
-            Peringkat dari yang paling banyak ditonton.
+            Peringkat dari arsip Malz, dihitung dari tontonan dan favorit.
           </p>
         </div>
         <div role="tablist" aria-label="Periode peringkat" className="flex gap-0.5 rounded-[4px] border border-white/10 p-0.5">

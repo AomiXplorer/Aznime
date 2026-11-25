@@ -579,10 +579,47 @@ export function cardToPopularItem(card: AnimeCardItem, rank: number): PopularAni
   };
 }
 
+/** Angka views/favorit Malz datang sebagai string ("39486"), kadang bertitik. */
+function malzMetric(value: unknown): number {
+  const n = Number(String(value ?? '').replace(/[^\d.]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+export interface MalzPopularRanking {
+  /** Urutan trending dari arsip Malz, apa adanya. */
+  trending: PopularAnimeItem[];
+  /** Diurutkan dari jumlah favorit terbanyak. */
+  favorite: PopularAnimeItem[];
+  /** Diurutkan dari jumlah tontonan terbanyak. */
+  mostViewed: PopularAnimeItem[];
+}
+
 /**
- * Peringkat populer tetap milik Hidori karena angkanya berasal dari sana. Kalau
- * suatu periode belum sampai 5 judul, sisa slot diisi trending Malz yang belum
- * ada di Hidori supaya komponennya tidak pernah kosong.
+ * Peringkat "Top 5 populer" di beranda diambil dari arsip Malz, bukan dari
+ * daftar populer Hidori. Daftar Hidori sering memuat judul yang tidak cocok
+ * dengan katalog Aznime (judul salah, entri duplikat, atau anime yang tidak
+ * ada di sumber lain), sedangkan Malz membawa angka views dan favorit yang
+ * bisa diverifikasi. Kalau Malz tidak bisa dihubungi, pemanggil memakai
+ * daftar Hidori sebagai cadangan supaya bagian ini tidak kosong.
+ */
+export async function getMalzPopularRanking(limit = 5): Promise<MalzPopularRanking> {
+  const items = await getMalzTrending(40);
+  const usable = items.filter((anime) => anime.id && (anime.judul || '').trim());
+
+  const build = (list: MalzAnime[]): PopularAnimeItem[] =>
+    list.slice(0, limit).map((anime, i) => cardToPopularItem(malzToCard(anime), i + 1));
+
+  return {
+    trending: build(usable),
+    favorite: build([...usable].sort((a, b) => malzMetric(b.favorit) - malzMetric(a.favorit))),
+    mostViewed: build([...usable].sort((a, b) => malzMetric(b.views) - malzMetric(a.views))),
+  };
+}
+
+/**
+ * Cadangan: peringkat Hidori. Kalau suatu periode belum sampai 5 judul, sisa
+ * slot diisi trending Malz yang belum ada di Hidori supaya komponennya tidak
+ * pernah kosong.
  */
 export async function topUpPopularRanking(periods: PopularAnimeItem[]): Promise<PopularAnimeItem[]> {
   if (periods.length >= 5) return periods.slice(0, 5);
