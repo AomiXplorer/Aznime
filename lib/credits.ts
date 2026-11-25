@@ -32,8 +32,6 @@ export interface Contributor {
 /**
  * Sumber tunggal data contributor. Dipakai halaman Credit, layar Maintenance,
  * dan tautan laporan di player supaya tidak ada salinan data yang menyimpang.
- * Azura sengaja tanpa `whatsapp`: kanal resminya belum ada, jadi tombolnya
- * tidak dirender sama sekali alih-alih memakai tautan pinjaman atau tautan mati.
  */
 export const CONTRIBUTORS: Contributor[] = [
   {
@@ -46,25 +44,28 @@ export const CONTRIBUTORS: Contributor[] = [
     note: 'Merawat katalog dan server. Kanal WhatsApp resmi untuk kabar rilis dan laporan episode rusak.',
     whatsapp: {
       url: 'https://whatsapp.com/channel/0029Vb8AgskLY6dCvnTjxU3c',
-      label: 'Connect with Aomi',
+      label: 'With Aomi',
     },
   },
   {
     id: 'azura',
     name: 'Azura',
     role: 'Contributor',
-    status: 'Contributor',
-    active: false,
-    avatar: { kind: 'anonymous' },
-    note: 'Ikut mengurus tampilan dan pengecekan judul. Kanal WhatsApp belum tersedia.',
-    whatsapp: null,
+    status: 'Active',
+    active: true,
+    avatar: { kind: 'image', src: '/contributors/azura.jpg' },
+    note: 'Ikut mengurus tampilan dan pengecekan judul.',
+    whatsapp: {
+      url: 'https://whatsapp.com/channel/0029Vb8E7w7KrWR25KfJ6o41',
+      label: 'With Azura',
+    },
   },
   {
     id: 'dani',
     name: 'Watashi',
     role: 'Back-End',
-    status: 'Contributor',
-    active: false,
+    status: 'Active',
+    active: true,
     avatar: { kind: 'image', src: '/contributors/watashi.jpg' },
     note: 'Ikut serta dalam pengembangan arsitektur sistem.',
     whatsapp: null,
@@ -77,8 +78,8 @@ export const CONTRIBUTORS: Contributor[] = [
     id: 'hapid',
     name: 'Yuui',
     role: 'Back-End & Front-End',
-    status: 'Contributor',
-    active: false,
+    status: 'Active',
+    active: true,
     avatar: { kind: 'image', src: '/contributors/yui.jpg' },
     note: 'Mengurus jalur scraper episode, pemutar video, sistem akun, serta pengecekan bug dan perbaikan fitur.',
     whatsapp: null,
