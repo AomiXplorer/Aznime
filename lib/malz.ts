@@ -75,15 +75,18 @@ export async function resolveMalzAnimeId(slug: string): Promise<string | null> {
     // Redis opsional; pencarian langsung tetap jalan.
   }
 
-  const query = titleSlug.replace(/-/g, ' ');
-  const candidates = await getMalzSearch(query).catch(() => []);
-  const exact = candidates.find((anime) => slugifyMalzTitle(anime.judul) === titleSlug);
-  const chosen =
-    exact ||
-    candidates.find((anime) => {
-      const candidateSlug = slugifyMalzTitle(anime.judul);
-      return candidateSlug.includes(titleSlug) || titleSlug.includes(candidateSlug);
-    });
+  const words = titleSlug.split('-').filter(Boolean);
+  const queries = new Set<string>([words.join(' ')]);
+  for (const n of [6, 4, 3, 2]) {
+    if (words.length > n) queries.add(words.slice(0, n).join(' '));
+  }
+
+  let chosen: MalzAnime | undefined;
+  for (const query of queries) {
+    const candidates = await getMalzSearch(query).catch(() => []);
+    chosen = candidates.find((anime) => slugifyMalzTitle(anime.judul) === titleSlug);
+    if (chosen) break;
+  }
   if (!chosen) return null;
 
   try {
