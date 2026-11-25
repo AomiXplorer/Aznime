@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimitGuard } from '@/lib/api-guard';
 import {
   BYPASS_COOKIE_NAME,
   BYPASS_HINT_COOKIE_NAME,
@@ -23,6 +24,11 @@ function buildSetCookieHeader(name: string, value: string, maxAge: number, httpO
 }
 
 export async function GET(req: NextRequest) {
+  /* Token bypass adalah HMAC; memverifikasinya murah, tetapi rute ini tetap
+     publik dan tidak boleh dipakai sebagai kanal percobaan tanpa batas. */
+  const limited = await rateLimitGuard(req, { name: 'maintenance-bypass', limit: 30, windowSeconds: 60 });
+  if (limited) return limited;
+
   const exit = req.nextUrl.searchParams.get('exit');
   if (exit === '1') {
     const res = NextResponse.redirect(new URL('/', req.url), { status: 302 });

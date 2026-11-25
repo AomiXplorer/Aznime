@@ -7,10 +7,14 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
 
   const { searchParams } = req.nextUrl;
-  const id = (searchParams.get('id') || '').trim();
+  /* Panjang dan rentang dibatasi: nilai ini ikut menyusun URL arsip Malz dan
+     menjadi kunci cache, jadi tidak boleh bisa dipanjangkan atau diperbesar
+     sembarang orang. */
+  const id = (searchParams.get('id') || '').trim().slice(0, 200);
   const pageRaw = Number(searchParams.get('page') || '0');
-  const page = Number.isFinite(pageRaw) && pageRaw >= 0 ? Math.trunc(pageRaw) : 0;
-  const title = (searchParams.get('title') || '').trim();
+  const page =
+    Number.isFinite(pageRaw) && pageRaw >= 0 ? Math.min(Math.trunc(pageRaw), 100_000) : 0;
+  const title = (searchParams.get('title') || '').trim().slice(0, 300);
 
   if (!id) {
     return NextResponse.json({ error: 'Parameter id wajib diisi' }, { status: 400 });

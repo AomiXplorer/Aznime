@@ -105,7 +105,10 @@ async function respondWithImage(
          menolak, cover AniList untuk judul itu dipakai sebagai pengganti, lalu
          hasilnya di-cache CDN di URL yang sama. */
       if (allowTitleFallback && params.has('t')) {
-        const cover = await getAniListCover((params.get('t') || '').trim(), params.get('a'));
+        const cover = await getAniListCover(
+          (params.get('t') || '').trim().slice(0, 200),
+          (params.get('a') || '').slice(0, 100) || null
+        );
         const coverTarget = resolveTarget(cover);
         if (coverTarget) return respondWithImage(coverTarget, params, false);
       }
@@ -159,10 +162,12 @@ async function respondWithImage(
 
 /** Poster Malz: cari cover AniList untuk judulnya, lalu sajikan seperti biasa. */
 async function serveTitlePoster(params: URLSearchParams) {
-  const title = (params.get('t') || '').trim();
+  /* Judul dipakai sebagai kueri ke AniList dan kunci cache, jadi panjangnya
+     dibatasi seperti parameter lain di rute ini. */
+  const title = (params.get('t') || '').trim().slice(0, 200);
   if (!title) return badRequest();
 
-  const cover = await getAniListCover(title, params.get('a'));
+  const cover = await getAniListCover(title, (params.get('a') || '').slice(0, 100) || null);
   if (!cover) {
     /* Judul tanpa padanan di AniList. Cache singkat supaya percobaan ulang
        tetap murah tetapi tidak mengunci judul yang baru muncul di AniList. */

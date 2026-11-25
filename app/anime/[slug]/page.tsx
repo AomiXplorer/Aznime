@@ -15,6 +15,7 @@ import {
   malzToEpisodeSummary,
   malzTypeLabel,
 } from '@/lib/malz';
+import { getAniListTrailer } from '@/lib/anilist';
 import { normalizeTitle } from '@/lib/sources';
 import type { AnimeDetail, EpisodeSummary } from '@/lib/scraper/types';
 import { AnimeDetailLayout, type AnimeDetailView } from '@/components/AnimeDetailLayout';
@@ -59,7 +60,7 @@ async function HidoriEpisodeCatalog({ detail }: { detail: AnimeDetail }) {
       getMalzDetail(archive.id),
       getMalzEpisodes(archive.id, 0),
     ]);
-    const episodes = firstPage.items.map(malzToEpisodeSummary);
+    const episodes = firstPage.items.map((episode) => malzToEpisodeSummary(episode));
     const totalCount = Math.max(
       episodeNumberValue(
         archiveDetail.episode_terakhir
@@ -95,6 +96,16 @@ async function HidoriEpisodeCatalog({ detail }: { detail: AnimeDetail }) {
     );
   }
 }
+
+/* Header fungsi ini hilang saat merge 496d8cb, sehingga seluruh blok di
+   bawahnya menjadi pernyataan lepas dan `next build` gagal parse. Isinya
+   dikembalikan seperti versi af4dcdb tanpa mengubah perilaku. */
+async function buildMalzDetail(id: string): Promise<AnimeDetailView> {
+  const detail = await getMalzDetail(id);
+  const anime = detail.anime;
+
+  const firstPage = await getMalzEpisodes(id, 0);
+  const episodes = firstPage.items;
 
   const episodeSummaries = episodes.map((episode) => malzToEpisodeSummary(episode, anime.judul));
   const startEpisode = detail.episode_terakhir

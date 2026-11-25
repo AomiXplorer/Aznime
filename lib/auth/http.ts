@@ -76,7 +76,18 @@ export function isSameOrigin(request: Request): boolean {
   return allowed.has(origin);
 }
 
+/**
+ * Batas ukuran body JSON.
+ *
+ * Tanpa batas, `request.json()` membaca seluruh body ke memori lebih dulu
+ * sebelum validasi apa pun berjalan. Semua body yang sah di situs ini kecil
+ * (login, favorit, sinkron history tamu), jadi 512 KB sudah longgar.
+ */
+const MAX_JSON_BODY_BYTES = 512 * 1024;
+
 export async function readJsonBody<T = Record<string, unknown>>(request: Request): Promise<T | null> {
+  const declared = Number(request.headers.get('content-length') || 0);
+  if (Number.isFinite(declared) && declared > MAX_JSON_BODY_BYTES) return null;
   try {
     return (await request.json()) as T;
   } catch {

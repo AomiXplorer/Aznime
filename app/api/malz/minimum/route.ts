@@ -7,11 +7,18 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
 
   const { searchParams } = req.nextUrl;
-  const id = (searchParams.get('id') || '').trim();
+  const id = (searchParams.get('id') || '').trim().slice(0, 200);
   const highest = Number(searchParams.get('highest'));
   const perPage = Number(searchParams.get('perPage'));
 
-  if (!id || !Number.isFinite(highest) || !Number.isFinite(perPage) || perPage <= 0) {
+  /* Pencarian halaman terakhir memakai pembagian highest/perPage dan bisa
+     menembak arsip Malz berkali-kali. Tanpa batas atas, angka ekstrem membuat
+     satu permintaan menjelajah ratusan halaman upstream. */
+  const validId = id.length > 0;
+  const validHighest = Number.isFinite(highest) && highest > 0 && highest <= 100_000;
+  const validPerPage = Number.isFinite(perPage) && perPage > 0 && perPage <= 500;
+
+  if (!validId || !validHighest || !validPerPage) {
     return NextResponse.json({ error: 'Parameter id, highest, dan perPage wajib valid' }, { status: 400 });
   }
 

@@ -1,11 +1,15 @@
 import { handleRouteError, isSameOrigin, jsonError, jsonResponse, readJsonBody } from '@/lib/auth/http';
+import { rateLimitGuard } from '@/lib/api-guard';
 import { getSessionUser } from '@/lib/auth/session';
 import { addFavorite, listFavorites, removeFavorite, sanitizeFavoriteInput } from '@/lib/auth/favorites';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const limited = await rateLimitGuard(request, { name: 'favorites', limit: 120, windowSeconds: 60 });
+    if (limited) return limited;
+
     const user = await getSessionUser();
     if (!user) return jsonError(401, 'Masuk dulu untuk melihat daftar favorit.');
     const items = await listFavorites(user.id);
@@ -18,6 +22,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     if (!isSameOrigin(request)) return jsonError(403, 'Permintaan ditolak.');
+    const limited = await rateLimitGuard(request, { name: 'favorites', limit: 120, windowSeconds: 60 });
+    if (limited) return limited;
     const user = await getSessionUser();
     if (!user) return jsonError(401, 'Masuk dulu untuk menyimpan favorit.');
     const body = await readJsonBody(request);
@@ -33,6 +39,8 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     if (!isSameOrigin(request)) return jsonError(403, 'Permintaan ditolak.');
+    const limited = await rateLimitGuard(request, { name: 'favorites', limit: 120, windowSeconds: 60 });
+    if (limited) return limited;
     const user = await getSessionUser();
     if (!user) return jsonError(401, 'Masuk dulu untuk mengubah favorit.');
     const url = new URL(request.url);

@@ -161,22 +161,29 @@ Aturan:
 | `GET /api/anime` | publik | 120/menit/IP | katalog |
 | `GET /api/search` | publik | 60/menit/IP | pencarian |
 | `GET /api/filters` | publik | 60/menit/IP | opsi filter |
-| `GET /api/malz/episodes` | publik | 60/menit/IP | daftar episode |
+| `GET /api/malz/episodes` | publik | 60/menit/IP | daftar episode; `id` ≤ 200 char, `page` ≤ 100.000 |
+| `GET /api/malz/minimum` | publik | 30/menit/IP | `id` ≤ 200 char, `highest` ≤ 100.000, `perPage` ≤ 500 |
 | `GET /api/nekopoi/search` | publik | 30/menit/IP | khusus /hentai |
 | `GET /api/img` | publik | 300/menit/IP | proksi gambar, host allowlist |
-| `GET /api/auth/config` | publik | – | hanya kunci publik Turnstile + status provider |
-| `GET /api/maintenance/status` | publik | – | status maintenance |
+| `GET /api/auth/config` | publik | 60/menit/IP | hanya kunci publik Turnstile + status provider |
+| `GET /api/maintenance/status` | publik | 120/menit/IP | status maintenance, selalu lewat cache-bypass |
 | `POST /api/auth/login` | publik | 20/menit/IP + 8/menit/email | Turnstile + CSRF |
 | `POST /api/auth/register` | publik | 5/menit/IP | Turnstile + CSRF |
-| `POST /api/auth/logout` | publik | – | CSRF; mencabut session di server |
-| `GET /api/auth/me` | publik (opsional sesi) | – | balas `user: null` bila tamu |
-| `GET/POST/DELETE /api/favorites` | **sesi wajib** | – | hanya data milik sendiri |
-| `GET/POST/DELETE /api/history` | **sesi wajib** | – | hanya data milik sendiri |
-| `POST /api/history/sync` | **sesi wajib** | – | maksimal 200 entri |
-| `GET /api/auth/oauth/[provider]` | publik | – | pembuatan state |
-| `GET /api/auth/oauth/[provider]/callback` | publik | – | state + cookie harus cocok |
+| `POST /api/auth/logout` | publik | 30/menit/IP | CSRF; mencabut session di server |
+| `GET /api/auth/me` | publik (opsional sesi) | 120/menit/IP | balas `user: null` bila tamu |
+| `GET/POST/DELETE /api/favorites` | **sesi wajib** | 120/menit/IP | hanya data milik sendiri |
+| `GET/POST/DELETE /api/history` | **sesi wajib** | 120/menit/IP | hanya data milik sendiri |
+| `POST /api/history/sync` | **sesi wajib** | 20/menit/IP | maksimal 200 entri |
+| `GET /api/auth/oauth/[provider]` | publik | 20/menit/IP | pembuatan state (menulis 1 kunci Redis per permintaan) |
+| `GET /api/auth/oauth/[provider]/callback` | publik | 30/menit/IP | state + cookie harus cocok |
 | `POST /api/telegram/webhook` | header secret | – | `X-Telegram-Bot-Api-Secret-Token`, timing-safe |
-| `GET /api/maintenance/bypass` | token HMAC | – | token ber-tanda tangan + kedaluwarsa |
+| `GET /api/maintenance/bypass` | token HMAC | 30/menit/IP | token ber-tanda tangan + kedaluwarsa |
+
+Semua body JSON dibaca lewat `readJsonBody`, yang menolak body di atas
+512 KB sebelum di-parse. Semua input yang dipakai menyusun URL upstream
+(`id`, `page`, `highest`, `perPage`, `u`, `t`, `a`) dipotong panjangnya dan
+dibatasi rentangnya, sehingga tidak ada parameter yang bisa dipanjangkan atau
+diperbesar untuk memperberat server.
 
 Tidak ada endpoint admin berbasis web. Kontrol maintenance hanya lewat bot
 Telegram yang memverifikasi `TELEGRAM_ADMIN_IDS`, sehingga tidak ada panel admin
@@ -196,6 +203,11 @@ yang bisa diakses dari browser dan tidak ada role yang bisa diubah lewat request
   `Retry-After`.
 - Bila Redis tidak tersedia, rute publik **fail-open** (permintaan diteruskan,
   kejadian dicatat di log) supaya katalog tidak ikut mati. Rute akun fail-closed.
+- Rute yang menulis ke Redis tetap dibatasi walau butuh sesi, karena satu akun
+  sah pun tidak boleh bisa membanjiri Redis: favorit/history 120/menit,
+  sinkron history 20/menit (satu permintaan menulis sampai 200 entri).
+- `POST /api/auth/login` menolak password di atas 128 karakter sebelum hashing,
+  supaya satu permintaan tidak bisa memaksa scrypt mengolah string raksasa.
 
 ---
 
@@ -212,6 +224,10 @@ Dikirim untuk semua respons dari `next.config.ts`:
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | kamera, mikrofon, geolokasi, payment, usb dimatikan |
 | `Cross-Origin-Opener-Policy` | `same-origin` |
+
+`X-XSS-Protection` sengaja **tidak** dikirim: header itu sudah dihapus dari
+standar dan `mode=block` pada browser lama bisa disalahgunakan. Perlindungan XSS
+dipegang CSP dan escaping React.
 
 CSP masih memuat `script-src 'unsafe-inline'` dan `style-src 'unsafe-inline'`
 karena Next menyisipkan skrip bootstrap inline tanpa nonce. Menghapusnya akan
@@ -294,3 +310,26 @@ Yang **tidak** dicakup:
 Aznime tidak bisa disebut "100% aman". Yang bisa dikatakan: kerentanan yang
 ditemukan pada audit ini sudah diperbaiki dan diuji, dan postur dasarnya
 (header, session, otorisasi, pembatasan kuota) sekarang jauh lebih kuat.
+
+### Yang masih terbuka (butuh keputusan pemilik)
+
+Ini bukan kelalaian yang tersembunyi, tapi hal yang sengaja dibiarkan karena
+memperbaikinya berarti mengubah arsitektur atau perilaku yang sedang berjalan:
+
+1. **`script-src 'unsafe-inline'` pada CSP.** Next menyisipkan skrip bootstrap
+   inline tanpa nonce. Menutupnya butuh middleware nonce dan pengujian ulang
+   seluruh halaman. Mitigasi sekarang: `object-src 'none'`, `base-uri 'self'`,
+   dan semua output React di-escape.
+2. **OAuth belum memakai PKCE.** Google dan Discord memakai alur confidential
+   client (client secret hanya di server) ditambah `state` sekali pakai yang
+   diikat ke cookie, jadi kode otorisasi tidak bisa dipakai ulang. PKCE akan
+   menambah satu lapis lagi bila alur ini suatu saat dibuka untuk klien publik.
+3. **`POST /api/auth/register` menjawab "email sudah terdaftar".** Ini
+   memudahkan penyerang memeriksa apakah sebuah email punya akun. Dibiarkan
+   karena tanpa pesan itu pengguna sah bingung saat mendaftar. Login sendiri
+   tidak membocorkan hal ini.
+4. **`npm run lint` (`tsc --noEmit`) sempat gagal total** karena merge 496d8cb
+   memotong header `buildMalzDetail`. Sudah diperbaiki; jalankan `npm run lint`
+   sebelum push supaya kejadian ini tidak terulang.
+5. **Secret rotation** untuk kredensial yang pernah ada di repo contoh pada
+   commit lama tetap disarankan bila nilai itu pernah dipakai di produksi.

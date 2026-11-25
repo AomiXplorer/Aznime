@@ -1,4 +1,5 @@
 import { handleRouteError, isSameOrigin, jsonError, jsonResponse, readJsonBody } from '@/lib/auth/http';
+import { rateLimitGuard } from '@/lib/api-guard';
 import { getSessionUser } from '@/lib/auth/session';
 import { syncHistory } from '@/lib/auth/history';
 
@@ -15,6 +16,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     if (!isSameOrigin(request)) return jsonError(403, 'Permintaan ditolak.');
+    /* Sinkron menulis sampai 200 entri sekaligus; batas ketat menjaga agar
+       rute ini tidak bisa dipakai membanjiri Redis lewat satu akun. */
+    const limited = await rateLimitGuard(request, { name: 'history-sync', limit: 20, windowSeconds: 60 });
+    if (limited) return limited;
     const user = await getSessionUser();
     if (!user) return jsonError(401, 'Masuk dulu untuk menyinkronkan history.');
     const body = await readJsonBody<{ items?: unknown }>(request);

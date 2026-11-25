@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { rateLimitGuard } from '@/lib/api-guard';
 import {
   consumeOAuthState,
   exchangeCodeForProfile,
@@ -29,6 +30,9 @@ function redirectWithError(request: Request, code: string, provider?: 'google' |
 }
 
 export async function GET(request: Request, ctx: { params: Promise<{ provider: string }> }) {
+  const limited = await rateLimitGuard(request, { name: 'oauth-callback', limit: 30, windowSeconds: 60 });
+  if (limited) return limited;
+
   const { provider } = await ctx.params;
   if (!isOAuthProvider(provider) || !oauthConfig(provider)) return redirectWithError(request, 'provider_unavailable');
 

@@ -41,6 +41,10 @@ export async function POST(request: Request) {
     if (typeof body.password !== 'string' || body.password.length === 0) {
       return jsonError(422, 'Password wajib diisi.');
     }
+    /* Password di atas 128 karakter tidak mungkin berasal dari formulir
+       (pendaftaran membatasi 128). Menolak lebih awal mencegah satu permintaan
+       memaksa scrypt mengolah string raksasa. */
+    if (body.password.length > 128) return jsonError(401, 'Email atau password salah.');
 
     if (turnstileSiteKey()) {
       const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : '';
@@ -62,7 +66,10 @@ export async function POST(request: Request) {
     if (!user || !user.passwordHash) {
       // Tetap jalankan scrypt sekali supaya waktu respons tidak membocorkan
       // apakah email terdaftar atau tidak.
-      verifyPassword(String(body.password), 'scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA==$AAAA');
+      verifyPassword(
+        String(body.password),
+        'scrypt$16384$8$1$AwMDAwMDAwMDAwMDAwMDAw==$BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBw=='
+      );
       return invalid();
     }
     if (!verifyPassword(String(body.password), user.passwordHash)) return invalid();

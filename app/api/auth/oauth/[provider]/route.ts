@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { rateLimitGuard } from '@/lib/api-guard';
 import {
   buildAuthorizeUrl,
   createOAuthState,
@@ -11,6 +12,11 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request, ctx: { params: Promise<{ provider: string }> }) {
+  /* Setiap permintaan menulis satu kunci state ke Redis. Tanpa batas, rute
+     publik ini bisa dipakai membanjiri Redis tanpa perlu akun. */
+  const limited = await rateLimitGuard(request, { name: 'oauth-start', limit: 20, windowSeconds: 60 });
+  if (limited) return limited;
+
   const { provider } = await ctx.params;
   if (!isOAuthProvider(provider) || !oauthConfig(provider)) {
     return NextResponse.redirect(new URL('/?auth_error=provider_unavailable', request.url));

@@ -34,7 +34,10 @@ const SECURITY_HEADERS = [
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'X-XSS-Protection', value: '1; mode=block' },
+  /* X-XSS-Protection sengaja tidak dikirim. Header ini sudah dihapus dari
+     standar dan pada sebagian browser lama justru membuka celah (mode=block
+     bisa dipakai menyuntikkan filter yang salah). Perlindungan XSS di sini
+     dipegang CSP dan React yang meng-escape output. */
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
@@ -69,15 +72,23 @@ const nextConfig: NextConfig = {
       { pathname: '/api/img', search: '**' },
       { pathname: '/contributors/**' },
     ],
+    /* Saat `unoptimized: true` daftar ini tidak dipakai sama sekali: poster
+       dari host mana pun dirender apa adanya atau lewat /api/img. Daftar tetap
+       dipersempit ke host yang benar-benar dikenal supaya kalau optimizer
+       suatu saat diaktifkan lagi, situs tidak berubah jadi proksi gambar
+       terbuka untuk host sembarang. */
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
-      },
+      { protocol: 'https', hostname: 's4.anilist.co' },
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+      { protocol: 'https', hostname: 'cdn.discordapp.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'nekopoi.care' },
+      { protocol: 'https', hostname: 'www.nekopoi.care' },
+      { protocol: 'https', hostname: 'v10.hidoristream.online' },
+      { protocol: 'https', hostname: 'hidoristream.online' },
+      { protocol: 'https', hostname: 'storages.animein.net' },
+      { protocol: 'https', hostname: 'api.animein.net' },
+      { protocol: 'https', hostname: 'xyz-api.animein.net' },
     ],
   },
 
