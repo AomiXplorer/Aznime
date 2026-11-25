@@ -268,9 +268,6 @@ export function Navbar() {
                       <Users className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
                       Credits
                     </span>
-                    <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">
-                      Aomi &amp; Azura
-                    </span>
                   </Link>
                 </li>
               </ul>
