@@ -42,6 +42,48 @@ function highResPoster(url: string): string {
   }
 }
 
+/** Latar satu slide. Dipisah supaya slide lama dan slide baru bisa dirender
+    bersamaan saat transisi (silang pudar), tanpa menggandakan markup. */
+function HeroBackdrop({ item, eager }: { item: FeaturedWithTrailer; eager: boolean }) {
+  const banner = item.trailer?.bannerImage || null;
+
+  if (banner) {
+    return (
+      <img
+        src={heroSrc(banner, 1280)}
+        srcSet={`${heroSrc(banner, 640)} 640w, ${heroSrc(banner, 960)} 960w, ${heroSrc(banner, 1280)} 1280w, ${heroSrc(banner, 1600)} 1600w`}
+        sizes="100vw"
+        alt=""
+        fetchPriority={eager ? 'high' : 'auto'}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        className="h-full w-full object-cover object-center"
+      />
+    );
+  }
+
+  if (item.poster) {
+    return (
+      <img
+        src={heroSrc(highResPoster(item.poster), 900, true)}
+        onError={(event) => {
+          const img = event.currentTarget;
+          if (img.dataset.fallback) return;
+          img.dataset.fallback = '1';
+          img.src = heroSrc(item.poster!, 800, true);
+        }}
+        alt=""
+        fetchPriority={eager ? 'high' : 'auto'}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        className="h-full w-full object-cover object-center"
+      />
+    );
+  }
+
+  return <div className="h-full w-full bg-[#0c0908]" />;
+}
+
 export function HeroSection({ items }: HeroSectionProps) {
   const slides = items.slice(0, 6);
   const [index, setIndex] = useState(0);
@@ -49,6 +91,10 @@ export function HeroSection({ items }: HeroSectionProps) {
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [inView, setInView] = useState(true);
   const [pageHidden, setPageHidden] = useState(false);
+  /* Slide sebelumnya tetap dirender sebentar di bawah slide baru, supaya
+     pergantian terlihat sebagai silang pudar, bukan potongan mendadak. */
+  const [leaving, setLeaving] = useState<number | null>(null);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipeAtRef = useRef(0);
@@ -65,9 +111,24 @@ export function HeroSection({ items }: HeroSectionProps) {
   const go = useCallback(
     (n: number) => {
       if (slides.length === 0) return;
-      setIndex(((n % slides.length) + slides.length) % slides.length);
+      const next = ((n % slides.length) + slides.length) % slides.length;
+      if (next === index) return;
+
+      if (!reduce) {
+        setLeaving(index);
+        if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+        leaveTimerRef.current = setTimeout(() => setLeaving(null), 460);
+      }
+      setIndex(next);
     },
-    [slides.length]
+    [index, reduce, slides.length]
+  );
+
+  useEffect(
+    () => () => {
+      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+    },
+    []
   );
 
   /* Autoplay berhenti saat hero keluar layar atau tab disembunyikan. Pergantian
@@ -120,7 +181,6 @@ export function HeroSection({ items }: HeroSectionProps) {
 
   const current = slides[index] || slides[0];
   const detailHref = current.slug ? `/anime/${encodeURIComponent(current.slug)}` : '/anime';
-  const banner = current.trailer?.bannerImage || null;
   const hasTrailer = Boolean(current.trailer?.id && current.trailer?.site === 'youtube');
   /* AniList tidak selalu mengirim thumbnail, jadi pakai thumbnail YouTube
      bawaan supaya tombol trailer tetap punya gambar. */
@@ -149,43 +209,23 @@ export function HeroSection({ items }: HeroSectionProps) {
       className="relative -mt-16 w-full touch-pan-y overflow-hidden bg-canvas"
     >
       <div className="absolute inset-0" aria-hidden="true">
-        <div key={`bg-${index}`} className="absolute inset-0">
-          {banner ? (
-            <img
-              src={heroSrc(banner, 1280)}
-              srcSet={`${heroSrc(banner, 640)} 640w, ${heroSrc(banner, 960)} 960w, ${heroSrc(banner, 1280)} 1280w, ${heroSrc(banner, 1600)} 1600w`}
-              sizes="100vw"
-              alt=""
-              fetchPriority={index === 0 ? 'high' : 'auto'}
-              loading={index === 0 ? 'eager' : 'lazy'}
-              decoding="async"
-              className="h-full w-full object-cover object-center"
-            />
-          ) : current.poster ? (
-            <img
-              src={heroSrc(highResPoster(current.poster), 900, true)}
-              onError={(event) => {
-                const img = event.currentTarget;
-                if (img.dataset.fallback) return;
-                img.dataset.fallback = '1';
-                img.src = heroSrc(current.poster!, 800, true);
-              }}
-              alt=""
-              fetchPriority={index === 0 ? 'high' : 'auto'}
-              loading={index === 0 ? 'eager' : 'lazy'}
-              decoding="async"
-              className="h-full w-full object-cover object-center"
-            />
-          ) : (
-            <div className="h-full w-full bg-[#0c0908]" />
-          )}
+        {leaving !== null && slides[leaving] ? (
+          <div className="absolute inset-0">
+            <HeroBackdrop item={slides[leaving]} eager={false} />
+          </div>
+        ) : null}
+        <div key={`bg-${index}`} className={`absolute inset-0${reduce ? '' : ' hero-slide-enter'}`}>
+          <HeroBackdrop item={current} eager={index === 0} />
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/60 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-canvas to-transparent" />
       </div>
 
       <div className="relative mx-auto flex min-h-[68vh] max-w-7xl items-end gap-10 px-4 pb-20 pt-32 sm:px-6 lg:min-h-[78vh] lg:px-8">
-        <div key={`txt-${index}`} className="max-w-xl flex-1 space-y-3.5">
+        <div
+          key={`txt-${index}`}
+          className={`max-w-xl flex-1 space-y-3.5${reduce ? '' : ' hero-copy-enter'}`}
+        >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-zinc-300">
               {current.status ? (
                 <span className="rounded-[3px] bg-accent px-1.5 py-[3px] text-[11px] font-semibold leading-none text-white">{current.status}</span>
@@ -240,10 +280,11 @@ export function HeroSection({ items }: HeroSectionProps) {
 
         {current.poster ? (
           <Link
+            key={`poster-${index}`}
             href={detailHref}
             tabIndex={-1}
             aria-hidden="true"
-            className="relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] shadow-2xl shadow-black/50 ring-1 ring-white/15 lg:block"
+            className={`relative ml-auto hidden aspect-[2/3] w-[200px] shrink-0 overflow-hidden rounded-[6px] shadow-2xl shadow-black/50 ring-1 ring-white/15 lg:block${reduce ? '' : ' hero-copy-enter'}`}
           >
             <img
               src={heroSrc(highResPoster(current.poster), 400)}

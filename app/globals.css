@@ -117,6 +117,40 @@ h3,
   animation: page-enter 200ms ease-out both;
 }
 
+/* Pergantian banner unggulan. Gambar baru memudar di atas gambar lama yang
+   dibiarkan utuh sampai transisi selesai, jadi tidak ada kedipan gelap di
+   tengah. Hanya opacity dan transform: semuanya jalan di compositor. */
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes hero-copy-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hero-slide-enter {
+  animation: hero-fade-in 420ms ease-out both;
+}
+.hero-copy-enter {
+  animation: hero-copy-in 460ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide-enter,
+  .hero-copy-enter {
+    animation: none;
+  }
+}
+
 @keyframes hero-progress {
   from {
     transform: scaleX(0);
