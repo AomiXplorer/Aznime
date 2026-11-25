@@ -1,7 +1,11 @@
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import type { Contributor, ContributorAvatar as ContributorAvatarData } from '@/lib/credits';
+import type {
+  Contributor,
+  ContributorAvatar as ContributorAvatarData,
+  ContributorSocials,
+} from '@/lib/credits';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
 
 interface ContributorAvatarProps {
@@ -61,9 +65,56 @@ function StatusDot({ active }: StatusDotProps) {
   );
 }
 
+const SOCIAL_LINKS = [
+  { key: 'github', label: 'GitHub' },
+  { key: 'instagram', label: 'Instagram' },
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'telegram', label: 'Telegram' },
+] as const;
+
+interface SocialLinksProps {
+  socials?: ContributorSocials;
+  className?: string;
+}
+
+/**
+ * Link sosial opsional. Hanya field yang terisi yang dirender, dan jika
+ * tidak ada satu pun, komponen ini tidak menghasilkan apa-apa.
+ * Memakai teks tanpa ikon karena ikon merek di lucide-react sudah deprecated.
+ */
+function SocialLinks({ socials, className }: SocialLinksProps) {
+  if (!socials) return null;
+
+  const items = SOCIAL_LINKS.flatMap(({ key, label }) => {
+    const url = socials[key];
+    return url ? [{ key, label, url }] : [];
+  });
+
+  if (items.length === 0) return null;
+
+  return (
+    <ul className={cn('flex flex-wrap items-center gap-x-4 gap-y-1.5', className)}>
+      {items.map(({ key, label, url }) => (
+        <li key={key}>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-sm text-[12px] font-medium text-zinc-400 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            {label}
+            <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+            <span className="sr-only">(dibuka di tab baru)</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 interface ContributorProfileProps {
   contributor: Contributor;
-  variant?: 'editorial' | 'inline';
+  variant?: 'editorial' | 'inline' | 'card';
   index?: string;
   className?: string;
 }
@@ -74,7 +125,36 @@ export function ContributorProfile({
   index,
   className,
 }: ContributorProfileProps) {
-  const { name, role, status, active, avatar, note, whatsapp } = contributor;
+  const { name, role, status, active, avatar, note, whatsapp, socials } = contributor;
+
+  if (variant === 'card') {
+    return (
+      <article
+        className={cn(
+          'h-full rounded-md border border-line bg-surface/70 p-5 transition-colors duration-150 hover:border-zinc-700 sm:p-6',
+          className
+        )}
+      >
+        <div className="flex items-center gap-4">
+          <ContributorAvatar avatar={avatar} active={active} className="h-12 w-12 sm:h-14 sm:w-14" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500">
+              {role}
+            </p>
+            <h3 className="mt-1 font-display text-[clamp(1.45rem,4vw,1.8rem)] font-semibold leading-tight tracking-[-0.04em] text-white">
+              {name}
+            </h3>
+          </div>
+        </div>
+
+        <p className="mt-5 min-h-[4.5rem] text-[12.5px] leading-relaxed text-zinc-400">
+          {note}
+        </p>
+
+        <SocialLinks socials={socials} className="mt-5 border-t border-line pt-4" />
+      </article>
+    );
+  }
 
   if (variant === 'inline') {
     return (
@@ -104,6 +184,7 @@ export function ContributorProfile({
           ) : (
             <p className="mt-2 text-[11.5px] text-zinc-500">WhatsApp belum tersedia</p>
           )}
+          <SocialLinks socials={socials} className="mt-2.5" />
         </div>
       </li>
     );
@@ -145,6 +226,8 @@ export function ContributorProfile({
         </p>
 
         <p className="mt-2.5 max-w-[44ch] text-[13px] leading-relaxed text-zinc-400">{note}</p>
+
+        <SocialLinks socials={socials} className="mt-4" />
       </div>
 
       {whatsapp ? (

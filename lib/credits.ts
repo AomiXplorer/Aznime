@@ -7,6 +7,16 @@ export interface ContributorChannel {
   label: string;
 }
 
+/**
+ * Link sosial opsional. Field yang tidak diisi tidak dirender sama sekali.
+ */
+export interface ContributorSocials {
+  github?: string;
+  instagram?: string;
+  linkedin?: string;
+  telegram?: string;
+}
+
 export interface Contributor {
   id: string;
   name: string;
@@ -16,6 +26,7 @@ export interface Contributor {
   avatar: ContributorAvatar;
   note: string;
   whatsapp: ContributorChannel | null;
+  socials?: ContributorSocials;
 }
 
 /**
@@ -28,7 +39,7 @@ export const CONTRIBUTORS: Contributor[] = [
   {
     id: 'aomi',
     name: 'Aomi',
-    role: 'Contributor',
+    role: 'Developer',
     status: 'Active',
     active: true,
     avatar: { kind: 'image', src: '/contributors/aomi.jpg' },
@@ -47,6 +58,33 @@ export const CONTRIBUTORS: Contributor[] = [
     avatar: { kind: 'anonymous' },
     note: 'Ikut mengurus tampilan dan pengecekan judul. Kanal WhatsApp belum tersedia.',
     whatsapp: null,
+  },
+  {
+    id: 'dani',
+    name: 'Watashi',
+    role: 'Back-End',
+    status: 'Contributor',
+    active: false,
+    avatar: { kind: 'image', src: '/contributors/watashi.jpg' },
+    note: 'Ikut serta dalam pengembangan arsitektur sistem.',
+    whatsapp: null,
+    socials: {
+      github: 'https://github.com/DanX-007',
+      instagram: 'https://instagram.com/dansetiawn',
+    },
+  },
+  {
+    id: 'hapid',
+    name: 'Yuui',
+    role: 'Back-End & Front-End',
+    status: 'Contributor',
+    active: false,
+    avatar: { kind: 'image', src: '/contributors/yui.jpg' },
+    note: 'Mengurus jalur scraper episode, pemutar video, sistem akun, serta pengecekan bug dan perbaikan fitur.',
+    whatsapp: null,
+    socials: {
+      github: 'https://github.com/Yuuuii-ch',
+    },
   },
 ];
 
