@@ -6,6 +6,7 @@ import type {
 } from './scraper/types';
 import { UpstreamError } from './scraper/utils';
 import { isBlockedPosterHost, posterUrlWithTitleFallback } from './posters';
+import { kvGet, kvSet } from './auth/redis';
 
 export const MALZ_BASE_URL = (
   process.env.MALZ_API_BASE_URL || 'https://malz-official.com/api/v2'
@@ -16,12 +17,37 @@ export const MALZ_PROVIDER_LABEL = 'Arsip Malz';
 /** Slug anime/eps Malz diberi awalan supaya satu rute bisa melayani dua sumber. */
 export const MALZ_ANIME_SLUG_PATTERN = /^malz-(\d+)$/;
 export const MALZ_EPISODE_SLUG_PATTERN = /^malz-ep-(\d+)$/;
+export const MALZ_READABLE_EPISODE_SLUG_PATTERN = /^(.+)-episode-(\d+(?:\.\d+)?)$/i;
 
-export function malzAnimeSlug(id: string): string {
-  return `malz-${id.trim()}`;
+export function malzAnimeSlug(id: string, title?: string | null): string {
+  const titleSlug = title ? slugifyMalzTitle(title) : '';
+  return titleSlug || `malz-${id.trim()}`;
 }
 
-export function malzEpisodeSlug(id: string): string {
+export function slugifyMalzTitle(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+/**
+ * Slug episode yang bisa dibaca: `black-clover-episode-136`.
+ * ID episode tetap dipakai untuk lookup, tetapi tidak lagi tampil di URL.
+ */
+export function malzEpisodeSlug(
+  id: string,
+  seriesTitle?: string | null,
+  episodeNumber?: string | null
+): string {
+  const titleSlug = seriesTitle ? slugifyMalzTitle(seriesTitle) : '';
+  const number = (episodeNumber || '').trim();
+  if (titleSlug && /^\d+(?:\.\d+)?$/.test(number)) {
+    return `${titleSlug}-episode-${number}`;
+  }
   return `malz-ep-${id.trim()}`;
 }
 
@@ -30,9 +56,148 @@ export function malzAnimeIdFromSlug(slug: string): string | null {
   return match ? match[1] : null;
 }
 
+const MALZ_ANIME_SLUG_CACHE_PREFIX = 'malz:anime-slug:';
+const MALZ_ANIME_SLUG_CACHE_TTL = 60 * 60 * 24 * 90;
+
+/** Cari anime dari daftar katalog Malz tanpa memanggil endpoint search. */
+async function findMalzAnimeBySlug(titleSlug: string): Promise<MalzAnime | null> {
+  const [recent, trending, home] = await Promise.all([
+    getMalzRecent(100).catch(() => []),
+    getMalzTrending(100).catch(() => []),
+    getMalzHome(100)
+      .then((data) => data.items || [])
+      .catch(() => []),
+  ]);
+  for (const anime of [...recent, ...trending, ...home]) {
+    if (slugifyMalzTitle(anime.judul) === titleSlug) return anime;
+  }
+  return null;
+}
+
+/**
+ * Nama anime Malz bisa dipakai sebagai slug, tapi rute tetap perlu ID asli
+ * untuk mengambil detail. Pencarian hanya dilakukan sekali per slug, lalu
+ * hasilnya disimpan di Redis supaya request berikutnya tidak memanggil Malz.
+ */
+export async function resolveMalzAnimeId(slug: string): Promise<string | null> {
+  const titleSlug = slugifyMalzTitle(decodeURIComponent(slug));
+  if (!titleSlug) return null;
+  const cacheKey = `${MALZ_ANIME_SLUG_CACHE_PREFIX}${titleSlug}`;
+  try {
+    const cached = await kvGet(cacheKey);
+    if (cached) return cached;
+  } catch {
+    // Redis opsional; pencarian langsung tetap jalan.
+  }
+
+  const direct = await findMalzAnimeBySlug(titleSlug);
+  if (direct) {
+    try {
+      await kvSet(cacheKey, direct.id, MALZ_ANIME_SLUG_CACHE_TTL);
+    } catch {
+      // cache opsional
+    }
+    return direct.id;
+  }
+
+  const words = titleSlug.split('-').filter(Boolean);
+  const queries = new Set<string>([words.join(' ')]);
+  for (const n of [6, 4, 3, 2]) {
+    if (words.length > n) queries.add(words.slice(0, n).join(' '));
+  }
+
+  let chosen: MalzAnime | undefined;
+  for (const query of queries) {
+    const candidates = await getMalzSearch(query).catch(() => []);
+    chosen = candidates.find((anime) => slugifyMalzTitle(anime.judul) === titleSlug);
+    if (chosen) break;
+  }
+  if (!chosen) return null;
+
+  try {
+    await kvSet(cacheKey, chosen.id, MALZ_ANIME_SLUG_CACHE_TTL);
+  } catch {
+    // abaikan kegagalan cache
+  }
+  return chosen.id;
+}
+
 export function malzEpisodeIdFromSlug(slug: string): string | null {
   const match = decodeURIComponent(slug).match(MALZ_EPISODE_SLUG_PATTERN);
   return match ? match[1] : null;
+}
+
+export function malzReadableEpisodeFromSlug(
+  slug: string
+): { titleSlug: string; number: number } | null {
+  const match = decodeURIComponent(slug).match(MALZ_READABLE_EPISODE_SLUG_PATTERN);
+  if (!match) return null;
+  const titleSlug = match[1].replace(/-+$/g, '');
+  const number = Number.parseFloat(match[2]);
+  if (!titleSlug || !Number.isFinite(number)) return null;
+  return { titleSlug, number };
+}
+
+const MALZ_SLUG_CACHE_TTL_SECONDS = 60 * 60 * 24 * 90;
+
+/** Cari ID episode dari slug judul, lalu simpan pemetaannya di Redis. */
+export async function resolveMalzEpisodeId(slug: string): Promise<string | null> {
+  const parsed = malzReadableEpisodeFromSlug(slug);
+  if (!parsed) return null;
+
+  const cacheKey = `malz:ep-slug:${slug}`;
+  try {
+    const cached = await kvGet(cacheKey);
+    if (cached) return cached;
+  } catch {
+    // Redis tidak tersedia: lanjut ke pencarian.
+  }
+
+  const direct = await findMalzAnimeBySlug(parsed.titleSlug);
+  const query = parsed.titleSlug.replace(/-/g, ' ');
+  const candidates = direct ? [direct] : await getMalzSearch(query).catch(() => []);
+  const ranked = direct
+    ? [{ anime: direct, score: 2 }]
+    : candidates
+        .map((anime) => {
+          const animeSlug = slugifyMalzTitle(anime.judul);
+          const score = animeSlug === parsed.titleSlug ? 2 : 0;
+          return { anime, score };
+        })
+        .filter((item) => item.score > 0)
+        .slice(0, 3);
+
+  for (const { anime } of ranked) {
+    const firstPage = await getMalzEpisodes(anime.id, 0).catch(() => null);
+    if (!firstPage) continue;
+    const perPage = firstPage.perHalaman || 30;
+    const maxNumber = Number.parseFloat(firstPage.items[0]?.episode || '') || 0;
+    const targetPage =
+      maxNumber > 0 && maxNumber >= parsed.number
+        ? Math.max(0, Math.floor((maxNumber - parsed.number) / perPage))
+        : 0;
+
+    const [pageA, pageB] = await Promise.all([
+      targetPage === 0 ? Promise.resolve(firstPage) : getMalzEpisodes(anime.id, targetPage).catch(() => null),
+      getMalzEpisodes(anime.id, targetPage + 1).catch(() => null),
+    ]);
+
+    for (const page of [pageA, pageB]) {
+      const match = page?.items.find(
+        (episode) => Number.parseFloat(episode.episode) === parsed.number
+      );
+      if (match) {
+        try {
+          await kvSet(cacheKey, match.id, MALZ_SLUG_CACHE_TTL_SECONDS);
+        } catch {
+          // Cache opsional; URL tetap bisa dipakai.
+        }
+        return match.id;
+      }
+    }
+  }
+
+  return null;
 }
 
 export interface MalzAnime {
@@ -257,7 +422,7 @@ export function malzToCard(anime: MalzAnime): AnimeCardItem {
     postId: anime.id,
     title: anime.judul.trim(),
     seriesTitle: anime.judul.trim(),
-    slug: malzAnimeSlug(anime.id),
+    slug: malzAnimeSlug(anime.id, anime.judul),
     url: `${MALZ_BASE_URL}/detail/${anime.id}`,
     kind: 'anime',
     poster: malzPoster(anime),
@@ -291,12 +456,15 @@ export function malzToQuickItem(anime: MalzAnime): QuickSearchItem {
   };
 }
 
-export function malzToEpisodeSummary(episode: MalzEpisode): EpisodeSummary {
+export function malzToEpisodeSummary(
+  episode: MalzEpisode,
+  seriesTitle?: string | null
+): EpisodeSummary {
   return {
     number: episode.episode || null,
     title: episode.judul || `Episode ${episode.episode}`,
     date: episode.tanggal || null,
-    slug: malzEpisodeSlug(episode.id),
+    slug: malzEpisodeSlug(episode.id, seriesTitle, episode.episode),
     url: `${MALZ_BASE_URL}/stream/${episode.id}`,
   };
 }

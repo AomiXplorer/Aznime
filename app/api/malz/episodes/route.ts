@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const id = (searchParams.get('id') || '').trim();
   const pageRaw = Number(searchParams.get('page') || '0');
   const page = Number.isFinite(pageRaw) && pageRaw >= 0 ? Math.trunc(pageRaw) : 0;
+  const title = (searchParams.get('title') || '').trim();
 
   if (!id) {
     return NextResponse.json({ error: 'Parameter id wajib diisi' }, { status: 400 });
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         page,
-        items: data.items.map(malzToEpisodeSummary),
+        items: data.items.map((episode) => malzToEpisodeSummary(episode, title)),
         hasMore: data.items.length >= data.perHalaman,
       },
       { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' } }

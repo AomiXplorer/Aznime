@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getDetail, getEpisode, UpstreamError } from '@/lib/scraper';
 import type { EpisodeNavLink, EpisodeSummary } from '@/lib/scraper/types';
 import { cleanEpisodeTitle, episodeNumberFromTitle } from '@/lib/episode-format';
@@ -10,6 +10,8 @@ import {
   malzAnimeSlug,
   malzEpisodeIdFromSlug,
   malzImageUrl,
+  malzReadableEpisodeFromSlug,
+  resolveMalzEpisodeId,
   malzEpisodeSlug,
   malzServersToMirrors,
   malzStatusLabel,
@@ -56,9 +58,12 @@ function toNavLink(episode: EpisodeSummary | null): EpisodeNavLink | null {
   };
 }
 
-function malzNavLink(episode: MalzEpisode | null): EpisodeNavLink | null {
+function malzNavLink(
+  episode: MalzEpisode | null,
+  seriesTitle?: string | null
+): EpisodeNavLink | null {
   if (!episode) return null;
-  const summary = malzToEpisodeSummary(episode);
+  const summary = malzToEpisodeSummary(episode, seriesTitle);
   return {
     title: summary.title,
     slug: summary.slug,
@@ -144,8 +149,8 @@ async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
   const olderEpisode = currentIndex >= 0 ? episodes[currentIndex + 1] || null : null;
   const newerEpisode = currentIndex >= 0 ? episodes[currentIndex - 1] || null : null;
 
-  const summaries = episodes.map(malzToEpisodeSummary);
-  const seriesSlug = malzAnimeSlug(animeId);
+  const summaries = episodes.map((episode) => malzToEpisodeSummary(episode, detail?.anime.judul));
+  const seriesSlug = malzAnimeSlug(animeId, detail?.anime.judul);
   const allLink: EpisodeNavLink = {
     title: detail?.anime.judul || 'Semua episode',
     slug: seriesSlug,
@@ -177,9 +182,9 @@ async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
     servers,
     defaultEmbed: firstDirect?.url || null,
     navigation: {
-      prev: malzNavLink(olderEpisode),
+      prev: malzNavLink(olderEpisode, detail?.anime.judul),
       all: allLink,
-      next: malzNavLink(newerEpisode) || malzNavLink(stream.berikutnya),
+      next: malzNavLink(newerEpisode, detail?.anime.judul) || malzNavLink(stream.berikutnya, detail?.anime.judul),
     },
     episodes: summaries,
     loadedPage,
@@ -197,7 +202,10 @@ async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
 export async function generateMetadata({ params }: WatchPageProps): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  const malzEpisodeId = malzEpisodeIdFromSlug(decodedSlug);
+  const readable = malzReadableEpisodeFromSlug(decodedSlug);
+  const malzEpisodeId =
+    malzEpisodeIdFromSlug(decodedSlug) ||
+    (readable ? await resolveMalzEpisodeId(decodedSlug) : null);
 
   if (malzEpisodeId) {
     try {
@@ -221,11 +229,12 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
         seriesTitle && !label.toLowerCase().includes(seriesTitle.toLowerCase())
           ? `${seriesTitle} ${generic ? label : `Episode ${episode.episode}`}`
           : label;
+      const canonicalSlug = malzEpisodeSlug(malzEpisodeId, seriesTitle, episode.episode);
 
       return {
         title: uniqueLabel,
         description: `Nonton streaming ${uniqueLabel} subtitle Indonesia di Aznime. Pilih kualitas video yang tersedia.`,
-        alternates: { canonical: `/watch/${encodeURIComponent(decodedSlug)}` },
+        alternates: { canonical: `/watch/${encodeURIComponent(canonicalSlug)}` },
       };
     } catch {
       return { title: 'Nonton anime' };
@@ -261,7 +270,7 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
 
   const user = await getSessionUser();
   const locked = isEpisodeLocked(data.episodeNumber, Boolean(user));
-  const episodeSlug = malzEpisodeSlug(episodeId);
+  const episodeSlug = malzEpisodeSlug(episodeId, data.seriesTitle, data.episodeNumber);
 
   return (
     <WatchLayout
@@ -277,12 +286,11 @@ async function MalzWatchPage({ episodeId }: { episodeId: string }) {
         data.episodes.length > 0 ? (
           <MalzEpisodeList
             animeId={data.animeId}
+            seriesTitle={data.seriesTitle}
             initialEpisodes={data.episodes}
             initialPage={data.loadedPage}
             perPage={data.perPage}
-            currentSlug={malzEpisodeSlug(episodeId)}
-            totalCount={data.totalEpisodes}
-            minAvailableEpisode={data.minAvailableEpisode}
+            currentSlug={episodeSlug}
           />
         ) : null
       }
@@ -334,7 +342,26 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
   const malzEpisodeId = malzEpisodeIdFromSlug(decodedSlug);
 
   if (malzEpisodeId) {
+    let canonical: string | null = null;
+    try {
+      const stream = await getMalzStream(malzEpisodeId);
+      const episode = stream.episode;
+      if (episode?.id_anime) {
+        const detail = await getMalzDetail(episode.id_anime).catch(() => null);
+        if (detail?.anime.judul) {
+          canonical = malzEpisodeSlug(malzEpisodeId, detail.anime.judul, episode.episode);
+        }
+      }
+    } catch {
+      // Biarkan URL lama tetap merender kalau metadata episode gagal diambil.
+    }
+    if (canonical) permanentRedirect(`/watch/${encodeURIComponent(canonical)}`);
     return <MalzWatchPage episodeId={malzEpisodeId} />;
+  }
+
+  if (malzReadableEpisodeFromSlug(decodedSlug)) {
+    const resolved = await resolveMalzEpisodeId(decodedSlug);
+    if (resolved) return <MalzWatchPage episodeId={resolved} />;
   }
 
   let episode = null;
