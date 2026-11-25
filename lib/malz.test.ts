@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   malzAnimeIdFromSlug,
   malzEpisodeIdFromSlug,
+  malzEpisodeSlug,
+  malzReadableEpisodeFromSlug,
   malzServersToMirrors,
   malzSinonimList,
   malzStatusLabel,
@@ -53,7 +55,7 @@ test('normalizeMalzAsset merapikan garis miring ganda pada poster', () => {
 
 test('malzToCard memetakan field API ke kartu katalog', () => {
   const card = malzToCard(anime);
-  assert.equal(card.slug, 'malz-341');
+  assert.equal(card.slug, 'naruto-shippuuden');
   assert.equal(card.source, 'malz');
   assert.equal(card.kind, 'anime');
   assert.equal(card.type, 'TV');
@@ -87,7 +89,7 @@ test('label status dan tipe memakai bahasa yang dipakai katalog Hidori', () => {
 
 test('malzToQuickItem dan malzToEpisodeSummary menjaga slug yang bisa dirutekan', () => {
   const quick = malzToQuickItem(anime);
-  assert.equal(quick.slug, 'malz-341');
+  assert.equal(quick.slug, 'naruto-shippuuden');
   assert.equal(quick.source, 'malz');
 
   const episode = malzToEpisodeSummary({
@@ -134,4 +136,15 @@ test('malzImageUrl mengarahkan poster lewat proxy gambar', () => {
     malzImageUrl('https://api.animein.net//assets/images/movie/poster/abc.jpg'),
     '/api/img?u=' + encodeURIComponent('https://api.animein.net/assets/images/movie/poster/abc.jpg')
   );
+});
+
+
+test('slug episode Malz memakai nama anime tanpa kata malz', () => {
+  assert.equal(malzEpisodeSlug('49385', 'Black Clover', '136'), 'black-clover-episode-136');
+  assert.equal(malzEpisodeSlug('49385'), 'malz-ep-49385');
+  assert.deepEqual(malzReadableEpisodeFromSlug('black-clover-episode-136'), {
+    titleSlug: 'black-clover',
+    number: 136,
+  });
+  assert.equal(malzReadableEpisodeFromSlug('malz-ep-49385'), null);
 });

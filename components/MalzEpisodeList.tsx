@@ -7,6 +7,7 @@ import { EpisodeList } from './EpisodeList';
 
 interface MalzEpisodeListProps {
   animeId: string;
+  seriesTitle?: string | null;
   initialEpisodes: EpisodeSummary[];
   initialPage: number;
   perPage: number;
@@ -26,6 +27,7 @@ interface EpisodeResponse {
  */
 export function MalzEpisodeList({
   animeId,
+  seriesTitle,
   initialEpisodes,
   initialPage,
   perPage,
@@ -45,7 +47,7 @@ export function MalzEpisodeList({
     try {
       const nextPage = page + 1;
       const res = await fetch(
-        `/api/malz/episodes?id=${encodeURIComponent(animeId)}&page=${nextPage}`
+        `/api/malz/episodes?id=${encodeURIComponent(animeId)}&page=${nextPage}${seriesTitle ? `&title=${encodeURIComponent(seriesTitle)}` : ''}`
       );
       const data = (await res.json()) as EpisodeResponse;
       if (!res.ok) throw new Error(data.error || 'Gagal memuat episode berikutnya');

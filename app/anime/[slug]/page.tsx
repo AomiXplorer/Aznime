@@ -8,6 +8,7 @@ import {
   getMalzEpisodes,
   malzAnimeIdFromSlug,
   malzAnimeSlug,
+  resolveMalzAnimeId,
   malzSinonimList,
   malzStatusLabel,
   malzToCard,
@@ -52,9 +53,9 @@ async function buildMalzDetail(id: string): Promise<AnimeDetailView> {
     }
   }
 
-  const episodeSummaries = episodes.map(malzToEpisodeSummary);
+  const episodeSummaries = episodes.map((episode) => malzToEpisodeSummary(episode, anime.judul));
   const startEpisode = detail.episode_terakhir
-    ? malzToEpisodeSummary(detail.episode_terakhir)
+    ? malzToEpisodeSummary(detail.episode_terakhir, anime.judul)
     : episodeSummaries[episodeSummaries.length - 1] || null;
   const latestEpisode = episodeSummaries[0] || null;
   const highestNumber = episodeSummaries.reduce(
@@ -101,12 +102,12 @@ async function buildMalzDetail(id: string): Promise<AnimeDetailView> {
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'TVSeries',
-      '@id': `${absoluteUrl(`/anime/${encodeURIComponent(malzAnimeSlug(id))}`)}#tvseries`,
+      '@id': `${absoluteUrl(`/anime/${encodeURIComponent(malzAnimeSlug(id, anime.judul))}`)}#tvseries`,
       name: anime.judul,
       alternateName: altTitle || undefined,
       description: anime.sinopsis || undefined,
       image: card.poster ? absoluteUrl(card.poster) : undefined,
-      url: absoluteUrl(`/anime/${encodeURIComponent(malzAnimeSlug(id))}`),
+      url: absoluteUrl(`/anime/${encodeURIComponent(malzAnimeSlug(id, anime.judul))}`),
       inLanguage: 'id-ID',
       genre: (detail.genre || []).map((genre) => genre.nama),
       numberOfEpisodes: highestNumber || undefined,
@@ -164,48 +165,59 @@ async function buildHidoriDetail(detail: AnimeDetail): Promise<AnimeDetailView> 
   };
 }
 
+async function malzMetadata(id: string): Promise<Metadata> {
+  try {
+    const detail = await getMalzDetail(id);
+    const anime = detail.anime;
+    const description = anime.sinopsis
+      ? anime.sinopsis.slice(0, 155).trim()
+      : `Tonton ${anime.judul} subtitle Indonesia lengkap di Aznime.`;
+    const trailer = await getAniListTrailer(anime.judul, malzSinonimList(anime).join(', ')).catch(
+      () => null
+    );
+    const image = trailer?.bannerImage || malzToCard(anime).poster;
+    const canonical = `/anime/${encodeURIComponent(malzAnimeSlug(anime.id, anime.judul))}`;
+
+    return {
+      title: anime.judul,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        type: 'video.tv_show',
+        title: `${anime.judul} | Aznime`,
+        description,
+        images: image ? [{ url: image, alt: anime.judul }] : undefined,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${anime.judul} | Aznime`,
+        description,
+        images: image ? [image] : undefined,
+      },
+    };
+  } catch {
+    return { title: 'Detail anime' };
+  }
+}
+
 export async function generateMetadata({ params }: AnimeDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
   const malzId = malzAnimeIdFromSlug(decodedSlug);
 
-  if (malzId) {
-    try {
-      const detail = await getMalzDetail(malzId);
-      const anime = detail.anime;
-      const description = anime.sinopsis
-        ? anime.sinopsis.slice(0, 155).trim()
-        : `Tonton ${anime.judul} subtitle Indonesia lengkap di Aznime.`;
-      const trailer = await getAniListTrailer(anime.judul, malzSinonimList(anime).join(', ')).catch(
-        () => null
-      );
-      const image = trailer?.bannerImage || malzToCard(anime).poster;
+  if (malzId) return malzMetadata(malzId);
 
-      return {
-        title: anime.judul,
-        description,
-        alternates: { canonical: `/anime/${encodeURIComponent(decodedSlug)}` },
-        openGraph: {
-          type: 'video.tv_show',
-          title: `${anime.judul} | Aznime`,
-          description,
-          images: image ? [{ url: image, alt: anime.judul }] : undefined,
-        },
-        twitter: {
-          card: 'summary_large_image',
-          title: `${anime.judul} | Aznime`,
-          description,
-          images: image ? [image] : undefined,
-        },
-      };
-    } catch {
-      return { title: 'Detail anime' };
-    }
+  if (!/-subtitle-indonesia$/i.test(decodedSlug)) {
+    const readableMalzId = await resolveMalzAnimeId(decodedSlug);
+    if (readableMalzId) return malzMetadata(readableMalzId);
   }
 
   try {
     const detail = await getDetail(decodedSlug);
-    if (!detail.title) return { title: 'Anime tidak ditemukan' };
+    if (!detail.title) {
+      const readableMalzId = await resolveMalzAnimeId(decodedSlug);
+      return readableMalzId ? malzMetadata(readableMalzId) : { title: 'Anime tidak ditemukan' };
+    }
 
     const description = detail.synopsis
       ? detail.synopsis.slice(0, 155).trim()
@@ -229,7 +241,8 @@ export async function generateMetadata({ params }: AnimeDetailPageProps): Promis
       },
     };
   } catch {
-    return { title: 'Detail anime' };
+    const readableMalzId = await resolveMalzAnimeId(decodedSlug);
+    return readableMalzId ? malzMetadata(readableMalzId) : { title: 'Detail anime' };
   }
 }
 
@@ -238,15 +251,19 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   const decodedSlug = decodeURIComponent(slug);
   const malzId = malzAnimeIdFromSlug(decodedSlug);
 
+  const renderMalz = async (id: string) => {
+    const view = await buildMalzDetail(id);
+    return (
+      <AnimeDetailLayout
+        {...view}
+        favoriteSlot={<FavoriteButton animeId={decodedSlug} title={view.title} poster={view.poster} />}
+      />
+    );
+  };
+
   if (malzId) {
     try {
-      const view = await buildMalzDetail(malzId);
-      return (
-        <AnimeDetailLayout
-          {...view}
-          favoriteSlot={<FavoriteButton animeId={decodedSlug} title={view.title} poster={view.poster} />}
-        />
-      );
+      return await renderMalz(malzId);
     } catch (err) {
       if (err instanceof UpstreamError && err.isNotFound) notFound();
       const message = err instanceof Error ? err.message : 'Gagal memuat detail anime dari arsip.';
@@ -258,12 +275,32 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
     }
   }
 
+  if (!/-subtitle-indonesia$/i.test(decodedSlug)) {
+    const readableMalzId = await resolveMalzAnimeId(decodedSlug);
+    if (readableMalzId) return await renderMalz(readableMalzId);
+  }
+
   let detail = null;
   let upstreamError: string | null = null;
   try {
     detail = await getDetail(decodedSlug);
   } catch (err) {
     if (err instanceof UpstreamError && err.isNotFound) {
+      const readableMalzId = await resolveMalzAnimeId(decodedSlug);
+      if (readableMalzId) {
+        try {
+          return await renderMalz(readableMalzId);
+        } catch (malzErr) {
+          if (malzErr instanceof UpstreamError && malzErr.isNotFound) notFound();
+          const message =
+            malzErr instanceof Error ? malzErr.message : 'Gagal memuat detail anime dari arsip.';
+          return (
+            <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+              <ErrorState title="Gagal memuat detail anime" message={message} />
+            </div>
+          );
+        }
+      }
       notFound();
     }
     upstreamError = err instanceof Error ? err.message : 'Gagal memuat detail anime dari server sumber.';
@@ -278,6 +315,8 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   }
 
   if (!detail || !detail.title) {
+    const readableMalzId = await resolveMalzAnimeId(decodedSlug);
+    if (readableMalzId) return await renderMalz(readableMalzId);
     notFound();
   }
 
