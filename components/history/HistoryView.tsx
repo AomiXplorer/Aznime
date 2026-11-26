@@ -135,6 +135,7 @@ export function HistoryView() {
           className="group flex gap-3 border border-line bg-surface p-2.5 transition-colors duration-150 hover:border-zinc-700"
         >
           <Link
+            prefetch={false}
             href={item.episodeSlug ? `/watch/${encodeURIComponent(item.episodeSlug)}` : '/anime'}
             className="relative h-[86px] w-[60px] shrink-0 overflow-hidden rounded-[3px] bg-elevated"
           >
@@ -155,7 +156,7 @@ export function HistoryView() {
 
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-[13px] font-semibold leading-snug text-white">
-              <Link href={`/anime/${encodeURIComponent(item.animeId)}`} className="hover:underline">
+              <Link prefetch={false} href={`/anime/${encodeURIComponent(item.animeId)}`} className="hover:underline">
                 {item.title}
               </Link>
             </h3>
@@ -168,6 +169,7 @@ export function HistoryView() {
               {item.episodeSlug ? (
                 <Link
                   href={`/watch/${encodeURIComponent(item.episodeSlug)}`}
+                  prefetch={false}
                   className="inline-flex h-7 items-center gap-1 rounded-[3px] bg-accent-strong px-2.5 text-[11.5px] font-semibold text-white transition-colors duration-150 hover:bg-accent"
                 >
                   <Play className="h-3 w-3" aria-hidden="true" />

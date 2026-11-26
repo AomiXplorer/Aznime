@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import type { AuthUser } from './auth/AuthProvider';
 import { Wordmark } from './Wordmark';
@@ -50,6 +49,7 @@ function Row({
     <li>
       <Link
         href={href}
+        prefetch={false}
         onClick={onNavigate}
         aria-current={active ? 'page' : undefined}
         className={`relative flex h-12 items-center justify-between border-b border-line-soft/60 pl-4 pr-4 text-[15px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-inset ${
@@ -83,28 +83,24 @@ export function MobileMenu({
   authLoading: boolean;
   onLogin: () => void;
 }) {
-  const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
-  /* Menu adalah satu-satunya jalan ke Katalog di ponsel. Prefetch saat menu
-     dibuka membuat RSC halaman tujuan sudah di perjalanan sebelum jari
-     menyentuh itemnya, jadi tidak ada jeda "macet" setelah diketuk. */
   useEffect(() => {
     if (!open) return;
-    for (const link of [...BROWSE_LINKS, ...ACCOUNT_LINKS, { href: '/credit', label: '' }]) {
-      router.prefetch(link.href);
-    }
-  }, [open, router]);
 
-  // Kunci gulir latar selama laci terbuka, tanpa menggeser tata letak.
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    // Keep the body out of the scroll chain so the sticky navbar stays put.
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflowY;
+    const opener = document.activeElement;
+    root.style.overflowY = 'hidden';
     closeRef.current?.focus({ preventScroll: true });
+
     return () => {
-      document.body.style.overflow = previous;
+      root.style.overflowY = previousOverflow;
+      if (opener instanceof HTMLElement && opener.isConnected) {
+        opener.focus({ preventScroll: true });
+      }
     };
   }, [open]);
 
@@ -137,7 +133,7 @@ export function MobileMenu({
      yaitu di bawah 1024 px. Kalau tetap md:hidden, tombol Menu di tablet
      tidak membuka apa pun. */
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
+    <div className="fixed inset-0 z-50 overflow-clip lg:hidden">
       <button
         type="button"
         aria-label="Tutup menu"
@@ -168,7 +164,7 @@ export function MobileMenu({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain pb-6">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
           <nav aria-label="Navigasi utama">
             <SectionLabel>Jelajahi</SectionLabel>
             <ul>
@@ -212,6 +208,7 @@ export function MobileMenu({
           ) : user ? (
             <Link
               href="/profile"
+              prefetch={false}
               onClick={onClose}
               className="flex items-center gap-3 rounded-[4px] px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
