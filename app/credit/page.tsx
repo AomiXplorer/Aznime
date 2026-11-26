@@ -61,7 +61,11 @@ function ContributorDetails({ person }: { person: Contributor }) {
     <div className={styles.details}>
       <div className={styles.profileMeta}>
         <p>{role}</p>
-        <p className={styles.status}><span data-active={active} aria-hidden="true" /><span className="sr-only">Status </span>{status}</p>
+        <p className={styles.status}>
+          <span data-active={active} aria-hidden="true" />
+          <span className="sr-only">Status {status}</span>
+          <span aria-hidden="true">{'>///<'}</span>
+        </p>
       </div>
       <h3 id={`name-${id}`}>{name}</h3>
       <p className={styles.bio}>{note}</p>
