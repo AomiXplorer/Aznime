@@ -125,12 +125,7 @@ export default async function HomePage() {
           aspect="3/4"
         />
 
-        <ComicRow
-          title="Komik"
-          note="Dari komiku.org"
-          items={komikFeed.items}
-          viewAllHref="/komik"
-        />
+        <ComicRow title="Komik" items={komikFeed.items} viewAllHref="/komik" />
       </div>
     </>
   );

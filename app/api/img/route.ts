@@ -105,6 +105,31 @@ function parseWidth(params: URLSearchParams): number | null {
   return Number.isFinite(width) && width >= 64 ? Math.min(Math.round(width), 1920) : null;
 }
 
+function parseHeight(params: URLSearchParams): number | null {
+  const height = Number(params.get('h'));
+  return Number.isFinite(height) && height >= 64 ? Math.min(Math.round(height), 1920) : null;
+}
+
+/**
+ * Sampul komiku bisa diminta sudah dipotong ke ukuran kartu: origin mengerti
+ * ?resize=W,H dan memotong bagian tengah (bukan memipihkan gambar). Tanpa
+ * parameter itu satu sampul terkirim 1354x1920 atau ~666 KB untuk kotak
+ * selebar 110 px, lalu lambda masih harus mengecilkannya sendiri. Dengan
+ * parameter yang sama berkasnya turun jadi ~30 KB, jadi satu halaman katalog
+ * tidak lagi menarik puluhan megabita.
+ *
+ * Proksi terjemahan meneruskan kueri apa adanya, jadi jalur cadangan juga
+ * mendapat berkas kecil yang sama. Hanya host sampul yang mengerti parameter
+ * ini; host halaman chapter tidak disentuh.
+ */
+function komikuSizedUrl(url: URL, width: number | null, height: number | null): URL {
+  if (!width || !height) return url;
+  if (url.hostname.toLowerCase() !== 'thumbnail.komiku.org') return url;
+  const sized = new URL(url.toString());
+  sized.searchParams.set('resize', `${width},${height}`);
+  return sized;
+}
+
 async function fetchDirect(url: URL, upstream: Upstream, followRedirects = false) {
   const headers: Record<string, string> = {
     'User-Agent': BROWSER_USER_AGENT,
@@ -148,7 +173,12 @@ async function respondWithImage(
   allowTitleFallback = true
 ) {
   try {
-    const upstream = await fetchUpstream(target);
+    const width = parseWidth(params);
+    const height = parseHeight(params);
+    const upstream = await fetchUpstream({
+      url: target.upstream === 'komiku' ? komikuSizedUrl(target.url, width, height) : target.url,
+      upstream: target.upstream,
+    });
     const contentType = upstream.headers.get('content-type') || '';
     /* Cloudflare Bot Management membalas halaman HTML untuk host animein.
        Dulu kasus ini dialihkan 302 ke URL sumber, jadi browser mengulang
@@ -182,7 +212,6 @@ async function respondWithImage(
 
     const body = await upstream.arrayBuffer();
     if (body.byteLength > MAX_IMAGE_BYTES) return fallback(target, true);
-    const width = parseWidth(params);
     const format = params.get('f') === 'avif' ? 'avif' : 'webp';
     const quality = Math.min(90, Math.max(40, Number(params.get('q')) || 72));
 
@@ -297,5 +326,9 @@ function fallback(target: { url: URL; upstream: Upstream }, hardFailure = false)
       headers: { 'Cache-Control': 'public, max-age=86400, s-maxage=86400' },
     });
   }
+  /* komiku hanya bisa diambil server lewat proksi. Pengalihan ke alamat asli
+     akan dijawab 403 oleh Cloudflare, jadi kartunya tampil gambar rusak
+     setelah menunggu. Placeholder lebih jelas dan ikut di-cache sebentar. */
+  if (target.upstream === 'komiku') return placeholderPoster(300);
   return NextResponse.redirect(target.url.toString(), 302);
 }

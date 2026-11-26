@@ -7,9 +7,22 @@ import type { ComicCard as ComicCardItem } from '@/lib/comics';
  * webtoon-phinf.pstatic.net menjawab 403 kecuali Referer-nya m.webtoons.com.
  * Jadi semua sampul lewat proxy gambar situs yang mengirim Referer benar.
  */
-export function comicPosterSrc(item: ComicCardItem, width: number): string | null {
+export function comicPosterSrc(
+  item: ComicCardItem,
+  width: number,
+  height?: number
+): string | null {
   if (!item.poster) return null;
-  return `/api/img?u=${encodeURIComponent(item.poster)}&w=${width}`;
+  const base = `/api/img?u=${encodeURIComponent(item.poster)}&w=${width}`;
+  /* Tinggi ikut dikirim supaya sumber bisa memotong sampulnya sendiri ke
+     bentuk kartu. Tanpa itu sampul 1354x1920 (666 KB) harus diunduh utuh
+     untuk kotak 110 px. */
+  return height ? `${base}&h=${height}` : base;
+}
+
+/** Tinggi potongan sampul untuk lebar dan bentuk kartu tertentu. */
+function posterHeight(width: number, aspect: '2/3' | '3/4'): number {
+  return Math.round(width * (aspect === '2/3' ? 1.5 : 4 / 3));
 }
 
 /* Kartu selebar ~110 px di HP dan ~160 px di desktop. Dua ukuran sampul cukup:
@@ -40,9 +53,11 @@ export function ComicCard({
   className,
   sizes = GRID_SIZES,
 }: ComicCardProps) {
-  const poster = comicPosterSrc(item, 340);
+  const poster = comicPosterSrc(item, 340, posterHeight(340, aspect));
   const srcSet = poster
-    ? POSTER_WIDTHS.map((width) => `${comicPosterSrc(item, width)} ${width}w`).join(', ')
+    ? POSTER_WIDTHS.map(
+        (width) => `${comicPosterSrc(item, width, posterHeight(width, aspect))} ${width}w`
+      ).join(', ')
     : undefined;
 
   return (
@@ -67,6 +82,9 @@ export function ComicCard({
               alt={item.title}
               loading="lazy"
               decoding="async"
+              /* Sampul katalog selalu di bawah lipatan; jangan berebut
+                 koneksi dengan hero dan elemen pertama layar. */
+              fetchPriority="low"
               className="h-full w-full object-cover"
             />
           ) : (
