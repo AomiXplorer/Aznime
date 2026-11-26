@@ -228,26 +228,60 @@ export function parseWebtoonSlug(value: string): { titleNo: number; slug: string
   return { titleNo, slug: match[2] };
 }
 
+/** Satu bentuk kartu untuk semua jalur webtoon: beranda, trending, pencarian. */
+function webtoonCard(input: {
+  titleNo: number | null | undefined;
+  title: string | null | undefined;
+  poster: string | null | undefined;
+  meta: string | null | undefined;
+  slug: string | null | undefined;
+}): ComicCard | null {
+  const title = trim(input.title);
+  const titleNo = input.titleNo;
+  if (!title || !titleNo) return null;
+  return {
+    id: `webtoon:${titleNo}`,
+    source: 'webtoon',
+    title,
+    poster: trim(input.poster),
+    meta: trim(input.meta),
+    latest: null,
+    href: webtoonHref(titleNo, trim(input.slug) || webtoons.slugify(title)),
+  };
+}
+
+/**
+ * Beranda WEBTOON menampilkan judul yang sama di beberapa bagian (ranking,
+ * baru, populer), jadi 104 kartu bisa berisi 66 judul. Duplikat dibuang sekali
+ * di sini supaya grid tidak mengulang judul dan tidak meminta sampul yang sama
+ * berkali-kali.
+ */
+function uniqueWebtoonCards(cards: (ComicCard | null)[]): ComicCard[] {
+  const seen = new Set<string>();
+  const items: ComicCard[] = [];
+  for (const card of cards) {
+    if (!card || seen.has(card.id)) continue;
+    seen.add(card.id);
+    items.push(card);
+  }
+  return items;
+}
+
 export function getWebtoonFeed(limit = 16): Promise<ComicFeed> {
   return cached(`webtoon:home:${limit}`, async () => {
     try {
       const cards = await withTimeout(webtoons.getHome({ lang: 'id' }));
-      const items: ComicCard[] = [];
-      for (const card of cards) {
-        const title = trim(card.title);
-        if (!title || !card.titleNo) continue;
-        const slug = trim(card.slug) || webtoons.slugify(title);
-        items.push({
-          id: `webtoon:${card.titleNo}`,
-          source: 'webtoon',
-          title,
-          poster: trim(card.poster),
-          meta: trim(card.genre),
-          latest: null,
-          href: webtoonHref(card.titleNo, slug),
-        });
-        if (items.length >= limit) break;
-      }
+      const items = uniqueWebtoonCards(
+        cards.map((card) =>
+          webtoonCard({
+            titleNo: card.titleNo,
+            title: card.title,
+            poster: card.poster,
+            meta: card.genre,
+            slug: card.slug,
+          })
+        )
+      ).slice(0, limit);
       return { items, offline: items.length === 0 };
     } catch {
       return { items: [], offline: true };
@@ -259,59 +293,53 @@ export function getWebtoonCatalog(query = '', limit = 40): Promise<ComicFeed> {
   const q = query.trim();
   return cached(`webtoon:list:${q}:${limit}`, async () => {
     try {
-      const items: ComicCard[] = [];
+      let items: ComicCard[] = [];
       if (q) {
         const result = await withTimeout(webtoons.search(q, { lang: 'id' }));
-        for (const item of result.results) {
-          const title = trim(item.title);
-          if (!title) continue;
-          items.push({
-            id: `webtoon:${item.titleNo}`,
-            source: 'webtoon',
-            title,
-            poster: trim(item.thumbnail),
-            meta: trim(item.genre) || trim(item.author),
-            latest: null,
-            href: webtoonHref(item.titleNo, trim(item.slug) || webtoons.slugify(title)),
-          });
-        }
+        items = uniqueWebtoonCards(
+          result.results.map((item) =>
+            webtoonCard({
+              titleNo: item.titleNo,
+              title: item.title,
+              poster: item.thumbnail,
+              meta: item.genre || item.author,
+              slug: item.slug,
+            })
+          )
+        );
       } else {
-        /* Beranda WEBTOON memberi sampul vertikal asli (104 judul), sedangkan
-           trending hanya 9 kartu persegi. Beranda dipakai lebih dulu, trending
-           jadi cadangan kalau beranda berubah bentuk. */
+        /* Beranda WEBTOON memberi sampul vertikal asli, sedangkan trending
+           hanya 9 kartu persegi. Beranda dipakai lebih dulu, trending jadi
+           cadangan kalau beranda berubah bentuk. */
         try {
           const home = await withTimeout(webtoons.getHome({ lang: 'id' }));
-          for (const card of home) {
-            const title = trim(card.title);
-            if (!title || !card.titleNo) continue;
-            items.push({
-              id: `webtoon:${card.titleNo}`,
-              source: 'webtoon',
-              title,
-              poster: trim(card.poster),
-              meta: trim(card.genre),
-              latest: null,
-              href: webtoonHref(card.titleNo, trim(card.slug) || webtoons.slugify(title)),
-            });
-          }
+          items = uniqueWebtoonCards(
+            home.map((card) =>
+              webtoonCard({
+                titleNo: card.titleNo,
+                title: card.title,
+                poster: card.poster,
+                meta: card.genre,
+                slug: card.slug,
+              })
+            )
+          );
         } catch {
           /* lanjut ke cadangan */
         }
         if (items.length === 0) {
           const trending = await withTimeout(webtoons.trending({ lang: 'id' }));
-          for (const item of trending) {
-            const title = trim(item.title);
-            if (!title) continue;
-            items.push({
-              id: `webtoon:${item.titleNo}`,
-              source: 'webtoon',
-              title,
-              poster: trim(item.thumbnail),
-              meta: trim(item.genre),
-              latest: null,
-              href: webtoonHref(item.titleNo, trim(item.slug) || webtoons.slugify(title)),
-            });
-          }
+          items = uniqueWebtoonCards(
+            trending.map((item) =>
+              webtoonCard({
+                titleNo: item.titleNo,
+                title: item.title,
+                poster: item.thumbnail,
+                meta: item.genre,
+                slug: item.slug,
+              })
+            )
+          );
         }
       }
       return { items: items.slice(0, limit), offline: items.length === 0 };

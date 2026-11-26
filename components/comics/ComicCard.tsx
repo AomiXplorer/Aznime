@@ -7,10 +7,18 @@ import type { ComicCard as ComicCardItem } from '@/lib/comics';
  * webtoon-phinf.pstatic.net menjawab 403 kecuali Referer-nya m.webtoons.com.
  * Jadi semua sampul lewat proxy gambar situs yang mengirim Referer benar.
  */
-export function comicPosterSrc(item: ComicCardItem, width = 340): string | null {
+export function comicPosterSrc(item: ComicCardItem, width: number): string | null {
   if (!item.poster) return null;
   return `/api/img?u=${encodeURIComponent(item.poster)}&w=${width}`;
 }
+
+/* Dua ukuran saja: kartu di HP selebar ~110 px, di desktop ~150 px. Layar
+   berkerapatan tinggi mengambil 340, layar biasa 200, jadi separuh kunjungan
+   tidak perlu mengunduh sampul yang lebih besar dari kotaknya. */
+const POSTER_WIDTHS = [200, 340] as const;
+
+const GRID_SIZES =
+  '(max-width: 639px) 33vw, (max-width: 767px) 25vw, (max-width: 1023px) 20vw, (max-width: 1279px) 17vw, 15vw';
 
 interface ComicCardProps {
   item: ComicCardItem;
@@ -18,13 +26,24 @@ interface ComicCardProps {
   aspect?: '2/3' | '3/4';
   showSource?: boolean;
   className?: string;
+  /** Lebar kartu di layout pemanggil, dipakai browser untuk memilih srcset. */
+  sizes?: string;
 }
 
-export function ComicCard({ item, aspect = '2/3', showSource = false, className }: ComicCardProps) {
-  const poster = comicPosterSrc(item);
+export function ComicCard({
+  item,
+  aspect = '2/3',
+  showSource = false,
+  className,
+  sizes = GRID_SIZES,
+}: ComicCardProps) {
+  const poster = comicPosterSrc(item, 340);
+  const srcSet = poster
+    ? POSTER_WIDTHS.map((width) => `${comicPosterSrc(item, width)} ${width}w`).join(', ')
+    : undefined;
 
   return (
-    <article className={cn('group relative', className)}>
+    <article className={cn('group relative cv-item', className)}>
       <Link
         href={item.href}
         prefetch={false}
@@ -40,13 +59,15 @@ export function ComicCard({ item, aspect = '2/3', showSource = false, className 
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={poster}
+              srcSet={srcSet}
+              sizes={sizes}
               alt={item.title}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-600">
+            <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] leading-tight text-zinc-600">
               Tanpa poster
             </div>
           )}
