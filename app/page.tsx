@@ -119,18 +119,17 @@ export default async function HomePage() {
         <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />
 
         <ComicRow
+          title="Webtoon"
+          items={webtoonFeed.items}
+          viewAllHref="/webtoon"
+          aspect="3/4"
+        />
+
+        <ComicRow
           title="Komik"
           note="Dari komiku.org"
           items={komikFeed.items}
           viewAllHref="/komik"
-        />
-
-        <ComicRow
-          title="Webtoon"
-          note="Dari WEBTOON bahasa Indonesia"
-          items={webtoonFeed.items}
-          viewAllHref="/webtoon"
-          aspect="3/4"
         />
       </div>
     </>
