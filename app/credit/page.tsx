@@ -1,139 +1,152 @@
 import type { Metadata } from 'next';
-import { socialMeta } from '@/lib/seo';
+import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { CONTRIBUTORS } from '@/lib/credits';
-import { ContributorProfile } from '@/components/ContributorProfile';
-import { PromotorSection } from '@/components/PromotorSection';
+import { ArrowDown, ArrowLeft, ArrowUpRight } from 'lucide-react';
+import { CONTRIBUTORS, PRIMARY_WHATSAPP_URL, PROMOTORS, type Contributor } from '@/lib/credits';
+import { socialMeta } from '@/lib/seo';
+import styles from './credit.module.css';
+
+const description = 'Kenali tim pengembang, kontributor, dan promotor yang ikut merawat Aznime.';
 
 export const metadata: Metadata = {
+  ...socialMeta('Credits', description),
   title: 'Credits',
-  description: 'Behind the platform, powered by the people.',
+  description,
   alternates: { canonical: '/credit' },
-  ...socialMeta('Credits',
-    'Behind the platform, powered by the people.'),
 };
 
-export default function CreditPage() {
+const SOCIAL_LABELS = {
+  github: 'GitHub',
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  telegram: 'Telegram',
+} as const;
+
+function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pb-20 pt-8 sm:px-8">
-      <style>{`
-        @keyframes creditFadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes redDashGlint {
-          0%, 100% {
-            transform: translateX(-120%);
-          }
-          55% {
-            transform: translateX(120%);
-          }
-        }
-        .credit-fade-up {
-          animation: creditFadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        .red-dash-glint,
-        .contributors-list span.bg-accent:not(.rounded-full) {
-          position: relative;
-          display: inline-block;
-          height: 1.5px;
-          overflow: hidden;
-          transition: width 0.3s ease;
-        }
-        .red-dash-glint::after,
-        .contributors-list span.bg-accent:not(.rounded-full)::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, transparent, rgba(255, 241, 242, 0.95), transparent);
-          animation: redDashGlint 2.8s ease-in-out infinite;
-        }
-        .contributors-list li:hover span.bg-accent:not(.rounded-full) {
-          width: 2.5rem;
-        }
-        .contributors-list li img {
-          transition: transform 0.3s ease-out;
-        }
-        .contributors-list li:hover img {
-          transform: scale(1.04);
-        }
-      `}</style>
+    <a href={href} className={styles.external} target="_blank" rel="noopener noreferrer">
+      {children}
+      <ArrowUpRight size={15} aria-hidden="true" />
+      <span className="sr-only"> (dibuka di tab baru)</span>
+    </a>
+  );
+}
 
-      <Link
-        href="/"
-        className="group inline-flex items-center gap-2 rounded-sm text-[12.5px] font-medium text-zinc-400 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-      >
-        <ArrowLeft
-          className="h-3.5 w-3.5 transition-transform duration-150 group-hover:-translate-x-0.5"
-          aria-hidden="true"
+function Profile({ person, lead = false }: { person: Contributor; lead?: boolean }) {
+  const { avatar, name, role, status, active, note, socials, whatsapp } = person;
+
+  return (
+    <article className={lead ? styles.lead : styles.profile} aria-labelledby={`credit-${person.id}`}>
+      {avatar.kind === 'image' ? (
+        <Image
+          src={avatar.src}
+          alt={`Foto profil ${name}`}
+          width={lead ? 512 : 240}
+          height={lead ? 512 : 240}
+          unoptimized
+          loading={lead ? 'eager' : 'lazy'}
+          className={styles.portrait}
         />
-        Kembali ke beranda
-      </Link>
-
-      <header className="credit-fade-up group/head mt-10 grid gap-8 border-b border-line pb-9 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <div>
-          <p className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.3em] text-zinc-500">
-            <span
-              aria-hidden="true"
-              className="red-dash-glint w-7 bg-accent group-hover/head:w-11"
-            />
-            Aznime · Contributors
-          </p>
-          <h1 className="mt-5 font-display text-[clamp(3.25rem,13vw,6rem)] font-semibold leading-[0.86] tracking-[-0.055em] text-white">
-            Credits
-          </h1>
-          <p className="mt-6 max-w-[40ch] text-[15px] leading-relaxed text-zinc-300">
-            Behind the platform, powered by the people.
-          </p>
-        </div>
-
-        <p
-          aria-hidden="true"
-          className="hidden text-[10px] font-medium uppercase tracking-[0.42em] text-zinc-500 md:block [writing-mode:vertical-rl]"
-        >
-          Aznime · 2026
-        </p>
-      </header>
-
-      <section aria-labelledby="credit-contributors" className="mt-1">
-        <h2 id="credit-contributors" className="sr-only">
-          Contributor Aznime
-        </h2>
-        <ol className="contributors-list divide-y divide-line border-b border-line">
-          {CONTRIBUTORS.map((contributor, position) => (
-            <li
-              key={contributor.id}
-              style={{ animationDelay: `${(position + 1) * 75}ms` }}
-              className="credit-fade-up relative after:pointer-events-none after:absolute after:bottom-[-1px] after:left-0 after:h-[1.5px] after:w-0 after:bg-accent/80 after:transition-all after:duration-500 after:ease-out hover:after:w-full"
-            >
-              <ContributorProfile
-                contributor={contributor}
-                index={String(position + 1).padStart(2, '0')}
-              />
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <PromotorSection />
-
-      <div className="mt-14 max-w-2xl">
-        <p className="text-[13px] leading-relaxed text-zinc-400">
-          Aznime dirawat bergantian: katalog, server, dan tampilan dikerjakan manual. Kalau ada
-          episode yang rusak atau tautan yang mati, kabari lewat kanal WhatsApp yang tersedia di
-          atas.
-        </p>
-        <p className="mt-4 font-display text-[13px] font-semibold tracking-[-0.01em] text-zinc-300">
-          Terima kasih sudah menonton.
+      ) : null}
+      <div className={styles.profileHeading}>
+        <p className={styles.role}>{role}</p>
+        <h3 id={`credit-${person.id}`}>{name}</h3>
+        <p className={styles.status}>
+          <span className={active ? styles.activeDot : styles.inactiveDot} aria-hidden="true" />
+          <span className="sr-only">Status </span>{status}
         </p>
       </div>
+      <div className={styles.profileDetails}>
+        <p>{note}</p>
+        {whatsapp || socials ? (
+          <div className={styles.contacts}>
+            {whatsapp ? <ExternalLink href={whatsapp.url}>{whatsapp.label}</ExternalLink> : null}
+            {(Object.keys(SOCIAL_LABELS) as (keyof typeof SOCIAL_LABELS)[]).map((platform) => {
+              const url = socials?.[platform];
+              return url ? <ExternalLink key={platform} href={url}>{SOCIAL_LABELS[platform]}</ExternalLink> : null;
+            })}
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+export default function CreditPage() {
+  const [lead, ...team] = CONTRIBUTORS;
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.masthead}>
+        <div className={styles.shell}>
+          <Link href="/" className={styles.back}>
+            <ArrowLeft size={16} aria-hidden="true" /> Kembali ke beranda
+          </Link>
+          <div className={styles.mastheadGrid}>
+            <div>
+              <p className={styles.kicker}>Credits</p>
+              <h1>Orang-orang di balik Aznime</h1>
+              <p className={styles.intro}>Tim yang merawat katalog, server, dan tampilan, serta kreator yang ikut memperkenalkan Aznime.</p>
+            </div>
+            <nav className={styles.index} aria-label="Bagian halaman Credits">
+              <a href="#credit-contributors">Tim Aznime <ArrowDown size={17} aria-hidden="true" /></a>
+              <a href="#credit-promotors">Promotor <ArrowDown size={17} aria-hidden="true" /></a>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      <section className={`${styles.shell} ${styles.team}`} aria-labelledby="credit-contributors">
+        <h2 id="credit-contributors">Tim Aznime</h2>
+        <div className={styles.teamGrid}>
+          {lead ? <Profile person={lead} lead /> : null}
+          <div className={styles.roster}>
+            {team.map((person) => <Profile key={person.id} person={person} />)}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.promotors} aria-labelledby="credit-promotors">
+        <div className={`${styles.shell} ${styles.promotorLayout}`}>
+          <div>
+            <h2 id="credit-promotors">Promotor</h2>
+            <p className={styles.promotorIntro}>Kreator dan kanal komunitas yang ikut memperkenalkan Aznime.</p>
+          </div>
+          <ul className={styles.directory}>
+            {PROMOTORS.map((person) => (
+              <li key={person.id} className={styles.directoryEntry}>
+                <Image
+                  src={person.avatar}
+                  alt={`Foto profil ${person.name}`}
+                  width={64}
+                  height={64}
+                  unoptimized
+                  className={styles.directoryPortrait}
+                />
+                <div className={styles.directoryIdentity}>
+                  <h3>{person.name}</h3>
+                  <p>{person.handle}</p>
+                </div>
+                <p className={styles.bio}>{person.bio}</p>
+                <div className={styles.directoryLink}>
+                  <ExternalLink href={person.url}>
+                    {person.buttonLabel}
+                    <span className="sr-only"> · {person.handle}</span>
+                  </ExternalLink>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className={`${styles.shell} ${styles.closing}`} aria-labelledby="credit-closing">
+        <h2 id="credit-closing">Terima kasih sudah menonton.</h2>
+        <div>
+          <p>Ada episode rusak atau tautan mati? Kabari kami lewat kanal WhatsApp Aznime.</p>
+          {PRIMARY_WHATSAPP_URL ? <ExternalLink href={PRIMARY_WHATSAPP_URL}>Laporkan masalah</ExternalLink> : null}
+        </div>
+      </section>
     </div>
   );
 }

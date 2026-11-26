@@ -1,0 +1,348 @@
+.page {
+  --paper: var(--color-bone);
+  --ink: var(--color-ink);
+  --paper-muted: #5e514d;
+  --paper-rule: #cbbcb5;
+  --rose-ink: #a41538;
+  --night-text: #f4eeed;
+  --night-muted: #b8adaa;
+  --night-accent: #ff9aae;
+  color: var(--night-text);
+}
+.shell {
+  width: min(100% - 2 * clamp(1.25rem, 5vw, 4.5rem), 74rem);
+  margin-inline: auto;
+}
+.page h1, .page h2, .page h3 {
+  text-wrap: balance;
+}
+.page a {
+  color: inherit;
+  cursor: pointer;
+}
+.page a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+.page :is(h2[id]) {
+  scroll-margin-top: 6rem;
+}
+
+/* Bone and oxblood belong to the same warm palette as Aznime's catalog. */
+.masthead {
+  background: var(--paper);
+  color: var(--ink);
+  padding-block: clamp(1.4rem, 4vw, 2.5rem) clamp(2.25rem, 6vw, 5.25rem);
+}
+.back {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: .55rem;
+  font-size: .88rem;
+  font-weight: 600;
+}
+.mastheadGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 22%);
+  align-items: end;
+  gap: clamp(2rem, 8vw, 7rem);
+  margin-top: clamp(1.35rem, 3vw, 2.8rem);
+}
+.kicker {
+  color: var(--rose-ink);
+  font-size: .92rem;
+  font-weight: 600;
+}
+.masthead h1 {
+  max-width: 16ch;
+  margin-top: .55rem;
+  font-size: clamp(2.45rem, 5.2vw, 4.8rem);
+  line-height: .99;
+  letter-spacing: -.05em;
+}
+.intro {
+  max-width: 45ch;
+  margin-top: 1.15rem;
+  color: var(--paper-muted);
+  font-size: clamp(1rem, 1.55vw, 1.15rem);
+  line-height: 1.55;
+}
+.index {
+  border-top: 1px solid var(--paper-rule);
+}
+.index a {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  border-bottom: 1px solid var(--paper-rule);
+  font-size: .95rem;
+  font-weight: 600;
+}
+.index svg, .directoryLink :is(a, svg) {
+  color: var(--rose-ink);
+}
+
+.team {
+  padding-block: clamp(2.75rem, 6vw, 5.25rem) clamp(3.5rem, 7vw, 6.25rem);
+}
+.team h2, .promotors h2, .closing h2 {
+  font-size: clamp(1.85rem, 3.8vw, 3rem);
+  line-height: 1.04;
+  letter-spacing: -.04em;
+}
+.teamGrid {
+  display: grid;
+  grid-template-columns: minmax(0, .88fr) minmax(0, 1.45fr);
+  gap: clamp(2rem, 6.5vw, 6rem);
+  margin-top: clamp(1.35rem, 3vw, 2rem);
+}
+.lead {
+  display: grid;
+  align-content: start;
+}
+.portrait {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: center 42%;
+  border-radius: 2px;
+  background: var(--color-elevated);
+}
+.lead .portrait {
+  max-width: 23rem;
+  margin-bottom: 1.15rem;
+}
+.profileHeading {
+  min-width: 0;
+}
+.role, .status {
+  font-size: .87rem;
+  line-height: 1.3;
+  color: var(--night-muted);
+}
+.profileHeading h3 {
+  margin-top: .2rem;
+  font-size: clamp(1.55rem, 2.7vw, 2.15rem);
+  line-height: 1.02;
+  letter-spacing: -.04em;
+}
+.lead h3 {
+  font-size: clamp(2.1rem, 4vw, 3.35rem);
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-top: .5rem;
+}
+.activeDot, .inactiveDot {
+  inline-size: .46rem;
+  block-size: .46rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.activeDot {
+  color: var(--night-accent);
+  background: currentColor;
+}
+.profileDetails > p {
+  max-width: 45ch;
+  color: var(--night-muted);
+  font-size: .99rem;
+  line-height: 1.6;
+}
+.lead .profileDetails {
+  margin-top: .7rem;
+}
+.contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  margin-top: .2rem;
+}
+.page .external {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: .3rem;
+  color: var(--night-accent);
+  font-size: .92rem;
+  font-weight: 600;
+  text-underline-offset: 4px;
+}
+.external svg {
+  flex: none;
+}
+.roster {
+  border-top: 1px solid var(--color-line);
+}
+.profile {
+  display: grid;
+  grid-template-columns: clamp(4.4rem, 8vw, 7rem) minmax(0, 1fr);
+  column-gap: clamp(.9rem, 2.2vw, 1.7rem);
+  row-gap: .45rem;
+  align-items: start;
+  padding-block: 1.2rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.profile .portrait {
+  grid-row: span 2;
+}
+.profile .profileDetails {
+  grid-column: 2;
+}
+
+.promotors {
+  background: var(--paper);
+  color: var(--ink);
+  padding-block: clamp(2.45rem, 5.8vw, 5rem);
+}
+.promotorLayout {
+  display: grid;
+  grid-template-columns: minmax(0, .66fr) minmax(0, 1.65fr);
+  align-items: start;
+  gap: clamp(1.4rem, 5vw, 5rem);
+}
+.promotorIntro {
+  max-width: 25ch;
+  margin-top: .75rem;
+  color: var(--paper-muted);
+  line-height: 1.55;
+}
+.directory {
+  border-top: 1px solid var(--paper-rule);
+}
+.directoryEntry {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(6.6rem, .9fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: .8rem clamp(.7rem, 1.5vw, 1.25rem);
+  min-height: 5.55rem;
+  padding-block: .75rem;
+  border-bottom: 1px solid var(--paper-rule);
+}
+.directoryPortrait {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.directoryIdentity h3 {
+  font-size: 1.3rem;
+  line-height: 1.1;
+  text-wrap: initial;
+}
+.directoryIdentity p, .bio {
+  color: var(--paper-muted);
+  font-size: .91rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.directoryIdentity p {
+  margin-top: .15rem;
+}
+.page .directoryLink .external {
+  color: var(--rose-ink);
+}
+
+.closing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .7fr);
+  align-items: start;
+  gap: clamp(.85rem, 4vw, 4rem);
+  max-width: 62rem;
+  padding-top: clamp(2.8rem, 6vw, 5rem);
+}
+.closing p {
+  max-width: 35ch;
+  color: var(--night-muted);
+  line-height: 1.6;
+}
+.closing .external {
+  margin-top: .25rem;
+}
+
+@media (hover: hover) {
+  .back:hover, .index a:hover, .external:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .back, .index a, .external {
+    transition: color 140ms ease;
+  }
+  .page :is(.back, .index a):hover {
+    color: var(--rose-ink);
+  }
+  .page .external:hover {
+    color: currentColor;
+  }
+  .page .directoryLink .external:hover {
+    color: var(--ink);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The shared route wrapper normally fades in on navigation. */
+  :global(.page-enter):has(.page) {
+    animation: none;
+  }
+}
+
+@media (max-width: 57rem) {
+  .promotorLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .promotorIntro {
+    max-width: 40ch;
+  }
+}
+@media (max-width: 40rem) {
+  .mastheadGrid, .teamGrid, .closing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mastheadGrid {
+    gap: 1.45rem;
+  }
+  .index {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+  .index a {
+    border-bottom: 0;
+  }
+  .teamGrid {
+    gap: 1.3rem;
+  }
+  .lead {
+    grid-template-columns: minmax(5.8rem, 34%) minmax(0, 1fr);
+    align-items: center;
+    gap: .75rem 1rem;
+  }
+  .lead .portrait {
+    margin-bottom: 0;
+  }
+  .lead .profileDetails {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+  .directoryEntry {
+    grid-template-columns: 2.9rem minmax(0, 1fr) auto;
+    row-gap: .5rem;
+  }
+  .directoryLink {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .bio {
+    grid-column: 2 / -1;
+  }
+}
