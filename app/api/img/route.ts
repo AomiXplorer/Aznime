@@ -62,6 +62,10 @@ function komikuProxyUrl(url: URL): URL | null {
 }
 /* Sampul webtoon menolak hotlink: 403 tanpa Referer m.webtoons.com. */
 const WEBTOON_HOSTS = new Set(['webtoon-phinf.pstatic.net']);
+/* Sampul MangaSusuku (bagian /doujin). Halaman chapternya TIDAK lewat sini:
+   alamat gambar chapter berpindah-pindah CDN, jadi dibaca lewat
+   /api/doujin-page yang mengambil alamatnya dari API sumber. */
+const MANGASUSUKU_HOSTS = new Set(['mangasusuku.com', 'www.mangasusuku.com']);
 const HIDORI_HOSTS = new Set(['v10.hidoristream.online', 'hidoristream.online']);
 const ANILIST_HOSTS = new Set(['s4.anilist.co']);
 const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
@@ -69,7 +73,15 @@ const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-type Upstream = 'animein' | 'nekopoi' | 'hidori' | 'anilist' | 'youtube' | 'komiku' | 'webtoon';
+type Upstream =
+  | 'animein'
+  | 'nekopoi'
+  | 'hidori'
+  | 'anilist'
+  | 'youtube'
+  | 'komiku'
+  | 'webtoon'
+  | 'mangasusuku';
 
 function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | null {
   if (!raw) return null;
@@ -81,6 +93,7 @@ function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | n
     if (NEKOPOI_HOSTS.has(host)) return { url: parsed, upstream: 'nekopoi' };
     if (KOMIKU_HOSTS.has(host)) return { url: parsed, upstream: 'komiku' };
     if (WEBTOON_HOSTS.has(host)) return { url: parsed, upstream: 'webtoon' };
+    if (MANGASUSUKU_HOSTS.has(host)) return { url: parsed, upstream: 'mangasusuku' };
     if (HIDORI_HOSTS.has(host)) return { url: parsed, upstream: 'hidori' };
     if (ANILIST_HOSTS.has(host)) return { url: parsed, upstream: 'anilist' };
     if (YOUTUBE_HOSTS.has(host)) return { url: parsed, upstream: 'youtube' };
@@ -95,6 +108,7 @@ function refererFor(upstream: Upstream): string | undefined {
   if (upstream === 'hidori') return 'https://v10.hidoristream.online/';
   if (upstream === 'komiku') return 'https://komiku.org/';
   if (upstream === 'webtoon') return 'https://m.webtoons.com/';
+  if (upstream === 'mangasusuku') return 'https://mangasusuku.com/';
   return undefined;
 }
 

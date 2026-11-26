@@ -42,14 +42,29 @@ interface ContentType {
   href: string;
   /** Butuh gerbang 18+ sebelum dibuka. */
   adult?: boolean;
+  /** Kalimat pembuka dialog 18+ untuk bagian ini. */
+  adultNote?: string;
 }
 
 const CONTENT_TYPES: ContentType[] = [
   { label: 'Anime', value: 'anime', href: '/anime' },
   { label: 'Movie', value: 'movie', href: '/anime?type=movie' },
   { label: 'Webtoon', value: 'webtoon', href: '/webtoon' },
-  { label: 'Hentai', value: 'hentai', href: '/hentai', adult: true },
+  {
+    label: 'Hentai',
+    value: 'hentai',
+    href: '/hentai',
+    adult: true,
+    adultNote: 'Kamu akan membuka katalog hentai bersubtitle Indonesia.',
+  },
   { label: 'Komiku', value: 'komiku', href: '/komik' },
+  {
+    label: 'Doujin',
+    value: 'doujin',
+    href: '/doujin',
+    adult: true,
+    adultNote: 'Kamu akan membuka katalog komik dewasa (manhwa 18+).',
+  },
 ];
 
 const ORDER_LABELS: Record<string, string> = {
@@ -111,8 +126,10 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
   const [draftGenres, setDraftGenres] = useState<string[]>(current.genres);
   const [genreQuery, setGenreQuery] = useState('');
   const [mounted, setMounted] = useState(false);
-  // Memilih tipe Hentai membuka bagian 18+, jadi selalu lewat peringatan dulu.
-  const [adultPrompt, setAdultPrompt] = useState(false);
+  /* Memilih tipe 18+ (Hentai atau Doujin) membuka bagian dewasa, jadi selalu
+     lewat peringatan dulu. Nilainya tipe yang dipilih, bukan sekadar true,
+     supaya tombol "Ya" menuju bagian yang benar. */
+  const [adultPrompt, setAdultPrompt] = useState<ContentType | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -228,7 +245,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
       if (key === 'type') {
         const target = CONTENT_TYPES.find((item) => item.value === value);
         if (target?.adult) {
-          setAdultPrompt(true);
+          setAdultPrompt(target);
           close();
           return;
         }
@@ -567,13 +584,19 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
         : null}
 
       <AdultWarning
-        open={adultPrompt}
+        open={adultPrompt !== null}
+        description={
+          adultPrompt?.adultNote
+            ? `${adultPrompt.adultNote} Lanjutkan hanya jika kamu sudah berusia 18 tahun atau lebih.`
+            : undefined
+        }
         onConfirm={() => {
-          setAdultPrompt(false);
-          router.push('/hentai');
+          const target = adultPrompt;
+          setAdultPrompt(null);
+          if (target) router.push(target.href);
         }}
         onCancel={() => {
-          setAdultPrompt(false);
+          setAdultPrompt(null);
           triggerRefs.current.type?.focus();
         }}
       />

@@ -7,6 +7,8 @@ interface AdultWarningProps {
   open: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Kalimat yang menjelaskan bagian mana yang akan dibuka. */
+  description?: string;
 }
 
 /**
@@ -14,7 +16,10 @@ interface AdultWarningProps {
  * katalog, sebelum halaman dewasa dibuka. Muncul setiap kali dipilih, bukan
  * sekali per perangkat: ini gerbang masuk, bukan pengingat.
  */
-export function AdultWarning({ open, onConfirm, onCancel }: AdultWarningProps) {
+const DEFAULT_DESCRIPTION =
+  'Kamu akan membuka katalog hentai bersubtitle Indonesia. Lanjutkan hanya jika kamu sudah berusia 18 tahun atau lebih.';
+
+export function AdultWarning({ open, onConfirm, onCancel, description }: AdultWarningProps) {
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -51,7 +56,7 @@ export function AdultWarning({ open, onConfirm, onCancel }: AdultWarningProps) {
       <div className="page-enter relative w-full max-w-sm">
         <AdultNotice
           title="Masuk ke bagian 18+?"
-          description="Kamu akan membuka katalog hentai bersubtitle Indonesia. Lanjutkan hanya jika kamu sudah berusia 18 tahun atau lebih."
+          description={description ?? DEFAULT_DESCRIPTION}
           confirmLabel="Ya, saya 18+"
           cancelLabel="Batal"
           onConfirm={onConfirm}

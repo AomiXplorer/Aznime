@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { cn } from '@/lib/cn';
 import { RevealImage } from '@/components/media/RevealImage';
-import type { ComicCard as ComicCardItem } from '@/lib/comics';
+import type { ComicCard as ComicCardItem, ComicSource } from '@/lib/comics';
 
 /**
  * Kedua sumber menolak hotlink: komiku.org memblokir host lain, dan
@@ -38,6 +38,13 @@ const POSTER_WIDTHS = [160, 240] as const;
    yang kelebihan. */
 const GRID_SIZES =
   '(max-width: 639px) 30vw, (max-width: 767px) 22vw, (max-width: 1023px) 18vw, (max-width: 1279px) 15vw, 168px';
+
+/** Label kecil di sudut kartu saat satu grid mencampur beberapa sumber. */
+const SOURCE_BADGE: Record<ComicSource, string> = {
+  komiku: 'Komik',
+  webtoon: 'Webtoon',
+  mangasusuku: 'Doujin',
+};
 
 interface ComicCardProps {
   item: ComicCardItem;
@@ -96,7 +103,7 @@ export function ComicCard({
 
           {showSource ? (
             <span className="absolute right-1.5 top-1.5 rounded-[3px] bg-black/85 px-1.5 py-[3px] text-[10px] font-semibold uppercase leading-none tracking-[0.06em] text-zinc-300 ring-1 ring-inset ring-white/10">
-              {item.source === 'komiku' ? 'Komik' : 'Webtoon'}
+              {SOURCE_BADGE[item.source]}
             </span>
           ) : null}
         </div>

@@ -10,7 +10,10 @@ import webtoons from '@/lib/scrapers/webtoons.js';
  * `offline: true` agar halaman tetap tampil dengan keadaan kosong yang jujur.
  */
 
-export type ComicSource = 'komiku' | 'webtoon';
+/* 'mangasusuku' adalah sumber komik dewasa di /doujin. Tipenya ikut di sini
+   supaya kartu dan grid yang sama bisa dipakai, tetapi datanya tidak pernah
+   masuk ke beranda, pencarian utama, maupun sitemap. */
+export type ComicSource = 'komiku' | 'webtoon' | 'mangasusuku';
 
 export interface ComicCard {
   id: string;
