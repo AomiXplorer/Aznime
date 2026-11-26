@@ -70,6 +70,19 @@ export async function filmCatalog(query = '') {
   }
 }
 
+async function availableDownload(value: string) {
+  if (!value) return '';
+  try {
+    const response = await fetch(value, {
+      method: 'HEAD', redirect: 'manual', signal: AbortSignal.timeout(2500),
+      next: { revalidate: 600 },
+    });
+    return response.ok ? value : '';
+  } catch {
+    return '';
+  }
+}
+
 export async function filmDetail(slug: string) {
   if (!validFilmSlug.test(slug)) return null;
   const stored = snapshot.find(f => f.slug === slug);
@@ -79,7 +92,7 @@ export async function filmDetail(slug: string) {
   });
   if ($ === undefined && stored) {
     return { ...stored, players: [{ name: 'P2P', url: 'https://videonode.de/iframe3/p2p/' + stored.playerId + '?v=1' }],
-      download: 'https://dadadidi.de/' + slug + '/' };
+      download: await availableDownload('https://dadadidi.de/' + slug + '/') };
   }
   if (!$) return null;
   const players = $('#player-list a').toArray().map(a => ({
@@ -91,6 +104,6 @@ export async function filmDetail(slug: string) {
   return {
     title: $('h1').first().text().trim(), synopsis: synopsis.text().trim(),
     poster: allowedUrl($('meta[property="og:image"]').attr('content'), 'https://poster.assetsy.de'),
-    players, download: allowedUrl($('a[href]').filter((_, a) => $(a).text().trim().toLowerCase() === 'download').first().attr('href'), 'https://dadadidi.de'),
+    players, download: await availableDownload(allowedUrl($('a[href]').filter((_, a) => $(a).text().trim().toLowerCase() === 'download').first().attr('href'), 'https://dadadidi.de')),
   };
 }

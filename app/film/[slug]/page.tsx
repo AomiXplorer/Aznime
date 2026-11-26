@@ -24,8 +24,10 @@ export default async function FilmPage({ params, searchParams }: {
         {film?.synopsis && <p className="whitespace-pre-line">{film.synopsis}</p>}
       </div>
       <div className="flex gap-5 text-sm underline">
+        {selected && <a href={selected.url} target="_blank" rel="noopener noreferrer">Buka pemutar di tab baru</a>}
         <a href={filmOrigin + '/' + slug} target="_blank" rel="noopener noreferrer">Buka halaman sumber</a>
         {film?.download && <a href={film.download} target="_blank" rel="noopener noreferrer">Halaman download</a>}
+        {!film?.download && <span className="text-muted no-underline">Download belum tersedia</span>}
       </div>
     </div>
   );
