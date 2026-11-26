@@ -389,12 +389,13 @@ export default async function WatchEpisodePage({ params }: WatchPageProps) {
   }
 
   const seriesSlug = episode.series?.slug || episode.navigation.all?.slug || null;
-  const seriesDetail = seriesSlug ? await getDetail(seriesSlug).catch(() => null) : null;
+  const detail = await getDetail(seriesSlug || decodedSlug).catch(() => null);
+  const seriesDetail = seriesSlug || /^(movie)$/i.test(detail?.info?.Tipe || detail?.info?.Type || '') ? detail : null;
 
   const seriesTitle = cleanEpisodeTitle(seriesDetail?.title || episode.series?.title || 'Detail seri');
   const episodeNumber =
     episodeNumberFromTitle(episode.title) ||
-    seriesDetail?.episodes.find((ep) => ep.slug === decodedSlug)?.number ||
+    seriesDetail?.episodes?.find((ep) => ep.slug === decodedSlug)?.number ||
     null;
 
   const episodes = seriesDetail?.episodes ?? [];

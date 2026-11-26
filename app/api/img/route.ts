@@ -34,7 +34,7 @@ const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-type Upstream = 'animein' | 'nekopoi' | 'hidori' | 'anilist' | 'youtube';
+type Upstream = 'animein' | 'nekopoi' | 'hidori' | 'anilist' | 'youtube' | 'lk21';
 
 function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | null {
   if (!raw) return null;
@@ -42,6 +42,7 @@ function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | n
     const parsed = new URL(raw);
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
     const host = parsed.hostname.toLowerCase();
+    if (parsed.origin === 'https://poster.assetsy.de') return { url: parsed, upstream: 'lk21' };
     if (ANIMEIN_HOSTS.has(host)) return { url: parsed, upstream: 'animein' };
     if (NEKOPOI_HOSTS.has(host)) return { url: parsed, upstream: 'nekopoi' };
     if (HIDORI_HOSTS.has(host)) return { url: parsed, upstream: 'hidori' };

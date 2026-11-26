@@ -17,6 +17,7 @@ interface SearchDialogProps {
 }
 
 function hrefFor(item: QuickSearchItem): string {
+  if (item.source === 'lk21') return '/film/' + encodeURIComponent(item.slug || '');
   if (item.source === 'nekopoi') return nekopoiCardHref(item);
   if (!item.slug) return '/anime';
   return `${item.kind === 'episode' ? '/watch' : '/anime'}/${encodeURIComponent(item.slug)}`;
@@ -152,7 +153,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
             ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label={adult ? 'Cari hentai' : 'Cari anime'}
+            aria-label={adult ? 'Cari hentai' : 'Cari anime dan film'}
             initial={reduce ? false : { opacity: 0, y: -16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
@@ -170,7 +171,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={adult ? 'Cari judul hentai' : 'Cari judul anime'}
+                placeholder={adult ? 'Cari judul hentai' : 'Cari judul anime atau film'}
                 autoComplete="off"
                 className="h-14 flex-1 bg-transparent text-[1.05rem] text-white placeholder:text-zinc-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
@@ -183,7 +184,6 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </form>
-            {!adult && <Link onClick={onClose} href={'/film?q=' + encodeURIComponent(trimmed)} className="block border-b border-line px-4 py-3 text-sm underline">Cari {trimmed ? '“' + trimmed + '” di film' : 'film'}</Link>}
 
             <div className="max-h-[58vh] overflow-y-auto p-2" aria-live="polite">
               {trimmed.length < 2 ? (

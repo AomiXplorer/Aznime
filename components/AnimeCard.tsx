@@ -19,9 +19,10 @@ interface AnimeCardProps {
   tone?: 'dark' | 'light';
 }
 
-export function getAnimeItemHref(item: Pick<AnimeCardItem, 'slug' | 'kind'>): string {
+export function getAnimeItemHref(item: Pick<AnimeCardItem, 'slug' | 'kind'> & { source?: AnimeCardItem['source'] }): string {
   if (!item.slug) return '/anime';
   const encoded = encodeURIComponent(item.slug);
+  if (item.source === 'lk21') return `/film/${encoded}`;
   return item.kind === 'episode' ? `/watch/${encoded}` : `/anime/${encoded}`;
 }
 
