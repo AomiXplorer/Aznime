@@ -56,9 +56,13 @@ export function TrailerModal({ open, onClose, title, trailer }: TrailerModalProp
       <div className="relative aspect-video w-full bg-black">
         {open ? (
           <iframe
-            src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer.id)}?autoplay=1&rel=0`}
+            /* Autoplay bersuara diblokir browser pada iframe lintas origin dan
+               hasilnya layar hitam. Mute membuat autoplay selalu diizinkan, dan
+               playsinline mencegah iOS membuka pemutar layar penuh sendiri. */
+            src={`https://www.youtube.com/embed/${encodeURIComponent(trailer.id)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`}
             title={`Trailer ${title}`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen; accelerometer; gyroscope; clipboard-write"
+            referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
             className="h-full w-full border-0"
           />
