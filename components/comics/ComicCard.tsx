@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { cn } from '@/lib/cn';
 import type { ComicCard as ComicCardItem } from '@/lib/comics';
+import type { MovieCard } from '@/lib/movies';
+import { AnimeImage } from '@/components/AnimeImage';
+
+export type CatalogCardItem = ComicCardItem | MovieCard;
 
 /**
  * Kedua sumber menolak hotlink: komiku.org memblokir host lain, dan
@@ -39,7 +43,7 @@ const GRID_SIZES =
   '(max-width: 639px) 30vw, (max-width: 767px) 22vw, (max-width: 1023px) 18vw, (max-width: 1279px) 15vw, 168px';
 
 interface ComicCardProps {
-  item: ComicCardItem;
+  item: CatalogCardItem;
   /** Komik memakai 2:3 seperti poster anime; webtoon 3:4. */
   aspect?: '2/3' | '3/4';
   showSource?: boolean;
@@ -55,8 +59,8 @@ export function ComicCard({
   className,
   sizes = GRID_SIZES,
 }: ComicCardProps) {
-  const poster = comicPosterSrc(item, 240, posterHeight(240, aspect));
-  const srcSet = poster
+  const poster = item.source === 'movie' ? null : comicPosterSrc(item, 240, posterHeight(240, aspect));
+  const srcSet = poster && item.source !== 'movie'
     ? POSTER_WIDTHS.map(
         (width) => `${comicPosterSrc(item, width, posterHeight(width, aspect))} ${width}w`
       ).join(', ')
@@ -74,7 +78,9 @@ export function ComicCard({
             aspect === '2/3' ? 'aspect-[2/3]' : 'aspect-[3/4]'
           )}
         >
-          {poster ? (
+          {item.source === 'movie' ? (
+            <AnimeImage key={item.poster} src={item.poster} alt={item.title} sizes={sizes} unoptimized />
+          ) : poster ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={poster}
@@ -99,7 +105,7 @@ export function ComicCard({
 
           {showSource ? (
             <span className="absolute right-1.5 top-1.5 rounded-[3px] bg-black/85 px-1.5 py-[3px] text-[10px] font-semibold uppercase leading-none tracking-[0.06em] text-zinc-300 ring-1 ring-inset ring-white/10">
-              {item.source === 'komiku' ? 'Komik' : 'Webtoon'}
+              {item.source === 'movie' ? 'Movie' : item.source === 'komiku' ? 'Komik' : 'Webtoon'}
             </span>
           ) : null}
         </div>
