@@ -1,3 +1,4 @@
+import { FilmCatalog } from '@/components/FilmCatalog';
 import Link from 'next/link';
 import { getHome, getOngoing } from '@/lib/scraper';
 import { withoutAdult } from '@/lib/adult';
@@ -40,6 +41,7 @@ export default async function HomePage() {
     return (
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <ErrorState title="Beranda tidak bisa dimuat" message={message} />
+        <FilmCatalog home />
       </div>
     );
   }
@@ -91,6 +93,7 @@ export default async function HomePage() {
           favorite={withoutAdult(popular.favorite)}
           mostViewed={withoutAdult(popular.mostViewed)}
         />
+        <FilmCatalog home />
         <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" priorityCount={2} />
         <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
         {archiveRow.length > 0 ? (
