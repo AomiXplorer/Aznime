@@ -183,6 +183,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </form>
+            {!adult && <Link onClick={onClose} href={'/film?q=' + encodeURIComponent(trimmed)} className="block border-b border-line px-4 py-3 text-sm underline">Cari {trimmed ? '“' + trimmed + '” di film' : 'film'}</Link>}
 
             <div className="max-h-[58vh] overflow-y-auto p-2" aria-live="polite">
               {trimmed.length < 2 ? (

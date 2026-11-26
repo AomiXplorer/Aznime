@@ -42,7 +42,7 @@ const SECURITY_HEADERS = [
   {
     key: 'Permissions-Policy',
     value:
-      'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=(), autoplay=(self "https://www.youtube.com" "https://www.youtube-nocookie.com"), fullscreen=(self "https://www.youtube.com" "https://www.youtube-nocookie.com")',
+      'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=(), autoplay=(self "https://www.youtube.com" "https://www.youtube-nocookie.com" "https://videonode.de"), fullscreen=(self "https://www.youtube.com" "https://www.youtube-nocookie.com" "https://videonode.de")',
   },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   { key: 'X-DNS-Prefetch-Control', value: 'off' },
