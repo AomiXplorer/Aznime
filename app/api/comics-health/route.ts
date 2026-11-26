@@ -60,7 +60,6 @@ async function probe({ name, url, headers, ua }: Probe) {
   }
 }
 
-import { getWebtoonDetail, getWebtoonEpisode } from '@/lib/comics';
 
 export async function GET() {
   const probes: Probe[] = [
