@@ -23,7 +23,6 @@ const NAV_LINKS = [
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
   { href: '/komik', label: 'Komik' },
-  { href: '/movie', label: 'Movie' },
   { href: '/webtoon', label: 'Webtoon' },
 ] as const;
 

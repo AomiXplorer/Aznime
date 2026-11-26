@@ -3,11 +3,12 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ComicCard, type CatalogCardItem } from './ComicCard';
+import type { ComicCard as ComicCardItem } from '@/lib/comics';
+import { ComicCard } from './ComicCard';
 
 interface ComicRowProps {
   title: string;
-  items: CatalogCardItem[];
+  items: ComicCardItem[];
   viewAllHref?: string;
   aspect?: '2/3' | '3/4';
   /** Keterangan satu baris di bawah judul, mis. nama sumber. */

@@ -17,7 +17,6 @@ import { AnimeRow } from '@/components/AnimeRow';
 import { AnimeGrid } from '@/components/AnimeGrid';
 import { ComicRow } from '@/components/comics/ComicRow';
 import { getKomikFeed, getWebtoonFeed } from '@/lib/comics';
-import { COMMONS_MOVIES } from '@/lib/movie-commons';
 import { ErrorState } from '@/components/ErrorState';
 
 export const revalidate = 180;
@@ -127,7 +126,6 @@ export default async function HomePage() {
         />
 
         <ComicRow title="Komik" items={komikFeed.items} viewAllHref="/komik" />
-        <ComicRow title="Movie" items={COMMONS_MOVIES} viewAllHref="/movie" />
       </div>
     </>
   );
