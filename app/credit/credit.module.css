@@ -30,21 +30,21 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(12rem, 26%);
   align-items: end;
-  gap: 1.75rem 4rem;
-  padding-block: clamp(2.6rem, 6.6vw, 6rem) clamp(1.75rem, 4vw, 3.3rem);
+  gap: 1.2rem 4rem;
+  padding-block: clamp(1.5rem, 4.7vw, 4rem) clamp(1rem, 3vw, 2.5rem);
 }
 
 .masthead h1 {
-  font-size: clamp(2.8rem, 7vw, 6.1rem);
+  font-size: clamp(2.05rem, 5vw, 4rem);
   line-height: .96;
   letter-spacing: -.065em;
 }
 
 .intro {
   max-width: 33ch;
-  margin-top: .9rem;
+  margin-top: .65rem;
   color: var(--muted);
-  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  font-size: clamp(.93rem, 1.35vw, 1.05rem);
   line-height: 1.55;
 }
 
@@ -92,31 +92,54 @@
 }
 
 .sectionHeading {
-  font-size: clamp(1.55rem, 3vw, 2.5rem);
+  font-size: clamp(1.25rem, 2.4vw, 1.9rem);
   line-height: 1.1;
   letter-spacing: -.035em;
 }
 
 .feature {
   display: grid;
-  grid-template-columns: minmax(0, .9fr) minmax(0, 1fr);
+  grid-template-columns: clamp(6.3rem, 20vw, 12rem) minmax(0, 1fr);
   align-items: center;
-  gap: clamp(1.5rem, 6vw, 6rem);
-  max-width: 68rem;
-  margin: clamp(1rem, 2.5vw, 2rem) auto 0;
+  gap: clamp(.9rem, 3.3vw, 2.6rem);
+  margin-top: clamp(1rem, 2.5vw, 2rem);
 }
 
 .featureImage {
-  grid-column: 2;
-  grid-row: 1;
-  padding: clamp(.45rem, 1vw, .85rem);
-  border: 3px double #9a9a9a;
-  background: var(--raised);
+  position: relative;
+  isolation: isolate;
+  padding: clamp(.45rem, 1vw, .7rem);
 }
 
-.feature .details {
-  grid-column: 1;
-  grid-row: 1;
+.featureImage::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle closest-side, #797979 calc(100% - 4px), transparent calc(100% - 3px)),
+    repeating-conic-gradient(#797979 0deg 8deg, transparent 8deg 15deg);
+  content: '';
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featureImage::before {
+    animation: rotateFrame 28s linear infinite;
+  }
+
+  .feature:focus-within .featureImage::before {
+    animation-play-state: paused;
+  }
+}
+
+@media (hover: hover) {
+  .feature:hover .featureImage::before {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes rotateFrame {
+  to { transform: rotate(1turn); }
 }
 
 .portrait {
@@ -124,7 +147,8 @@
   width: 100%;
   height: auto;
   aspect-ratio: 1;
-  object-fit: contain;
+  border-radius: 50%;
+  object-fit: cover;
   background: var(--raised);
 }
 
@@ -157,14 +181,14 @@
 .details h3,
 .partner h3 {
   margin-top: .25rem;
-  font-size: clamp(1.65rem, 3.1vw, 2.5rem);
+  font-size: clamp(1.3rem, 2.3vw, 1.85rem);
   line-height: 1.04;
   letter-spacing: -.045em;
 }
 
 .feature h3 {
   margin-top: .2rem;
-  font-size: clamp(3.25rem, 7vw, 6.5rem);
+  font-size: clamp(1.75rem, 3.8vw, 2.85rem);
   letter-spacing: -.065em;
 }
 
@@ -173,11 +197,8 @@
   max-width: 43ch;
   margin-top: .65rem;
   color: var(--muted);
+  font-size: .93rem;
   line-height: 1.5;
-}
-
-.feature .bio {
-  font-size: clamp(1rem, 1.55vw, 1.2rem);
 }
 
 .contacts {
@@ -196,15 +217,11 @@
 
 .engineer {
   display: grid;
-  grid-template-columns: clamp(5.8rem, 11vw, 10rem) minmax(0, 1fr);
+  grid-template-columns: clamp(4.75rem, 8vw, 7.5rem) minmax(0, 1fr);
   align-items: start;
   gap: clamp(.85rem, 2vw, 1.75rem);
   border-top: 1px solid var(--rule);
   padding-top: 1.05rem;
-}
-
-.engineer .portrait {
-  aspect-ratio: 5 / 6;
 }
 
 .contributorBand {
@@ -222,7 +239,7 @@
 
 .contributor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(7rem, 16vw, 14rem);
+  grid-template-columns: minmax(0, 1fr) clamp(6rem, 12vw, 9rem);
   align-items: center;
   gap: clamp(1rem, 3vw, 3rem);
   padding-block: .35rem;
@@ -247,7 +264,7 @@
 
 .partner {
   display: grid;
-  grid-template-columns: clamp(5.2rem, 10vw, 9rem) minmax(0, 1fr) auto;
+  grid-template-columns: clamp(4.5rem, 8vw, 7.5rem) minmax(0, 1fr) auto;
   align-items: center;
   gap: .35rem clamp(.9rem, 2.25vw, 2.2rem);
   padding-block: clamp(.75rem, 1.7vw, 1.4rem);
@@ -255,7 +272,7 @@
 }
 
 .partner h3 {
-  font-size: clamp(1.5rem, 2.55vw, 2.25rem);
+  font-size: clamp(1.25rem, 2.15vw, 1.7rem);
 }
 
 .handle {
@@ -280,7 +297,7 @@
 
 .closing h2 {
   max-width: 16ch;
-  font-size: clamp(1.8rem, 4vw, 3.6rem);
+  font-size: clamp(1.5rem, 3.125vw, 2.5rem);
   line-height: 1.05;
   letter-spacing: -.05em;
   text-wrap: balance;
@@ -309,7 +326,7 @@
   }
 
   .engineer {
-    grid-template-columns: clamp(6.25rem, 18vw, 9rem) minmax(0, 1fr);
+    grid-template-columns: clamp(4.25rem, 16vw, 7rem) minmax(0, 1fr);
   }
 
   .partnerIntro > p {
@@ -319,7 +336,6 @@
 
 @media (max-width: 36rem) {
   .masthead,
-  .feature,
   .contributors {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -345,22 +361,12 @@
     gap: .85rem;
   }
 
-  .featureImage,
-  .feature .details {
-    grid-column: auto;
-    grid-row: auto;
-  }
-
-  .featureImage {
-    max-width: 24rem;
-  }
-
   .contributor {
-    grid-template-columns: minmax(0, 1fr) clamp(5.5rem, 28vw, 8.5rem);
+    grid-template-columns: minmax(0, 1fr) clamp(4.75rem, 23vw, 7rem);
   }
 
   .partner {
-    grid-template-columns: clamp(5.2rem, 23vw, 7rem) minmax(0, 1fr);
+    grid-template-columns: clamp(4.25rem, 20vw, 6rem) minmax(0, 1fr);
     align-items: start;
     row-gap: 0;
   }
