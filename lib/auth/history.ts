@@ -1,4 +1,4 @@
-import { usesPostgres, PersistenceError } from '../db/config';
+import { usesPostgresHistory, PersistenceError } from '../db/config';
 import { pgList, pgMutate } from '../db/library';
 import { hashDel, hashGetAll, hashSetMany, redisPipeline, zCard, zRem, zRevRange, zScore, zAdd } from './redis';
 
@@ -66,7 +66,7 @@ function parseItems(raw: Record<string, string>): HistoryItem[] {
 }
 
 export async function listHistory(userId: string): Promise<HistoryItem[]> {
-  if (usesPostgres()) return pgList(userId, 'history');
+  if (usesPostgresHistory()) return pgList(userId, 'history');
   const ids = await zRevRange(historyKey(userId), 0, HISTORY_LIMIT - 1);
   if (ids.length === 0) return [];
   const raw = await hashGetAll(historyDataKey(userId));
@@ -90,7 +90,7 @@ export async function listHistory(userId: string): Promise<HistoryItem[]> {
  * Skor memakai timestamp sehingga anime yang sama tidak pernah dobel.
  */
 export async function upsertHistory(userId: string, item: HistoryItem): Promise<HistoryItem> {
-  if (usesPostgres()) {
+  if (usesPostgresHistory()) {
     const result = await pgMutate(userId, 'history', 'put', [item]);
     if (!result || Array.isArray(result)) throw new PersistenceError();
     return result;
@@ -129,7 +129,7 @@ export async function upsertHistory(userId: string, item: HistoryItem): Promise<
 }
 
 export async function removeHistory(userId: string, animeId: string): Promise<void> {
-  if (usesPostgres()) {
+  if (usesPostgresHistory()) {
     await pgMutate(userId, 'history', 'delete', [], animeId);
     return;
   }
@@ -154,7 +154,7 @@ export function mergeHistoryItems(guestItems: HistoryItem[], accountItems: Histo
 
 export async function syncHistory(userId: string, guestItems: unknown[]): Promise<{ items: HistoryItem[]; synced: true }> {
   const clean = guestItems.map(sanitizeHistoryItem).filter((item): item is HistoryItem => item !== null);
-  if (usesPostgres()) {
+  if (usesPostgresHistory()) {
     const result = await pgMutate(userId, 'history', 'sync', clean);
     if (!Array.isArray(result)) throw new PersistenceError();
     return { items: result, synced: true };

@@ -30,6 +30,7 @@ Vercel uses the official Supabase JavaScript client over HTTPS to the Data API. 
 | Variable | Environment and purpose |
 | --- | --- |
 | `AZNIME_PERSISTENCE` | Server. Leave unset or `redis` before the cutover; use `postgres` only after import and validation. A typo fails instead of selecting a different store. |
+| `AZNIME_HISTORY_PERSISTENCE` | Server. Leave unset or `redis` until a history-only cutover is verified. Use `postgres` to move history and progress while the other owned records remain in Redis. |
 | `SUPABASE_URL` | Server. HTTPS project origin without an API path. HTTP loopback is permitted outside Vercel production for local validation. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server. Use the managed project's service-role/secret key. Do not place it in a browser variable, output, report, or checked-in file. |
 | `SUPABASE_ANON_KEY` | Only the disposable integration smoke test uses this to verify anonymous denial. AzNime does not initialize a browser Supabase client. |
@@ -37,6 +38,12 @@ Vercel uses the official Supabase JavaScript client over HTTPS to the Data API. 
 | `AUTH_SECRET`, `AUTH_URL` and provider/security env | Keep the existing values. In particular, changing `AUTH_SECRET` invalidates existing session token hashes. |
 
 Use the Vercel environment scope for the intended deployment and an isolated project for preview or smoke testing. Do not run integration smoke against production databases. Monitor service errors and read/write latency in Vercel, rate-limit and Redis metrics in Upstash, and Supabase Query Performance or `pg_stat_statements` for library and account reads. Examine execution plans for the indexed list query under representative load before changing the 100/500 limits.
+
+## History-only cutover
+
+Apply both versioned migrations, then keep `AZNIME_PERSISTENCE=redis` and switch only `AZNIME_HISTORY_PERSISTENCE=postgres` after validation. PostgreSQL records the application account UUID and history/progress. The migration reads only that ID from the Redis profile hash. Emails, password hashes, favorites and maintenance stay in Redis. The history transaction and cache protections remain the same.
+
+For each backup, validation, import and verify command below, set `AZNIME_MIGRATION_SCOPE=history` and use a separate ignored snapshot file such as `.aznime-backups/history-cutover.json`. The importer rejects a file from the other scope. Before the final backup, freeze all production history mutations, including guest-history merges through registration and login. Block those mutations on old deployment URLs and drain in-flight writes before switching. Keep the original Redis history keys. Once new PostgreSQL history writes are enabled, a direct fallback to the old Redis data would hide those writes, so freeze and reconcile before reverting. A later full cutover needs a reviewed snapshot that reflects the then-current PostgreSQL history. A pre-cutover Redis history snapshot may conflict and the full importer will stop.
 
 ## Backup, import and cutover
 

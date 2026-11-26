@@ -13,9 +13,9 @@ const cacheKey = (id: string, kind: Kind) => `aznime:pg:v1:${kind}:${id}`;
 export async function pgList<K extends Kind>(id: string, kind: K): Promise<Items[K][]> {
   return cachedLibrary(cacheKey(id, kind), ttl[kind], async () => {
     const column = kind === 'history' ? 'history_version' : 'favorites_version';
-    const { data, error } = await database().from('aznime_users').select(column).eq('id', id).single();
-    if (error || !data) throw new PersistenceError();
-    return (data as Record<string, string>)[column];
+    const { data, error } = await database().from('aznime_library_owners').select(column).eq('id', id).maybeSingle();
+    if (error) throw new PersistenceError();
+    return data ? (data as Record<string, string>)[column] : 'empty';
   }, async () => {
     const { data, error } = await database().from('aznime_library_entries')
       .select('item').eq('user_id', id).eq('kind', kind)

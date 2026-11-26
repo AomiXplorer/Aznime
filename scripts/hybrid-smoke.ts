@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { redisCommand } from '../lib/auth/redis';
+import { usesPostgres, usesPostgresHistory } from '../lib/db/config';
 import { database } from '../lib/db/supabase';
 
 async function main() {
   if (process.env.AZNIME_RUN_HYBRID_SMOKE !== '1') {
     throw new Error('Set AZNIME_RUN_HYBRID_SMOKE=1 only for disposable test storage.');
   }
+  assert(usesPostgresHistory(), 'Enable PostgreSQL history in the disposable app and smoke environment.');
   const origin = new URL(process.env.AZNIME_SMOKE_ORIGIN || 'http://127.0.0.1:3041');
   assert(['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname), 'Smoke test requires a local AzNime app.');
   assert.equal(await redisCommand('PING'), 'PONG');
@@ -58,10 +60,13 @@ async function main() {
   assert.equal(one.items[0].animeId, favorite.animeId);
   assert.equal((await (await request('/api/favorites', 'GET', undefined, second.cookie)).json()).items.length, 0);
   const favKey = `aznime:pg:v1:favorites:${first.id}`;
-  assert.equal(typeof await redisCommand('GET', favKey), 'string', 'Cache fill missing.');
+  const legacyFavKey = `user:${first.id}:favorites`;
+  if (usesPostgres()) assert.equal(typeof await redisCommand('GET', favKey), 'string', 'Cache fill missing.');
+  else assert.equal(await redisCommand('ZCARD', legacyFavKey), 1);
   assert.deepEqual(await (await request('/api/favorites', 'GET', undefined, first.cookie)).json(), one);
   assert.equal((await request('/api/favorites?animeId=shared-test', 'DELETE', undefined, first.cookie)).status, 200);
-  assert.equal(await redisCommand('GET', favKey), null, 'Cache invalidation missing.');
+  if (usesPostgres()) assert.equal(await redisCommand('GET', favKey), null, 'Cache invalidation missing.');
+  else assert.equal(await redisCommand('ZCARD', legacyFavKey), 0);
 
   const timestamp = Date.now() - 100;
   const writes = await Promise.all(Array.from({ length: 12 }, (_, position) =>
@@ -72,11 +77,16 @@ async function main() {
   assert.deepEqual(Object.keys(saved), ['items']);
   assert.equal(saved.items.length, 1);
   assert.equal(saved.items[0].position, 11);
+  const historyKey = `aznime:pg:v1:history:${first.id}`;
+  assert.equal(typeof await redisCommand('GET', historyKey), 'string', 'History cache fill missing.');
+  assert.deepEqual(await (await request('/api/history', 'GET', undefined, first.cookie)).json(), saved);
   const older = await request('/api/history/sync', 'POST', { items: [{ ...favorite, updatedAt: timestamp, position: 0 }] }, first.cookie);
   assert.deepEqual(await older.json(), { items: saved.items, synced: true });
   const me = await (await request('/api/auth/me', 'GET', undefined, first.cookie)).json();
   assert.deepEqual(me.stats, { history: 1, favorites: 0 });
   assert.equal((await request('/api/history?animeId=shared-test', 'DELETE', undefined, first.cookie)).status, 200);
+
+  assert.equal(await redisCommand('GET', historyKey), null, 'History cache invalidation missing.');
 
   const login = await request('/api/auth/login', 'POST', { email: first.email, password });
   assert.equal(login.status, 200);

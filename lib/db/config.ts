@@ -11,3 +11,11 @@ export function usesPostgres(): boolean {
   if (mode === 'postgres') return true;
   throw new PersistenceError();
 }
+
+export function usesPostgresHistory(): boolean {
+  if (usesPostgres()) return true;
+  const mode = process.env.AZNIME_HISTORY_PERSISTENCE?.trim();
+  if (!mode || mode === 'redis') return false;
+  if (mode === 'postgres') return true;
+  throw new PersistenceError();
+}
