@@ -43,12 +43,7 @@ export function PopularRanking({ trending, favorite, mostViewed }: PopularRankin
   return (
     <section aria-label="Top 5 anime populer" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[1.1rem] font-bold text-white">Top 5 populer</h2>
-          <p className="mt-0.5 text-[12px] text-zinc-500">
-            Peringkat dari arsip Malz, dihitung dari tontonan dan favorit.
-          </p>
-        </div>
+        <h2 className="text-[1.1rem] font-bold text-white">Top 5 populer</h2>
         <div role="tablist" aria-label="Periode peringkat" className="flex gap-0.5 rounded-[4px] border border-white/10 p-0.5">
           {PERIODS.map((p) => {
             const active = period === p.key;
