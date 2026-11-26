@@ -14,6 +14,7 @@ import {
   resolveMalzEpisodeId,
   malzEpisodeSlug,
   malzServersToMirrors,
+  proxiedVideoMirrors,
   malzStatusLabel,
   malzToCard,
   malzToEpisodeSummary,
@@ -165,7 +166,7 @@ async function buildMalzWatch(episodeId: string): Promise<MalzWatchData> {
     totalEpisodes,
     ...firstPage.items.map((item) => Number.parseFloat(item.episode) || 0)
   );
-  const servers = malzServersToMirrors(stream.servers);
+  const servers = proxiedVideoMirrors(malzServersToMirrors(stream.servers));
   const firstDirect = servers.find((server) => server.type === 'video' || server.type === 'hls');
   const posterTitle = cleanEpisodeTitle(detail?.anime.judul || 'Anime');
   const seriesPoster = detail ? malzToCard(detail.anime).poster : null;

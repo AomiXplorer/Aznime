@@ -479,6 +479,22 @@ function qualityWeight(quality: string): number {
  * browser pengunjung (Cloudflare menolak permintaan server). Urutan sengaja
  * diturunkan dari kualitas tertinggi supaya pemutar memilih 1080p/720p lebih dulu.
  */
+/**
+ * Malz menyimpan berkas video dengan garis miring di dalam nama objek, sehingga
+ * tautannya memakai `%2F`. Sebagian browser menormalkannya menjadi `/` dan CDN
+ * membalas 400 Bad Request. Tautan video dialihkan ke proksi /api/video supaya
+ * encoding asli tetap utuh. HLS tidak diproksi karena segmennya relatif.
+ */
+export function proxiedVideoUrl(url: string): string {
+  return `/api/video?u=${encodeURIComponent(url)}`;
+}
+
+export function proxiedVideoMirrors(mirrors: MirrorServer[]): MirrorServer[] {
+  return mirrors.map((mirror) =>
+    mirror.type === 'video' && mirror.url ? { ...mirror, url: proxiedVideoUrl(mirror.url) } : mirror
+  );
+}
+
 export function malzServersToMirrors(servers: MalzServer[]): MirrorServer[] {
   const usable = servers
     .filter((server) => server && server.link)
