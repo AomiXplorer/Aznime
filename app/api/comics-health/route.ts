@@ -89,6 +89,23 @@ export async function GET() {
       ua: UA_MOBILE,
     },
     {
+      name: 'webtoon:episodes-2034-id',
+      url: 'https://m.webtoons.com/api/v1/webtoon/2034/episodes?pageSize=60&cursor=0&readingLanguageCode=id',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', Referer: 'https://m.webtoons.com/id' },
+      ua: UA_MOBILE,
+    },
+    {
+      name: 'webtoon:episodes-2034-id-30',
+      url: 'https://m.webtoons.com/api/v1/webtoon/2034/episodes?pageSize=30&cursor=0&readingLanguageCode=id',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', Referer: 'https://m.webtoons.com/id' },
+      ua: UA_MOBILE,
+    },
+    {
+      name: 'webtoon:title-2034-tanpa-genre',
+      url: 'https://m.webtoons.com/id/eleceed/list?title_no=2034',
+      ua: UA_MOBILE,
+    },
+    {
       name: 'komiku:home',
       url: 'https://komiku.org/',
       ua: UA_DESKTOP,
