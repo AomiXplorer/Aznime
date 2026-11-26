@@ -12,13 +12,16 @@ export function comicPosterSrc(item: ComicCardItem, width: number): string | nul
   return `/api/img?u=${encodeURIComponent(item.poster)}&w=${width}`;
 }
 
-/* Dua ukuran saja: kartu di HP selebar ~110 px, di desktop ~150 px. Layar
-   berkerapatan tinggi mengambil 340, layar biasa 200, jadi separuh kunjungan
-   tidak perlu mengunduh sampul yang lebih besar dari kotaknya. */
-const POSTER_WIDTHS = [200, 340] as const;
+/* Kartu selebar ~110 px di HP dan ~160 px di desktop. Dua ukuran sampul cukup:
+   240 px untuk layar 2x yang paling banyak dipakai, 340 px untuk layar 3x.
+   Tanpa ini setiap HP mengunduh sampul 340 px untuk kotak 110 px. */
+const POSTER_WIDTHS = [240, 340] as const;
 
+/* Lebar kartu sebenarnya per breakpoint grid (kolom dan gap mengikuti
+   ComicGrid), supaya browser memilih ukuran sampul yang pas, bukan perkiraan
+   yang kelebihan. */
 const GRID_SIZES =
-  '(max-width: 639px) 33vw, (max-width: 767px) 25vw, (max-width: 1023px) 20vw, (max-width: 1279px) 17vw, 15vw';
+  '(max-width: 639px) 30vw, (max-width: 767px) 22vw, (max-width: 1023px) 18vw, (max-width: 1279px) 15vw, 168px';
 
 interface ComicCardProps {
   item: ComicCardItem;

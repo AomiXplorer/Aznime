@@ -77,7 +77,7 @@ export function ComicRow({ title, items, viewAllHref, aspect = '2/3', note }: Co
             key={item.id}
             item={item}
             aspect={aspect}
-            sizes="(max-width: 639px) 31vw, (max-width: 767px) 22vw, (max-width: 1023px) 15.5vw, 16vw"
+            sizes="(max-width: 639px) 31vw, (max-width: 767px) 22vw, (max-width: 1023px) 16vw, 200px"
             className="w-[31vw] shrink-0 snap-start sm:w-[22vw] md:w-[15.5vw] lg:w-[calc((100%-5*14px)/6)]"
           />
         ))}
