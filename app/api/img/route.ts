@@ -34,6 +34,9 @@ const KOMIKU_HOSTS = new Set([
   'thumbnail.komiku.org',
   'image1.komiku.to',
   'image2.komiku.to',
+  /* Sebagian sampul di daftar komiku.org ditautkan ke Comic Vine, bukan ke
+     host sendiri. Tanpa host ini kartunya tampil tanpa gambar. */
+  'comicvine.gamespot.com',
 ]);
 
 /**
