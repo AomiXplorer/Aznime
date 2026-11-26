@@ -184,8 +184,15 @@ async function serveTitlePoster(params: URLSearchParams) {
 }
 
 export async function GET(request: Request) {
-  const limited = await rateLimitGuard(request, { name: 'img', limit: 300, windowSeconds: 60 });
-  if (limited) return limited;
+  /* Satu halaman katalog meminta ~60 gambar, dan satu IP operator seluler
+     dipakai bersama banyak orang. Batas 300 per menit habis setelah lima
+     tampilan halaman, lalu poster berikutnya dijawab 429 dan tampil sebagai
+     gambar rusak. 1800 memberi ruang 30 tampilan halaman per menit per IP,
+     sementara pemakaian normal tetap jauh di bawahnya. */
+  const limited = await rateLimitGuard(request, { name: 'img', limit: 1800, windowSeconds: 60 });
+  /* Kuota habis tetap dijawab gambar, bukan JSON: <img> yang menerima JSON
+     hanya menampilkan ikon gambar rusak. */
+  if (limited) return placeholderPoster(60);
 
   const params = new URL(request.url).searchParams;
 
@@ -207,7 +214,7 @@ function badRequest() {
  * Dulu dijawab 404: kartu tampil kosong dan setiap kartu menulis satu error di
  * konsol. SVG ~500 byte ini membuat kartu tetap rapi, sekali di-cache CDN.
  */
-function placeholderPoster() {
+function placeholderPoster(maxAgeSeconds = 3600) {
   const svg =
     '<svg xmlns="http://www.w3.org/2000/svg" width="340" height="480" viewBox="0 0 340 480" role="img">' +
     '<rect width="340" height="480" fill="#141010"/>' +
@@ -220,7 +227,7 @@ function placeholderPoster() {
     status: 200,
     headers: {
       'Content-Type': 'image/svg+xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      'Cache-Control': `public, max-age=${maxAgeSeconds}, s-maxage=${maxAgeSeconds}`,
     },
   });
 }
