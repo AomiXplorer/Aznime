@@ -84,6 +84,42 @@ function HeroBackdrop({ item, eager }: { item: FeaturedWithTrailer; eager: boole
   return <div className="h-full w-full bg-[#0c0908]" />;
 }
 
+/** Menyiapkan latar slide berikutnya selagi slide ini tampil.
+
+    Tanpa ini, banner baru mulai diunduh saat transisi sudah berjalan: slide
+    lama memudar lebih dulu, dan selama beberapa ratus milidetik yang terlihat
+    hanya kanvas kosong. Gambar disiapkan lewat elemen asli, bukan `new Image()`,
+    supaya browser memilih kandidat srcset yang sama persis dengan yang nanti
+    dipakai slide itu. Tidak ada permintaan ganda. */
+function HeroPreload({ item }: { item: FeaturedWithTrailer }) {
+  const banner = item.trailer?.bannerImage || null;
+  const src = banner
+    ? heroSrc(banner, 1280)
+    : item.poster
+      ? heroSrc(highResPoster(item.poster), 900, true)
+      : null;
+  if (!src) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 invisible" aria-hidden="true">
+      <img
+        src={src}
+        srcSet={
+          banner
+            ? `${heroSrc(banner, 640)} 640w, ${heroSrc(banner, 960)} 960w, ${heroSrc(banner, 1280)} 1280w, ${heroSrc(banner, 1600)} 1600w`
+            : undefined
+        }
+        sizes="100vw"
+        alt=""
+        loading="eager"
+        fetchPriority="low"
+        decoding="async"
+        className="h-full w-full object-cover object-center"
+      />
+    </div>
+  );
+}
+
 export function HeroSection({ items }: HeroSectionProps) {
   const slides = items.slice(0, 6);
   const [index, setIndex] = useState(0);
@@ -217,6 +253,9 @@ export function HeroSection({ items }: HeroSectionProps) {
         <div key={`bg-${index}`} className={`absolute inset-0${reduce ? '' : ' hero-slide-enter'}`}>
           <HeroBackdrop item={current} eager={index === 0} />
         </div>
+        {slides.length > 1 && slides[(index + 1) % slides.length] ? (
+          <HeroPreload key={`pre-${(index + 1) % slides.length}`} item={slides[(index + 1) % slides.length]} />
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/60 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-canvas to-transparent" />
       </div>

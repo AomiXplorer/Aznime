@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ListOrdered } from 'lucide-react';
 import { getWebtoonEpisode, getWebtoonEpisodes, parseWebtoonSlug, webtoonHref } from '@/lib/comics';
+import { RevealImage } from '@/components/media/RevealImage';
 
 interface WebtoonEpisodeProps {
   params: Promise<{ slug: string; episode: string }>;
@@ -115,17 +116,22 @@ export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps
 
       <div className="flex flex-col items-center bg-surface/40">
         {view.images.map((image, index) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <RevealImage
             key={`${index}-${image.url.slice(-24)}`}
             src={`/api/img?u=${encodeURIComponent(image.url)}&w=900`}
             alt={`Halaman ${index + 1} episode ${episodeNo}`}
+            fill={false}
             width={image.width || undefined}
             height={image.height || undefined}
-            loading={index < 2 ? 'eager' : 'lazy'}
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className="h-auto w-full max-w-[800px]"
+            priority={index < 2}
+            /* Rasio dari sumber dipakai lebih dulu supaya ruang halaman sudah
+               disediakan sebelum gambarnya datang; tanpa itu seluruh episode
+               melompat saat tiap gambar selesai dimuat. */
+            aspect={
+              image.width && image.height ? `${image.width} / ${image.height}` : undefined
+            }
+            frameClassName="reader-page max-w-[800px]"
+            className="mx-auto max-w-[800px]"
           />
         ))}
       </div>

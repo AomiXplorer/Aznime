@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ListOrdered } from 'lucide-react';
 import { getKomikChapter, getKomikDetail } from '@/lib/comics';
+import { RevealImage } from '@/components/media/RevealImage';
 
 interface KomikChapterProps {
   params: Promise<{ slug: string; chapter: string }>;
@@ -102,14 +103,14 @@ export default async function KomikChapterPage({ params }: KomikChapterProps) {
 
       <div className="flex flex-col items-center gap-1.5 bg-surface/40">
         {view.images.map((url, index) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <RevealImage
             key={`${index}-${url.slice(-24)}`}
             src={`/api/img?u=${encodeURIComponent(url)}&w=900`}
             alt={`Halaman ${index + 1} ${seriesTitle} ${view.label}`}
-            loading={index < 2 ? 'eager' : 'lazy'}
-            decoding="async"
-            className="h-auto w-full max-w-[900px] bg-[#141010]"
+            fill={false}
+            priority={index < 2}
+            frameClassName="reader-page max-w-[900px]"
+            className="mx-auto max-w-[900px]"
           />
         ))}
       </div>

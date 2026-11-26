@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ChevronLeft, ListOrdered } from 'lucide-react';
 import { getKomikDetail } from '@/lib/comics';
 import { socialMeta } from '@/lib/seo';
+import { RevealImage } from '@/components/media/RevealImage';
 
 interface KomikDetailProps {
   params: Promise<{ slug: string }>;
@@ -53,14 +54,17 @@ export default async function KomikDetailPage({ params }: KomikDetailProps) {
       <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[248px_1fr] lg:gap-9">
         <div className="mx-auto w-[168px] sm:w-[196px] md:mx-0 md:w-full">
           <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[6px] bg-surface ring-1 ring-inset ring-white/10">
-            {poster ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={poster} alt={detail.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-[12px] text-zinc-600">
-                Tanpa poster
-              </div>
-            )}
+            <RevealImage
+              src={poster}
+              alt={detail.title}
+              sizes="(max-width: 768px) 168px, 248px"
+              className="object-cover"
+              fallback={
+                <div className="flex h-full w-full items-center justify-center text-[12px] text-zinc-600">
+                  Tanpa poster
+                </div>
+              }
+            />
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Heart, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { RevealImage } from '@/components/media/RevealImage';
 import { formatRelative } from '@/components/history/HistoryView';
 import type { FavoriteItem } from '@/lib/auth/favorites';
 
@@ -113,20 +114,17 @@ export function FavoritesView() {
         <article key={item.animeId} className="group">
           <div className="relative overflow-hidden rounded-[4px] border border-line bg-surface">
             <Link href={`/anime/${encodeURIComponent(item.animeId)}`} className="block aspect-[2/3]">
-              {item.poster ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.poster}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-cover transition-opacity duration-150 group-hover:opacity-90"
-                />
-              ) : (
-                <span className="flex h-full items-center justify-center text-[11px] text-zinc-600">
-                  Tanpa poster
-                </span>
-              )}
+              <RevealImage
+                src={item.poster}
+                alt={item.title}
+                sizes="(max-width: 640px) 50vw, 25vw"
+                className="object-cover transition-opacity duration-150 group-hover:opacity-90"
+                fallback={
+                  <span className="flex h-full w-full items-center justify-center text-[11px] text-zinc-600">
+                    Tanpa poster
+                  </span>
+                }
+              />
             </Link>
             <button
               type="button"

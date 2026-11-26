@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/cn';
+import { RevealImage } from '@/components/media/RevealImage';
 import type { ComicCard as ComicCardItem } from '@/lib/comics';
 
 /**
@@ -74,22 +75,18 @@ export function ComicCard({
             aspect === '2/3' ? 'aspect-[2/3]' : 'aspect-[3/4]'
           )}
         >
-          {poster ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={poster}
-              srcSet={srcSet}
-              sizes={sizes}
-              alt={item.title}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] leading-tight text-zinc-600">
-              Tanpa poster
-            </div>
-          )}
+          <RevealImage
+            src={poster}
+            srcSet={srcSet}
+            sizes={sizes}
+            alt={item.title}
+            className="object-cover"
+            fallback={
+              <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] leading-tight text-zinc-600">
+                Tanpa poster
+              </div>
+            }
+          />
 
           {item.latest ? (
             <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate rounded-[3px] bg-black/85 px-1.5 py-[3px] text-[10.5px] font-semibold leading-none tracking-[0.02em] text-white ring-1 ring-inset ring-white/15">

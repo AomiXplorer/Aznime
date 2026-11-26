@@ -98,7 +98,9 @@ export default async function HomePage() {
           favorite={withoutAdult(popular.favorite)}
           mostViewed={withoutAdult(popular.mostViewed)}
         />
-        <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" priorityCount={2} />
+        {/* Tanpa priority: baris ini selalu berada di bawah hero, jadi preload di
+            sini hanya bersaing dengan banner yang jadi LCP. */}
+        <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
         <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
         {archiveRow.length > 0 ? (
           <section aria-label="Dari arsip">

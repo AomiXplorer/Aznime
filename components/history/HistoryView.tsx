@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Clock, Play, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { RevealImage } from '@/components/media/RevealImage';
 import { readGuestHistory, removeGuestHistory } from '@/lib/guest-history';
 import type { HistoryItem } from '@/lib/auth/history';
 
@@ -139,16 +140,13 @@ export function HistoryView() {
             href={item.episodeSlug ? `/watch/${encodeURIComponent(item.episodeSlug)}` : '/anime'}
             className="relative h-[86px] w-[60px] shrink-0 overflow-hidden rounded-[3px] bg-elevated"
           >
-            {item.poster ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={item.poster}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover"
-              />
-            ) : null}
+            <RevealImage
+              src={item.poster}
+              alt={item.title}
+              sizes="60px"
+              className="object-cover"
+              fallback={null}
+            />
             <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
               <Play className="h-4 w-4 text-white" aria-hidden="true" />
             </span>

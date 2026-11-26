@@ -8,6 +8,7 @@ import { ArrowRight, Search, X } from 'lucide-react';
 import type { QuickSearchItem } from '@/lib/scraper/types';
 import { nekopoiCardHref } from '@/lib/nekopoi-links';
 import { AnimeImage } from './AnimeImage';
+import { RevealImage } from './media/RevealImage';
 
 interface SearchDialogProps {
   open: boolean;
@@ -287,19 +288,19 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                               className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white/[0.06] active:scale-[0.99]"
                             >
                               <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-elevated">
-                                {item.poster ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={
-                                      item.source === 'komiku'
+                                <RevealImage
+                                  src={
+                                    item.poster
+                                      ? item.source === 'komiku'
                                         ? `/api/img?u=${encodeURIComponent(item.poster)}&w=120`
                                         : item.poster
-                                    }
-                                    alt=""
-                                    loading="lazy"
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : null}
+                                      : null
+                                  }
+                                  alt={item.title}
+                                  sizes="40px"
+                                  className="object-cover"
+                                  fallback={null}
+                                />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold text-white">{item.title}</p>

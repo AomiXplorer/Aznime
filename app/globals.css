@@ -417,3 +417,92 @@ body:has([data-maintenance-screen]) > footer {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ gambar */
+/* Satu sistem pemunculan gambar untuk seluruh situs.
+
+   Alasannya begini: gambar tidak pernah di-fade lewat `opacity` miliknya
+   sendiri, karena beberapa tempat (banner detail, kartu favorit) memang
+   memakai opacity sebagai bagian desainnya. Kalau reveal juga mengatur
+   `opacity`, keduanya berebut properti yang sama dan salah satu kalah.
+
+   Jadi gambar memakai `filter` + `transform` (keduanya di compositor),
+   sedangkan lapisan placeholder adalah pseudo-element yang memudar di
+   atasnya. Hasil akhirnya sama: bidang gelap tenang yang membuka diri ke
+   gambar yang menajam. Tanpa DOM tambahan, tanpa JavaScript per frame. */
+.media-frame {
+  overflow: hidden;
+  background-color: var(--color-surface);
+  /* Mengurung z-index lapisan placeholder supaya tidak naik melewati badge
+     episode atau lapisan hover yang jadi saudaranya di dalam kartu. */
+  isolation: isolate;
+}
+
+/* Placeholder: bidang gelap bertona hangat, statis. Bukan skeleton gradien
+   beranimasi, bukan shimmer yang berkedip di seluruh katalog. */
+.media-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: linear-gradient(158deg, #1b1515 0%, #131010 62%, #161111 100%);
+  opacity: 1;
+  transition: opacity 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.media-frame > img {
+  filter: blur(8px);
+  transform: scale(1.015);
+  transition:
+    filter 340ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* `loaded` = gambar baru saja selesai diunduh, jadi transisinya berjalan.
+   `instant` = gambar sudah ada di cache (muat ulang, tombol kembali, atau
+   selesai sebelum hidrasi), jadi tidak ada yang perlu dianimasikan. */
+.media-frame[data-reveal]::after {
+  opacity: 0;
+}
+.media-frame[data-reveal] > img {
+  filter: none;
+  transform: none;
+}
+.media-frame[data-reveal='instant']::after,
+.media-frame[data-reveal='instant'] > img {
+  transition: none;
+}
+
+/* Halaman chapter: tinggi aslinya baru diketahui setelah gambarnya datang,
+   dan perbandingan halaman komiku berkisar 0,68 sampai 3,47 kali lebarnya.
+   Menebak tinggi hanya memindahkan masalah: tebakan yang meleset justru
+   menggeser halaman saat gambar asli menyusul. Jadi wadah dibiarkan mengikuti
+   gambar, dan latarnya disamakan dengan latar pembaca supaya tidak ada kotak
+   yang berkedip. */
+.media-frame.reader-page {
+  background-color: #141010;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-frame::after,
+  .media-frame > img {
+    transition-duration: 120ms;
+  }
+  .media-frame > img {
+    filter: none;
+    transform: none;
+  }
+}
+
+/* Tanpa JavaScript tidak ada yang memasang penanda reveal, jadi gambar
+   ditampilkan apa adanya alih-alih tertahan transparan selamanya. */
+@media (scripting: none) {
+  .media-frame::after {
+    opacity: 0;
+  }
+  .media-frame > img {
+    filter: none;
+    transform: none;
+  }
+}

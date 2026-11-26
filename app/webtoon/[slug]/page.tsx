@@ -7,6 +7,7 @@ import { getWebtoonDetail, getWebtoonEpisodes, parseWebtoonSlug, webtoonHref } f
 import type { WebtoonEpisodeSummary } from '@/lib/comics';
 import { Skeleton } from '@/components/Skeleton';
 import { socialMeta } from '@/lib/seo';
+import { RevealImage } from '@/components/media/RevealImage';
 
 interface WebtoonDetailProps {
   params: Promise<{ slug: string }>;
@@ -77,19 +78,21 @@ export default async function WebtoonDetailPage({ params }: WebtoonDetailProps) 
       <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[248px_1fr] lg:gap-9">
         <div className="mx-auto w-[168px] sm:w-[196px] md:mx-0 md:w-full">
           <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[6px] bg-surface ring-1 ring-inset ring-white/10">
-            {detail.poster ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`/api/img?u=${encodeURIComponent(detail.poster)}&w=420`}
-                alt={detail.title}
-                className="h-full w-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-[12px] text-zinc-600">
-                Tanpa poster
-              </div>
-            )}
+            <RevealImage
+              src={
+                detail.poster
+                  ? `/api/img?u=${encodeURIComponent(detail.poster)}&w=420`
+                  : null
+              }
+              alt={detail.title}
+              sizes="(max-width: 768px) 168px, 248px"
+              className="object-cover"
+              fallback={
+                <div className="flex h-full w-full items-center justify-center text-[12px] text-zinc-600">
+                  Tanpa poster
+                </div>
+              }
+            />
           </div>
         </div>
 
