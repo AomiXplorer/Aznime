@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const preferredRegion = ['sin1'];
 
 const TARGETS = [
   'https://komiku.org/',
