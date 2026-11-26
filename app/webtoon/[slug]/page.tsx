@@ -76,7 +76,7 @@ export default async function WebtoonDetailPage({ params }: WebtoonDetailProps) 
             {detail.poster ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={detail.poster}
+                src={`/api/img?u=${encodeURIComponent(detail.poster)}&w=420`}
                 alt={detail.title}
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"

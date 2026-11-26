@@ -3,12 +3,12 @@ import { cn } from '@/lib/cn';
 import type { ComicCard as ComicCardItem } from '@/lib/comics';
 
 /**
- * Poster komik dari komiku.org menolak hotlink, jadi lewat proxy gambar situs.
- * Webtoon (pstatic) boleh langsung.
+ * Kedua sumber menolak hotlink: komiku.org memblokir host lain, dan
+ * webtoon-phinf.pstatic.net menjawab 403 kecuali Referer-nya m.webtoons.com.
+ * Jadi semua sampul lewat proxy gambar situs yang mengirim Referer benar.
  */
 export function comicPosterSrc(item: ComicCardItem, width = 340): string | null {
   if (!item.poster) return null;
-  if (item.source !== 'komiku') return item.poster;
   return `/api/img?u=${encodeURIComponent(item.poster)}&w=${width}`;
 }
 

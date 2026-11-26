@@ -254,19 +254,42 @@ export function getWebtoonCatalog(query = '', limit = 40): Promise<ComicFeed> {
           });
         }
       } else {
-        const trending = await withTimeout(webtoons.trending({ lang: 'id' }));
-        for (const item of trending) {
-          const title = trim(item.title);
-          if (!title) continue;
-          items.push({
-            id: `webtoon:${item.titleNo}`,
-            source: 'webtoon',
-            title,
-            poster: trim(item.thumbnail),
-            meta: trim(item.genre),
-            latest: null,
-            href: webtoonHref(item.titleNo, trim(item.slug) || webtoons.slugify(title)),
-          });
+        /* Beranda WEBTOON memberi sampul vertikal asli (104 judul), sedangkan
+           trending hanya 9 kartu persegi. Beranda dipakai lebih dulu, trending
+           jadi cadangan kalau beranda berubah bentuk. */
+        try {
+          const home = await withTimeout(webtoons.getHome({ lang: 'id' }));
+          for (const card of home) {
+            const title = trim(card.title);
+            if (!title || !card.titleNo) continue;
+            items.push({
+              id: `webtoon:${card.titleNo}`,
+              source: 'webtoon',
+              title,
+              poster: trim(card.poster),
+              meta: trim(card.genre),
+              latest: null,
+              href: webtoonHref(card.titleNo, trim(card.slug) || webtoons.slugify(title)),
+            });
+          }
+        } catch {
+          /* lanjut ke cadangan */
+        }
+        if (items.length === 0) {
+          const trending = await withTimeout(webtoons.trending({ lang: 'id' }));
+          for (const item of trending) {
+            const title = trim(item.title);
+            if (!title) continue;
+            items.push({
+              id: `webtoon:${item.titleNo}`,
+              source: 'webtoon',
+              title,
+              poster: trim(item.thumbnail),
+              meta: trim(item.genre),
+              latest: null,
+              href: webtoonHref(item.titleNo, trim(item.slug) || webtoons.slugify(title)),
+            });
+          }
         }
       }
       return { items: items.slice(0, limit), offline: items.length === 0 };

@@ -125,7 +125,7 @@ export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={`${index}-${image.url.slice(-24)}`}
-            src={image.url}
+            src={`/api/img?u=${encodeURIComponent(image.url)}&w=900`}
             alt={`Halaman ${index + 1} episode ${episodeNo}`}
             width={image.width || undefined}
             height={image.height || undefined}
