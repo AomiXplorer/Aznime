@@ -296,11 +296,16 @@ export async function getWebtoonDetail(
   slug: string
 ): Promise<WebtoonDetail | null> {
   try {
-    return await cached(`webtoon:detail:${titleNo}`, async () => {
-      const listUrl = `https://m.webtoons.com/id/${slug}/list?title_no=${titleNo}`;
+    const detail = await cached(`webtoon:detail:${titleNo}`, async () => {
+      /* Segmen genre wajib ada di jalur. Tanpa itu WEBTOON menjawab 404 dari
+         sebagian alamat IP, jadi 'action' dipakai sebagai pintu masuk dan
+         situs mengalihkan sendiri ke genre yang benar. */
+      const listUrl = `https://m.webtoons.com/id/action/${slug}/list?title_no=${titleNo}`;
       const [title, episodes] = await Promise.all([
         withTimeout(webtoons.getTitle(listUrl, { lang: 'id', titleNo })),
-        withTimeout(webtoons.getEpisodes(titleNo, { lang: 'id', pageSize: 60 })).catch(() => []),
+        withTimeout(webtoons.getEpisodes(titleNo, { lang: 'id', pageSize: 60 }), 12000)
+          .catch(() => withTimeout(webtoons.getEpisodes(titleNo, { lang: 'id', pageSize: 30 }), 12000))
+          .catch(() => []),
       ]);
       return {
         titleNo,
@@ -322,6 +327,12 @@ export async function getWebtoonDetail(
         })),
       };
     });
+    /* Hasil tanpa episode biasanya berarti panggilan episode gagal sesaat.
+       Simpan sebentar saja supaya percobaan berikutnya masih bisa berhasil. */
+    if (detail.episodes.length === 0) {
+      store.set(`webtoon:detail:${titleNo}`, { at: Date.now() - TTL_MS + 60_000, value: detail });
+    }
+    return detail;
   } catch {
     return null;
   }
@@ -356,7 +367,7 @@ export async function getWebtoonEpisode(
     /* Genre dipakai untuk menyusun URL viewer; kalau gagal, 'action' tetap
        diarahkan ulang oleh WEBTOON ke genre yang benar. */
     const genre = await withTimeout(
-      webtoons.getTitle(`https://m.webtoons.com/id/${slug}/list?title_no=${titleNo}`, {
+      webtoons.getTitle(`https://m.webtoons.com/id/action/${slug}/list?title_no=${titleNo}`, {
         lang: 'id',
         titleNo,
       })
