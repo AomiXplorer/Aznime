@@ -172,9 +172,7 @@ export function AnimeDetailLayout({
               </div>
             ) : null}
 
-            {synopsis ? (
-              <p className="max-w-3xl text-sm leading-relaxed text-zinc-300">{synopsis}</p>
-            ) : null}
+            <p className="max-w-3xl text-sm leading-relaxed text-zinc-300">{synopsis?.trim() || 'Sinopsis belum tersedia.'}</p>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
               {startEpisode?.slug ? (

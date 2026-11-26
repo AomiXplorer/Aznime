@@ -7,6 +7,7 @@ import {
   parseDownloadBoxes,
   parseImgSrc,
   resolveAnimeUrl,
+  resolvePostUrl,
 } from './utils';
 
 export async function getDetail(slugOrUrl: string): Promise<AnimeDetail> {
@@ -63,6 +64,15 @@ export async function getDetail(slugOrUrl: string): Promise<AnimeDetail> {
       });
     }
   });
+
+  if (/^movie$/i.test(info.Tipe || info.Type || '') && episodes.length <= 1) {
+    if (episodes[0]) {
+      if (!episodes[0].number || /^movie$/i.test(episodes[0].number)) episodes[0].number = '1';
+    } else {
+      const slug = extractSlug(url);
+      if (slug) episodes.push({ title, slug, url: resolvePostUrl(slug), number: '1', date: null });
+    }
+  }
 
   const batchDownloads = parseDownloadBoxes($);
 

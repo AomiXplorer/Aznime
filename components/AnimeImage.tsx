@@ -105,7 +105,8 @@ const PROXYABLE_HOST = /(^|\.)(hidoristream\.online|animein\.net|animeinweb\.com
 
 function proxiedImage(src: string, width: number): string {
   try {
-    if (!PROXYABLE_HOST.test(new URL(src).hostname)) return src;
+    const host = new URL(src).hostname;
+    if (host !== 'poster.assetsy.de' && !PROXYABLE_HOST.test(host)) return src;
     return `/api/img?u=${encodeURIComponent(src)}&w=${width}&q=72&f=webp`;
   } catch {
     return src;

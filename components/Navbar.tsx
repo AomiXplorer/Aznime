@@ -210,7 +210,7 @@ export function Navbar() {
               className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-zinc-300 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{adult ? 'Cari hentai' : 'Cari anime'}</span>
+              <span className="hidden sm:inline">{adult ? 'Cari hentai' : 'Cari anime dan film'}</span>
             </button>
 
             <button

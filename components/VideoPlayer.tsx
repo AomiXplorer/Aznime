@@ -41,6 +41,7 @@ interface VideoPlayerProps {
   seriesTitle?: string | null;
   poster?: string | null;
   totalEpisodes?: number;
+  standalone?: boolean;
   malzSearch?: {
     animeId: string;
     perPage: number;
@@ -203,13 +204,15 @@ export function VideoPlayer({
   poster,
   totalEpisodes,
   malzSearch,
+  standalone = false,
 }: VideoPlayerProps) {
   const pathname = usePathname();
 
   const effectiveServers = useMemo<MirrorServer[]>(() => {
+    const usable = (servers ?? []).filter(server => server?.available && server.url);
     const base =
-      servers.length > 0
-        ? servers
+      usable.length > 0
+        ? usable
         : defaultEmbed
           ? [
               {
@@ -813,7 +816,7 @@ export function VideoPlayer({
             </div>
 
             {/* Navigasi episode: satu baris dengan tinggi tetap, state kosong tetap terlihat. */}
-            <nav
+            {!standalone && <nav
               aria-label="Navigasi episode"
               className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-line bg-white/[0.015] px-1 py-1 sm:px-2"
             >
@@ -828,7 +831,7 @@ export function VideoPlayer({
                 malzSearch={malzSearch}
               />
               <EpisodeNavButton link={navigation.next} direction="next" seriesTitle={seriesTitle} />
-            </nav>
+            </nav>}
 
             {notice ? (
               <p

@@ -10,6 +10,8 @@ import {
   searchAcrossSources,
 } from '@/lib/sources';
 
+import { filmCatalog } from '@/lib/films';
+
 const QUICK_MALZ_LIMIT = 8;
 const QUICK_ADULT_LIMIT = 8;
 const QUICK_TOTAL_LIMIT = 14;
@@ -75,12 +77,15 @@ export async function GET(req: NextRequest) {
 
     if (mode === 'quick') {
       const adult = searchParams.get('adult') === '1';
-      const [hidori, adultItems] = await Promise.all([
-        quickSearch(q),
+      const [merged, adultItems, films] = await Promise.all([
+        quickSearch(q).then(items => mergeQuickResults(q, items)).catch(() => []),
         adult ? searchAdultQuick(q) : Promise.resolve([]),
+        adult ? Promise.resolve([]) : filmCatalog(q).then(({ cards }) => cards.slice(0, 4).map(card => ({
+          ...card, postId: card.slug, url: '/film/' + card.slug, kind: 'anime' as const,
+          type: 'Movie', source: 'lk21' as const, genres: [],
+        }))),
       ]);
-      const merged = await mergeQuickResults(q, hidori);
-      const results = [...adultItems, ...merged].slice(0, QUICK_TOTAL_LIMIT);
+      const results = [...adultItems, ...merged].slice(0, QUICK_TOTAL_LIMIT - films.length).concat(films);
       return NextResponse.json(
         { query: q, results },
         {

@@ -1,3 +1,4 @@
+import type { AnimeCardItem } from './scraper/types';
 import { load } from 'cheerio';
 
 export const filmOrigin = 'https://tv13.lk21official.cc';
@@ -68,6 +69,14 @@ export async function filmCatalog(query = '') {
     } catch { /* Use the bundled monthly ranking if both pages are unavailable. */ }
     return { cards: snapshot.filter(f => f.title.toLowerCase().includes(query.toLowerCase())), offline: true };
   }
+}
+
+export function filmCardItem(card: FilmCard): AnimeCardItem {
+  return {
+    ...card, kind: 'anime', source: 'lk21', type: 'Movie', seriesTitle: card.title,
+    url: filmOrigin + '/' + card.slug, postId: null, status: null, sub: null,
+    episode: null, episodeNumber: null, isHot: false,
+  };
 }
 
 async function availableDownload(value: string) {
