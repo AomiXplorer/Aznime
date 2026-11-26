@@ -59,11 +59,11 @@ const CONTENT_TYPES: ContentType[] = [
   },
   { label: 'Komiku', value: 'komiku', href: '/komik' },
   {
-    label: 'Doujin',
-    value: 'doujin',
-    href: '/doujin',
+    label: 'Manhwa 18+',
+    value: 'manhwa18',
+    href: '/manhwa18',
     adult: true,
-    adultNote: 'Kamu akan membuka katalog komik dewasa (manhwa 18+).',
+    adultNote: 'Kamu akan membuka katalog manhwa 18+.',
   },
 ];
 
@@ -126,7 +126,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
   const [draftGenres, setDraftGenres] = useState<string[]>(current.genres);
   const [genreQuery, setGenreQuery] = useState('');
   const [mounted, setMounted] = useState(false);
-  /* Memilih tipe 18+ (Hentai atau Doujin) membuka bagian dewasa, jadi selalu
+  /* Memilih tipe 18+ (Hentai atau Manhwa) membuka bagian dewasa, jadi selalu
      lewat peringatan dulu. Nilainya tipe yang dipilih, bukan sekadar true,
      supaya tombol "Ya" menuju bagian yang benar. */
   const [adultPrompt, setAdultPrompt] = useState<ContentType | null>(null);

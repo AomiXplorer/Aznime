@@ -43,7 +43,7 @@ const GRID_SIZES =
 const SOURCE_BADGE: Record<ComicSource, string> = {
   komiku: 'Komik',
   webtoon: 'Webtoon',
-  mangasusuku: 'Doujin',
+  mangasusuku: 'Manhwa 18+',
 };
 
 interface ComicCardProps {

@@ -8,15 +8,23 @@ const STORAGE_KEY = 'aznime:age-verified';
 
 interface AgeGateProps {
   children: React.ReactNode;
+  /** Teks gerbang. Bawaannya untuk bagian hentai; bagian lain mengisinya sendiri. */
+  description?: string;
+  note?: string;
 }
 
 /**
- * Gerbang usia untuk seluruh bagian /hentai. Selama belum dikonfirmasi, konten
+ * Gerbang usia untuk seluruh bagian /hentai dan /manhwa18. Selama belum dikonfirmasi, konten
  * ditutup lapisan penuh dan scroll dikunci. Jawaban disimpan di localStorage
  * supaya penonton tidak ditanya berulang kali di perangkat yang sama; gerbang
  * per klik tetap ada di panel tipe katalog.
  */
-export function AgeGate({ children }: AgeGateProps) {
+const DEFAULT_DESCRIPTION =
+  'Semua judul di halaman ini adalah hentai bersubtitle Indonesia. Dengan masuk, kamu menyatakan sudah berusia 18 tahun atau lebih.';
+
+const DEFAULT_NOTE = 'Judul di sini tidak muncul di katalog anime, pencarian utama, maupun sitemap.';
+
+export function AgeGate({ children, description, note }: AgeGateProps) {
   const router = useRouter();
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
 
@@ -56,8 +64,8 @@ export function AgeGate({ children }: AgeGateProps) {
           <AdultNotice
             size="page"
             title="Bagian khusus dewasa"
-            description="Semua judul di halaman ini adalah hentai bersubtitle Indonesia. Dengan masuk, kamu menyatakan sudah berusia 18 tahun atau lebih."
-            note="Judul di sini tidak muncul di katalog anime, pencarian utama, maupun sitemap."
+            description={description ?? DEFAULT_DESCRIPTION}
+            note={note ?? DEFAULT_NOTE}
             confirmLabel="Saya sudah 18 tahun"
             cancelLabel="Kembali ke beranda"
             onConfirm={confirm}

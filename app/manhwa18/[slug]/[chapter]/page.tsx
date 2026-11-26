@@ -2,19 +2,19 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ListOrdered } from 'lucide-react';
-import { cleanChapterSlug, doujinChapterHref, getDoujinChapter, seriesSlugFromChapter } from '@/lib/mangasusuku';
+import { cleanChapterSlug, manhwaChapterHref, getManhwaChapter, seriesSlugFromChapter } from '@/lib/mangasusuku';
 import { RevealImage } from '@/components/media/RevealImage';
 
-interface DoujinChapterProps {
+interface ManhwaChapterProps {
   params: Promise<{ slug: string; chapter: string }>;
 }
 
-export async function generateMetadata({ params }: DoujinChapterProps): Promise<Metadata> {
+export async function generateMetadata({ params }: ManhwaChapterProps): Promise<Metadata> {
   const { slug, chapter } = await params;
-  const view = await getDoujinChapter(decodeURIComponent(slug), decodeURIComponent(chapter));
+  const view = await getManhwaChapter(decodeURIComponent(slug), decodeURIComponent(chapter));
   const series = view?.seriesTitle || decodeURIComponent(slug).replaceAll('-', ' ');
   return {
-    title: view ? `${series} ${view.label}` : 'Baca doujin',
+    title: view ? `${series} ${view.label}` : 'Baca manhwa 18+',
     description: `Baca ${series} ${view?.label ?? ''} bahasa Indonesia di Aznime.`,
     robots: { index: false, follow: false, nocache: true },
   };
@@ -22,11 +22,11 @@ export async function generateMetadata({ params }: DoujinChapterProps): Promise<
 
 export const dynamic = 'force-dynamic';
 
-export default async function DoujinChapterPage({ params }: DoujinChapterProps) {
+export default async function ManhwaChapterPage({ params }: ManhwaChapterProps) {
   const { slug, chapter } = await params;
   const chapterSlug = cleanChapterSlug(decodeURIComponent(chapter));
 
-  const view = await getDoujinChapter(decodeURIComponent(slug), chapterSlug);
+  const view = await getManhwaChapter(decodeURIComponent(slug), chapterSlug);
   if (!view) notFound();
 
   const seriesSlug = view.seriesSlug || seriesSlugFromChapter(chapterSlug) || decodeURIComponent(slug);
@@ -52,7 +52,7 @@ export default async function DoujinChapterPage({ params }: DoujinChapterProps) 
     }
     return (
       <Link
-        href={doujinChapterHref(seriesSlug, target)}
+        href={manhwaChapterHref(seriesSlug, target)}
         className={`${base} border-white/15 text-white hover:border-white/40 hover:bg-white/[0.05]`}
       >
         {content}
@@ -65,7 +65,7 @@ export default async function DoujinChapterPage({ params }: DoujinChapterProps) 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <Link
-            href={`/doujin/${encodeURIComponent(seriesSlug)}`}
+            href={`/manhwa18/${encodeURIComponent(seriesSlug)}`}
             className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-white"
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
@@ -76,7 +76,7 @@ export default async function DoujinChapterPage({ params }: DoujinChapterProps) 
           </h1>
         </div>
         <Link
-          href={`/doujin/${encodeURIComponent(seriesSlug)}#daftar-chapter`}
+          href={`/manhwa18/${encodeURIComponent(seriesSlug)}#daftar-chapter`}
           className="inline-flex h-9 items-center gap-1.5 rounded-[4px] border border-white/15 px-3 text-[12px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.05]"
         >
           <ListOrdered className="h-3.5 w-3.5" aria-hidden="true" />
@@ -88,7 +88,7 @@ export default async function DoujinChapterPage({ params }: DoujinChapterProps) 
         {view.images.map((_url, index) => (
           <RevealImage
             key={`${chapterSlug}-${index}`}
-            src={`/api/doujin-page?s=${encodeURIComponent(chapterSlug)}&i=${index}&w=900`}
+            src={`/api/manhwa-page?s=${encodeURIComponent(chapterSlug)}&i=${index}&w=900`}
             alt={`Halaman ${index + 1} ${seriesTitle} ${view.label}`}
             fill={false}
             priority={index < 2}

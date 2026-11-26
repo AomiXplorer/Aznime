@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import sharp from 'sharp';
-import { getDoujinChapter } from '@/lib/mangasusuku';
+import { getManhwaChapter } from '@/lib/mangasusuku';
 import { rateLimitGuard } from '@/lib/api-guard';
 
 /**
- * Halaman chapter MangaSusuku untuk pembaca /doujin.
+ * Halaman chapter MangaSusuku untuk pembaca /manhwa18.
  *
  * Alamat gambar chapter tidak bisa dimasukkan ke allowlist `/api/img`: satu
  * judul bisa memakai CDN berbeda (cdn.uqni.net, wibulep.xyz, cdnfgo.xyz, ...)
@@ -42,7 +42,7 @@ function notFound(maxAge = 300) {
 export async function GET(request: Request) {
   /* Satu chapter bisa 30+ halaman, jadi batasnya jauh lebih longgar daripada
      rute lain: 2400 per menit cukup untuk puluhan chapter per IP. */
-  const limited = await rateLimitGuard(request, { name: 'doujin-page', limit: 2400, windowSeconds: 60 });
+  const limited = await rateLimitGuard(request, { name: 'manhwa-page', limit: 2400, windowSeconds: 60 });
   if (limited) return notFound(60);
 
   const params = new URL(request.url).searchParams;
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     return new NextResponse(null, { status: 400 });
   }
 
-  const chapter = await getDoujinChapter(null, slug);
+  const chapter = await getManhwaChapter(null, slug);
   const imageUrl = chapter?.images[index];
   if (!imageUrl) return notFound();
 

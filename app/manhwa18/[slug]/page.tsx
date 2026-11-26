@@ -2,16 +2,16 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ListOrdered } from 'lucide-react';
-import { doujinChapterHref, getDoujinDetail } from '@/lib/mangasusuku';
+import { manhwaChapterHref, getManhwaDetail } from '@/lib/mangasusuku';
 import { RevealImage } from '@/components/media/RevealImage';
 
-interface DoujinDetailProps {
+interface ManhwaDetailProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: DoujinDetailProps): Promise<Metadata> {
+export async function generateMetadata({ params }: ManhwaDetailProps): Promise<Metadata> {
   const { slug } = await params;
-  const detail = await getDoujinDetail(decodeURIComponent(slug));
+  const detail = await getManhwaDetail(decodeURIComponent(slug));
   if (!detail) {
     return { title: 'Judul tidak ditemukan', robots: { index: false, follow: false } };
   }
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: DoujinDetailProps): Promise<M
     description: detail.synopsis
       ? detail.synopsis.slice(0, 155).trim()
       : `Baca ${detail.title} bahasa Indonesia di Aznime.`,
-    alternates: { canonical: `/doujin/${encodeURIComponent(detail.slug)}` },
+    alternates: { canonical: `/manhwa18/${encodeURIComponent(detail.slug)}` },
     robots: { index: false, follow: false, nocache: true },
   };
 }
@@ -28,9 +28,9 @@ export async function generateMetadata({ params }: DoujinDetailProps): Promise<M
 /* Tanpa ISR: sumber bisa menolak sementara, hasilnya tidak di-cache. */
 export const dynamic = 'force-dynamic';
 
-export default async function DoujinDetailPage({ params }: DoujinDetailProps) {
+export default async function ManhwaDetailPage({ params }: ManhwaDetailProps) {
   const { slug } = await params;
-  const detail = await getDoujinDetail(decodeURIComponent(slug));
+  const detail = await getManhwaDetail(decodeURIComponent(slug));
   if (!detail) notFound();
 
   const firstChapter = detail.chapters[detail.chapters.length - 1];
@@ -42,11 +42,11 @@ export default async function DoujinDetailPage({ params }: DoujinDetailProps) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <Link
-        href="/doujin"
+        href="/manhwa18"
         className="mb-6 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-zinc-400 transition-colors hover:text-white"
       >
         <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-        Semua doujin
+        Semua manhwa 18+
       </Link>
 
       <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[248px_1fr] lg:gap-9">
@@ -71,7 +71,7 @@ export default async function DoujinDetailPage({ params }: DoujinDetailProps) {
             <span className="inline-flex h-[18px] items-center rounded-[3px] bg-accent px-1.5 text-[10px] font-bold leading-none tracking-wide text-white">
               18+
             </span>
-            Doujin
+            Manhwa 18+
           </p>
           <h1 className="mt-1.5 font-display text-[26px] font-semibold leading-tight tracking-[-0.03em] text-white sm:text-[32px]">
             {detail.title}
@@ -103,7 +103,7 @@ export default async function DoujinDetailPage({ params }: DoujinDetailProps) {
           <div className="mt-6 flex flex-wrap items-center gap-2">
             {firstChapter ? (
               <Link
-                href={doujinChapterHref(detail.slug, firstChapter.slug)}
+                href={manhwaChapterHref(detail.slug, firstChapter.slug)}
                 className="inline-flex h-10 items-center gap-2 rounded-[4px] bg-white px-5 text-[13px] font-semibold text-black transition-colors hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 Baca chapter pertama
@@ -137,7 +137,7 @@ export default async function DoujinDetailPage({ params }: DoujinDetailProps) {
             {detail.chapters.map((chapter) => (
               <li key={chapter.slug}>
                 <Link
-                  href={doujinChapterHref(detail.slug, chapter.slug)}
+                  href={manhwaChapterHref(detail.slug, chapter.slug)}
                   className="flex h-11 items-center justify-between gap-3 border-b border-line-soft/60 text-[13px] text-zinc-300 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
                   <span className="truncate">{chapter.label}</span>

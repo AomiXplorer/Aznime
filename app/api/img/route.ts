@@ -62,9 +62,9 @@ function komikuProxyUrl(url: URL): URL | null {
 }
 /* Sampul webtoon menolak hotlink: 403 tanpa Referer m.webtoons.com. */
 const WEBTOON_HOSTS = new Set(['webtoon-phinf.pstatic.net']);
-/* Sampul MangaSusuku (bagian /doujin). Halaman chapternya TIDAK lewat sini:
+/* Sampul MangaSusuku (bagian /manhwa18). Halaman chapternya TIDAK lewat sini:
    alamat gambar chapter berpindah-pindah CDN, jadi dibaca lewat
-   /api/doujin-page yang mengambil alamatnya dari API sumber. */
+   /api/manhwa-page yang mengambil alamatnya dari API sumber. */
 const MANGASUSUKU_HOSTS = new Set(['mangasusuku.com', 'www.mangasusuku.com']);
 const HIDORI_HOSTS = new Set(['v10.hidoristream.online', 'hidoristream.online']);
 const ANILIST_HOSTS = new Set(['s4.anilist.co']);

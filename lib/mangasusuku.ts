@@ -5,7 +5,7 @@ import { UpstreamError } from './scraper/utils';
  * Sumber keempat Aznime: MangaSusuku, dibaca lewat API publik Sanka Vollerei.
  *
  * Semua judul di sini adalah komik dewasa (manhwa/manhua 18+), jadi modul ini
- * hanya dipakai halaman di bawah /doujin: tidak pernah dipanggil beranda,
+ * hanya dipakai halaman di bawah /manhwa18: tidak pernah dipanggil beranda,
  * menu, sitemap, maupun pencarian utama.
  *
  * API-nya tidak menyediakan HTML yang perlu di-scrape, tetapi bentuk responsnya
@@ -220,12 +220,12 @@ export function chapterLabel(raw: string | null | undefined, chapterSlug: string
 
 /* --------------------------------------------------------------------- kartu */
 
-export function doujinHref(slug: string): string {
-  return `/doujin/${encodeURIComponent(slug)}`;
+export function manhwaHref(slug: string): string {
+  return `/manhwa18/${encodeURIComponent(slug)}`;
 }
 
-export function doujinChapterHref(seriesSlug: string, chapterSlug: string): string {
-  return `/doujin/${encodeURIComponent(seriesSlug)}/${encodeURIComponent(cleanChapterSlug(chapterSlug))}`;
+export function manhwaChapterHref(seriesSlug: string, chapterSlug: string): string {
+  return `/manhwa18/${encodeURIComponent(seriesSlug)}/${encodeURIComponent(cleanChapterSlug(chapterSlug))}`;
 }
 
 function ratingMeta(rating: string | null | undefined, type: string | null | undefined): string | null {
@@ -244,7 +244,7 @@ function cardFromList(entry: ListEntry): ComicCard | null {
     poster: trim(entry.image),
     meta: ratingMeta(entry.rating, entry.type),
     latest: trim(entry.chapter),
-    href: doujinHref(slug),
+    href: manhwaHref(slug),
   };
 }
 
@@ -260,7 +260,7 @@ function cardFromSearch(entry: SearchEntry): ComicCard | null {
     poster: trim(entry.image),
     meta: ratingMeta(entry.rating, entry.type),
     latest: trim(entry.chapter),
-    href: doujinHref(slug),
+    href: manhwaHref(slug),
   };
 }
 
@@ -277,7 +277,7 @@ function dedupe(cards: (ComicCard | null)[]): ComicCard[] {
 
 /* ------------------------------------------------------------------ katalog */
 
-export interface DoujinFeed {
+export interface ManhwaFeed {
   items: ComicCard[];
   offline: boolean;
 }
@@ -287,9 +287,9 @@ const CATALOG_PAGES = 6;
 /** Hasil pencarian 10 per halaman dan tanpa slug, jadi tiga halaman sudah banyak. */
 const SEARCH_PAGES = 3;
 
-export function getDoujinCatalog(query = '', limit = 60): Promise<DoujinFeed> {
+export function getManhwaCatalog(query = '', limit = 60): Promise<ManhwaFeed> {
   const q = query.trim();
-  return cached(`doujin:list:${q}:${limit}`, async () => {
+  return cached(`manhwa18:list:${q}:${limit}`, async () => {
     try {
       if (q) {
         const pages = await Promise.all(
@@ -325,7 +325,7 @@ export function getDoujinCatalog(query = '', limit = 60): Promise<DoujinFeed> {
 
 /* ------------------------------------------------------------------- detail */
 
-export interface DoujinDetail {
+export interface ManhwaDetail {
   slug: string;
   title: string;
   altTitle: string | null;
@@ -336,8 +336,8 @@ export interface DoujinDetail {
   chapters: { slug: string; label: string; date: string }[];
 }
 
-export async function getDoujinDetail(slug: string): Promise<DoujinDetail | null> {
-  const key = `doujin:detail:${slug}`;
+export async function getManhwaDetail(slug: string): Promise<ManhwaDetail | null> {
+  const key = `manhwa18:detail:${slug}`;
   try {
     return await cached(key, async () => {
       const data = await withTimeout(api<DetailPayload>(`/detail/${encodeURIComponent(slug)}`));
@@ -371,7 +371,7 @@ export async function getDoujinDetail(slug: string): Promise<DoujinDetail | null
 
 /* ------------------------------------------------------------------ chapter */
 
-export interface DoujinChapterView {
+export interface ManhwaChapterView {
   seriesSlug: string | null;
   seriesTitle: string | null;
   label: string;
@@ -396,19 +396,19 @@ function upgradeImageUrl(value: string): string | null {
  * placeholder ("#/prev/"). Urutan chapter diambil dari daftar di halaman detail,
  * yang tersusun dari nomor terbesar ke terkecil.
  */
-export async function getDoujinChapter(
+export async function getManhwaChapter(
   seriesSlug: string | null,
   chapterSlug: string
-): Promise<DoujinChapterView | null> {
+): Promise<ManhwaChapterView | null> {
   const slug = cleanChapterSlug(chapterSlug);
   if (!slug) return null;
   const series = (seriesSlug && seriesSlug.trim()) || seriesSlugFromChapter(slug);
 
   try {
-    return await cached(`doujin:chapter:${slug}`, async () => {
+    return await cached(`manhwa18:chapter:${slug}`, async () => {
       const [chapter, detail] = await Promise.all([
         withTimeout(api<ChapterPayload>(`/chapter/${encodeURIComponent(slug)}`)),
-        series ? getDoujinDetail(series).catch(() => null) : Promise.resolve(null),
+        series ? getManhwaDetail(series).catch(() => null) : Promise.resolve(null),
       ]);
 
       const images = (chapter.images ?? [])

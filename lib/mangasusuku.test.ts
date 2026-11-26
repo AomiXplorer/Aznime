@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {
   chapterLabel,
   cleanChapterSlug,
-  doujinChapterHref,
-  doujinHref,
+  manhwaChapterHref,
+  manhwaHref,
   mangasusukuSlug,
   seriesSlugFromChapter,
 } from './mangasusuku';
@@ -57,9 +57,9 @@ test('label chapter dirapikan ke bentuk pendek', () => {
 });
 
 test('tautan internal memakai slug yang di-encode', () => {
-  assert.equal(doujinHref('secret-class'), '/doujin/secret-class');
+  assert.equal(manhwaHref('secret-class'), '/manhwa18/secret-class');
   assert.equal(
-    doujinChapterHref('secret-class', 'secret-class-chapter-324/'),
-    '/doujin/secret-class/secret-class-chapter-324'
+    manhwaChapterHref('secret-class', 'secret-class-chapter-324/'),
+    '/manhwa18/secret-class/secret-class-chapter-324'
   );
 });
