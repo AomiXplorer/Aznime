@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   try {
     if (!isSameOrigin(request)) return jsonError(403, 'Permintaan ditolak.');
     /* Sinkron menulis sampai 200 entri sekaligus; batas ketat menjaga agar
-       rute ini tidak bisa dipakai membanjiri Redis lewat satu akun. */
+       rute ini tidak bisa dipakai membanjiri penyimpanan lewat satu akun. */
     const limited = await rateLimitGuard(request, { name: 'history-sync', limit: 20, windowSeconds: 60 });
     if (limited) return limited;
     const user = await getSessionUser();

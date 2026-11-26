@@ -99,10 +99,10 @@ test('rateLimitGuard membalas 429 setelah kuota habis dan tidak melewati batas',
   process.env.UPSTASH_REDIS_REST_TOKEN = 'token-uji';
 
   let counter = 0;
-  // Meniru Upstash: INCR menaikkan counter, EXPIRE dibalas OK.
+  // Meniru Upstash: skrip counter atomik menaikkan counter.
   globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
     const command = JSON.parse(String(init?.body ?? '[]')) as unknown[];
-    if (command[0] === 'INCR') {
+    if (command[0] === 'EVAL') {
       counter += 1;
       return new Response(JSON.stringify({ result: counter }), { status: 200 });
     }

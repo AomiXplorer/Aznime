@@ -20,13 +20,18 @@ function restToken(): string {
 }
 
 export function isRedisConfigured(): boolean {
-  return restUrl().length > 0 && restToken().length > 0;
+  const raw = restUrl();
+  if (!restToken() || !URL.canParse(raw)) return false;
+  const url = new URL(raw);
+  const local = process.env.VERCEL_ENV !== 'production' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  return (url.protocol === 'https:' || (local && url.protocol === 'http:')) &&
+    !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash;
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function post<T>(path: string, body: unknown, timeoutMs = 5000): Promise<T> {
   const url = restUrl();
   const token = restToken();
-  if (!url || !token) throw new RedisError('Redis belum dikonfigurasi', 503);
+  if (!isRedisConfigured()) throw new RedisError('Redis belum dikonfigurasi', 503);
 
   let response: Response;
   try {
@@ -40,7 +45,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
       cache: 'no-store',
       /* Tanpa batas waktu, Redis yang menggantung menahan request sampai
          fungsi Vercel kehabisan waktu. 5 detik cukup untuk REST Upstash. */
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'error',
     });
   } catch {
     throw new RedisError('Tidak bisa menghubungi Redis', 503);
@@ -56,7 +62,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 export async function redisCommand<T = unknown>(...command: (string | number)[]): Promise<T> {
   const data = await post<{ result?: T; error?: string }>('', command);
-  if (data.error) throw new RedisError(data.error, 500);
+  if (data.error) throw new RedisError('Redis command failed', 500);
   return data.result as T;
 }
 
@@ -65,8 +71,18 @@ export async function redisPipeline<T = unknown>(commands: (string | number)[][]
   const data = await post<({ result?: T; error?: string })[]>('/pipeline', commands);
   if (!Array.isArray(data)) throw new RedisError('Balasan pipeline Redis tidak valid', 502);
   const failed = data.find((entry) => entry && entry.error);
-  if (failed?.error) throw new RedisError(failed.error, 500);
+  if (failed?.error) throw new RedisError('Redis pipeline command failed', 500);
   return data.map((entry) => entry?.result as T);
+}
+
+export async function optionalRedisCommand<T = unknown>(...command: (string | number)[]): Promise<T> {
+  const data = await post<{ result?: T; error?: string }>('', command, 500);
+  if (data.error) throw new RedisError('Redis command failed', 500);
+  return data.result as T;
+}
+
+export function kvGetDel(key: string): Promise<string | null> {
+  return redisCommand<string | null>('GETDEL', key);
 }
 
 /* ---------- pembantu bertipe ---------- */
@@ -98,7 +114,7 @@ export async function kvExpire(key: string, ttlSeconds: number): Promise<void> {
 
 export async function hashGetAll(key: string): Promise<Record<string, string>> {
   const flat = await redisCommand<(string | null)[]>('HGETALL', key);
-  const result: Record<string, string> = {};
+  const result: Record<string, string> = Object.create(null) as Record<string, string>;
   if (!Array.isArray(flat)) return result;
   for (let i = 0; i < flat.length; i += 2) {
     const field = flat[i];

@@ -1,4 +1,7 @@
 import crypto from 'node:crypto';
+import { usesPostgres } from './db/config';
+import { pgMaintenance, pgSetMaintenance } from './db/maintenance';
+import { isRedisConfigured, redisCommand } from './auth/redis';
 import {
   BYPASS_COOKIE_NAME,
   BYPASS_HINT_COOKIE_NAME,
@@ -93,9 +96,7 @@ export interface MaintenanceDiagnostics {
 }
 
 export function isUpstashConfigured(): boolean {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim() || '';
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim() || '';
-  return Boolean(token && /^https?:\/\//i.test(url));
+  return isRedisConfigured();
 }
 
 export function getMaintenanceDiagnostics(): MaintenanceDiagnostics {
@@ -112,40 +113,6 @@ export function getMaintenanceDiagnostics(): MaintenanceDiagnostics {
   };
 }
 
-async function upstashCommand<T = unknown>(command: (string | number)[]): Promise<T | null> {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim().replace(/\/+$/, '');
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-
-  if (!/^https?:\/\//i.test(url)) {
-    console.error(
-      '[Maintenance] UPSTASH_REDIS_REST_URL harus berupa URL HTTPS REST (https://...upstash.io), bukan URL Redis TCP.'
-    );
-    return null;
-  }
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(command),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(2500),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Upstash REST error (${res.status})`);
-  }
-
-  const data = (await res.json()) as { result?: T; error?: string };
-  if (data.error) {
-    throw new Error(data.error);
-  }
-  return (data.result ?? null) as T | null;
-}
-
 export function invalidateMaintenanceCache(): void {
   getMemoryStore().cache = null;
 }
@@ -158,10 +125,11 @@ export async function getMaintenanceState(options?: { bypassCache?: boolean }): 
     return store.cache.state;
   }
 
-  if (isUpstashConfigured()) {
+  const postgres = usesPostgres();
+  if (postgres || isUpstashConfigured()) {
     try {
-      const raw = await upstashCommand<string | null>(['GET', MAINTENANCE_STATE_KEY]);
-      const parsed = raw ? (JSON.parse(raw) as Partial<MaintenanceState>) : null;
+      const raw = postgres ? null : await redisCommand<string | null>('GET', MAINTENANCE_STATE_KEY);
+      const parsed = postgres ? await pgMaintenance() : raw ? (JSON.parse(raw) as Partial<MaintenanceState>) : null;
       const state = normalizeState(parsed);
       store.cache = { state, expiresAt: now + CACHE_TTL_MS };
       return state;
@@ -179,12 +147,11 @@ export async function getMaintenanceState(options?: { bypassCache?: boolean }): 
 export async function setMaintenanceState(next: MaintenanceState): Promise<MaintenanceState> {
   const normalized = normalizeState(next);
   const store = getMemoryStore();
+  if (usesPostgres()) await pgSetMaintenance(normalized);
+  else if (isUpstashConfigured()) await redisCommand('SET', MAINTENANCE_STATE_KEY, JSON.stringify(normalized));
+
   store.state = normalized;
   store.cache = { state: normalized, expiresAt: Date.now() + CACHE_TTL_MS };
-
-  if (isUpstashConfigured()) {
-    await upstashCommand(['SET', MAINTENANCE_STATE_KEY, JSON.stringify(normalized)]);
-  }
 
   return normalized;
 }
@@ -201,7 +168,7 @@ export async function savePendingAction(
   const key = `${MAINTENANCE_PENDING_PREFIX}${id}`;
 
   if (isUpstashConfigured()) {
-    await upstashCommand(['SET', key, JSON.stringify(record), 'EX', PENDING_TTL_SECONDS]);
+    await redisCommand('SET', key, JSON.stringify(record), 'EX', PENDING_TTL_SECONDS);
     return record;
   }
 
@@ -219,9 +186,8 @@ export async function consumePendingAction(id: string): Promise<PendingMaintenan
   const key = `${MAINTENANCE_PENDING_PREFIX}${id}`;
 
   if (isUpstashConfigured()) {
-    const raw = await upstashCommand<string | null>(['GET', key]);
+    const raw = await redisCommand<string | null>('GETDEL', key);
     if (!raw) return null;
-    await upstashCommand(['DEL', key]).catch(() => null);
     try {
       return JSON.parse(raw) as PendingMaintenanceAction;
     } catch {
@@ -240,7 +206,7 @@ export async function consumePendingAction(id: string): Promise<PendingMaintenan
 export async function deletePendingAction(id: string): Promise<void> {
   if (!/^[a-f0-9]{8,32}$/i.test(id)) return;
   if (isUpstashConfigured()) {
-    await upstashCommand(['DEL', `${MAINTENANCE_PENDING_PREFIX}${id}`]).catch(() => null);
+    await redisCommand('DEL', `${MAINTENANCE_PENDING_PREFIX}${id}`).catch(() => null);
     return;
   }
   getMemoryStore().pending.delete(id);

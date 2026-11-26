@@ -1,5 +1,5 @@
 import { randomToken } from './crypto';
-import { kvDel, kvGet, kvSet } from './redis';
+import { kvGetDel, kvSet } from './redis';
 
 export type OAuthProvider = 'google' | 'discord';
 
@@ -78,8 +78,7 @@ export async function createOAuthState(returnTo: string): Promise<string> {
 export async function consumeOAuthState(state: string | null): Promise<{ returnTo: string } | null> {
   if (!state) return null;
   const key = `oauthstate:${state}`;
-  const raw = await kvGet(key);
-  await kvDel(key);
+  const raw = await kvGetDel(key);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as { returnTo?: string };

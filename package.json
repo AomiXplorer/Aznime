@@ -12,6 +12,7 @@
     "test": "tsx --test lib/*.test.ts lib/**/*.test.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.119.2",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "hls.js": "^1.7.4",
@@ -24,6 +25,7 @@
     "tailwind-merge": "^3.7.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.6.0",
     "@tailwindcss/oxide-linux-x64-gnu": "^4.3.5",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^22.14.0",

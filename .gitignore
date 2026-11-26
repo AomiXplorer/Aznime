@@ -27,3 +27,7 @@ yarn-debug.log*
 yarn-error.log*
 .vercel
 .tmp-bench/
+
+# Local sensitive Redis migration snapshots and Supabase CLI state
+.aznime-backups/
+supabase/.temp/

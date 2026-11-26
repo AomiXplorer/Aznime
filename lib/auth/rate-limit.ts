@@ -1,4 +1,4 @@
-import { kvExpire, kvIncr } from './redis';
+import { redisCommand } from './redis';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -7,8 +7,7 @@ export interface RateLimitResult {
 }
 
 /**
- * Fixed window counter. Satu INCR per percobaan, TTL dipasang sekali saat
- * counter pertama dibuat, jadi tidak ada write berlebih ke Redis.
+ * Fixed window counter. INCR dan pemasangan TTL dijalankan atomik.
  */
 export async function consumeRateLimit(
   bucket: string,
@@ -16,10 +15,11 @@ export async function consumeRateLimit(
   windowSeconds: number
 ): Promise<RateLimitResult> {
   const key = `ratelimit:${bucket}`;
-  const count = await kvIncr(key);
-  if (count === 1) {
-    await kvExpire(key, windowSeconds);
-  }
+  const count = await redisCommand<number>(
+    'EVAL',
+    "local n = redis.call('INCR', KEYS[1]); if redis.call('TTL', KEYS[1]) < 0 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; return n",
+    1, key, windowSeconds,
+  );
   const allowed = count <= limit;
   return {
     allowed,

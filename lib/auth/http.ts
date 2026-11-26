@@ -1,3 +1,4 @@
+import { PersistenceError } from '../db/config';
 import { RedisError } from './redis';
 import type { FieldError } from './validation';
 
@@ -96,7 +97,7 @@ export async function readJsonBody<T = Record<string, unknown>>(request: Request
 }
 
 export function handleRouteError(error: unknown): Response {
-  if (error instanceof RedisError) {
+  if (error instanceof RedisError || error instanceof PersistenceError) {
     return jsonError(503, 'Layanan akun sedang tidak tersedia. Coba lagi sebentar lagi.');
   }
   console.error('[auth]', error);

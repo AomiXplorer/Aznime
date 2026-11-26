@@ -1,3 +1,5 @@
+import { usesPostgres } from '../db/config';
+import { pgCreateUser, pgUpdateUser, pgUserByEmail, pgUserById, pgUserByOAuth } from '../db/accounts';
 import { randomUUID } from 'node:crypto';
 import { hashGetAll, hashSetMany, kvGet, kvSet, setIfAbsent } from './redis';
 import { hashPassword } from './crypto';
@@ -68,17 +70,20 @@ function parseUser(raw: Record<string, string>): StoredUser | null {
 
 export async function findUserById(userId: string): Promise<StoredUser | null> {
   if (!userId) return null;
+  if (usesPostgres()) return pgUserById(userId);
   const raw = await hashGetAll(userKey(userId));
   return parseUser(raw);
 }
 
 export async function findUserByEmail(email: string): Promise<StoredUser | null> {
+  if (usesPostgres()) return pgUserByEmail(email);
   const id = await kvGet(emailKey(email));
   if (!id) return null;
   return findUserById(id);
 }
 
 export async function findUserByOAuth(provider: AuthProvider, providerId: string): Promise<StoredUser | null> {
+  if (usesPostgres()) return pgUserByOAuth(provider, providerId);
   const id = await kvGet(`oauth:${provider}:${providerId}`);
   if (!id) return null;
   return findUserById(id);
@@ -100,8 +105,8 @@ export interface CreateUserInput {
 export async function createUser(input: CreateUserInput): Promise<StoredUser> {
   const provider = input.provider || 'email';
   const email = input.email;
-  const claimed = await setIfAbsent(emailKey(email), 'pending');
-  if (!claimed) throw new EmailTakenError();
+  const postgres = usesPostgres();
+  if (!postgres && !(await setIfAbsent(emailKey(email), 'pending'))) throw new EmailTakenError();
 
   const now = new Date().toISOString();
   const user: StoredUser = {
@@ -115,6 +120,11 @@ export async function createUser(input: CreateUserInput): Promise<StoredUser> {
     createdAt: now,
     updatedAt: now,
   };
+
+  if (postgres) {
+    if (!(await pgCreateUser(user))) throw new EmailTakenError();
+    return user;
+  }
 
   try {
     await hashSetMany(userKey(user.id), {
@@ -142,6 +152,7 @@ export async function createUser(input: CreateUserInput): Promise<StoredUser> {
 }
 
 export async function updateUser(userId: string, patch: Partial<Pick<StoredUser, 'username' | 'avatar' | 'updatedAt'>>): Promise<void> {
+  if (usesPostgres()) return pgUpdateUser(userId, patch);
   const entries: Record<string, string> = {};
   if (patch.username !== undefined) entries.username = patch.username;
   if (patch.avatar !== undefined) entries.avatar = patch.avatar;

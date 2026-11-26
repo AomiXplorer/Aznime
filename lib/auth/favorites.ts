@@ -1,3 +1,5 @@
+import { usesPostgres } from '../db/config';
+import { pgList, pgMutate } from '../db/library';
 import { hashDel, hashGetAll, hashSetMany, zAdd, zCard, zRem, zRevRange } from './redis';
 
 export const FAVORITES_LIMIT = 500;
@@ -28,6 +30,7 @@ function favoritesDataKey(userId: string): string {
 }
 
 export async function listFavorites(userId: string): Promise<FavoriteItem[]> {
+  if (usesPostgres()) return pgList(userId, 'favorites');
   const ids = await zRevRange(favoritesKey(userId), 0, FAVORITES_LIMIT - 1);
   if (ids.length === 0) return [];
   const raw = await hashGetAll(favoritesDataKey(userId));
@@ -47,6 +50,10 @@ export async function listFavorites(userId: string): Promise<FavoriteItem[]> {
 
 /** Satu anime hanya bisa masuk sekali: ZADD dengan member animeId bersifat idempoten. */
 export async function addFavorite(userId: string, item: FavoriteItem): Promise<FavoriteItem> {
+  if (usesPostgres()) {
+    await pgMutate(userId, 'favorites', 'put', [item]);
+    return item;
+  }
   await zAdd(favoritesKey(userId), item.addedAt, item.animeId);
   await hashSetMany(favoritesDataKey(userId), { [item.animeId]: JSON.stringify(item) });
 
@@ -66,6 +73,10 @@ export async function addFavorite(userId: string, item: FavoriteItem): Promise<F
 }
 
 export async function removeFavorite(userId: string, animeId: string): Promise<void> {
+  if (usesPostgres()) {
+    await pgMutate(userId, 'favorites', 'delete', [], animeId);
+    return;
+  }
   await zRem(favoritesKey(userId), animeId);
   await hashDel(favoritesDataKey(userId), animeId);
 }

@@ -6,8 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   /* Rute ini sengaja melewati cache status maintenance, jadi setiap panggilan
-     membaca Redis. Batas per IP menjaga agar tidak bisa dipakai membanjiri
-     Redis atau memanaskan fungsi serverless. */
+     membaca penyimpanan. Batas per IP melindungi penyimpanan dan fungsi serverless. */
   const limited = await rateLimitGuard(req, { name: 'maintenance-status', limit: 120, windowSeconds: 60 });
   if (limited) return limited;
 

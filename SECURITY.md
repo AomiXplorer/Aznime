@@ -1,5 +1,7 @@
 # Keamanan Aznime
 
+> This document records the legacy Redis configuration. For PostgreSQL mode, see the [hybrid architecture, security review, and cutover runbook](docs/hybrid-database.md).
+
 Dokumen ini menjelaskan postur keamanan Aznime: apa yang dilindungi, di mana
 batasnya, dan apa yang harus dilakukan saat ada insiden. Ditulis berdasarkan
 audit source code, bukan checklist umum.
