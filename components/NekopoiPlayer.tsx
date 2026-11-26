@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
   Loader2,
   Play,
   RotateCw,
@@ -61,6 +62,10 @@ export function NekopoiPlayer({
   const retried = useRef(false);
 
   const active = playable[selectedIdx] || playable[0] || null;
+  const externalUrl =
+    active?.url && URL.canParse(active.url) && new URL(active.url).protocol === 'https:'
+      ? active.url
+      : null;
 
   const pick = (idx: number) => {
     if (idx === selectedIdx) return;
@@ -151,7 +156,9 @@ export function NekopoiPlayer({
                     </button>
                   </div>
                   <p className="mt-1.5 text-[11.5px] leading-relaxed text-zinc-400">
-                    Kalau verifikasi gagal atau layar tetap kosong, coba muat ulang atau pilih server lain.
+                    {externalUrl
+                      ? 'Kalau verifikasi gagal, pilih Buka server di tab baru di bawah pemutar. Kamu juga bisa memuat ulang atau pilih server lain.'
+                      : 'Kalau verifikasi gagal atau layar tetap kosong, coba muat ulang atau pilih server lain.'}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <button
@@ -273,6 +280,17 @@ export function NekopoiPlayer({
               </>
             ) : null}
           </p>
+          {externalUrl ? (
+            <a
+              href={externalUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-[4px] border border-white/15 px-2.5 text-[11.5px] font-semibold text-zinc-200 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              Buka server di tab baru
+            </a>
+          ) : null}
         </div>
       ) : null}
     </div>
