@@ -31,14 +31,35 @@ export interface ComicFeed {
 const TTL_MS = 10 * 60 * 1000;
 const store = new Map<string, { at: number; value: unknown }>();
 
-/** Cache pendek di memori instance: sumber luar tidak dipanggil tiap kunjungan. */
+/**
+ * Cache pendek di memori instance: sumber luar tidak dipanggil tiap kunjungan.
+ *
+ * Panggilan yang sedang berjalan ikut dibagikan. Tanpa itu, generateMetadata
+ * dan render halaman meminta judul yang sama dua kali bersamaan, lalu ditambah
+ * dua permintaan episode; empat permintaan serentak ke WEBTOON membuat
+ * daftar episode dijawab kosong.
+ */
+const inflight = new Map<string, Promise<unknown>>();
+
 async function cached<T>(key: string, load: () => Promise<T>, ttl = TTL_MS): Promise<T> {
   const hit = store.get(key);
   if (hit && Date.now() - hit.at < ttl) return hit.value as T;
-  const value = await load();
-  if (store.size > 80) store.clear();
-  store.set(key, { at: Date.now(), value });
-  return value;
+
+  const running = inflight.get(key);
+  if (running) return running as Promise<T>;
+
+  const task = load()
+    .then((value) => {
+      if (store.size > 80) store.clear();
+      store.set(key, { at: Date.now(), value });
+      return value;
+    })
+    .finally(() => {
+      inflight.delete(key);
+    });
+
+  inflight.set(key, task);
+  return task;
 }
 
 /**
