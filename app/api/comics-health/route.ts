@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getWebtoonDetail, getWebtoonEpisode } from '@/lib/comics';
 
 /**
  * Diagnosa sumber komik/webtoon dari sisi server produksi.
@@ -121,5 +122,32 @@ export async function GET() {
   ];
 
   const results = await Promise.all(probes.map((item) => probe(item)));
-  return NextResponse.json({ checkedAt: new Date().toISOString(), results });
+
+  /* Diagnosa lapisan adapter: membedakan 'sumber menolak' dari 'kode salah'. */
+  const adapter: Record<string, unknown> = {};
+  try {
+    const t0 = Date.now();
+    const detail = await getWebtoonDetail(2034, 'eleceed');
+    adapter.detail = {
+      ms: Date.now() - t0,
+      found: Boolean(detail),
+      title: detail?.title ?? null,
+      episodes: detail?.episodes?.length ?? 0,
+    };
+  } catch (err) {
+    adapter.detail = { error: err instanceof Error ? err.message : String(err) };
+  }
+  try {
+    const t0 = Date.now();
+    const episode = await getWebtoonEpisode(2034, 'eleceed', 1);
+    adapter.episode = {
+      ms: Date.now() - t0,
+      found: Boolean(episode),
+      images: episode?.images?.length ?? 0,
+    };
+  } catch (err) {
+    adapter.episode = { error: err instanceof Error ? err.message : String(err) };
+  }
+
+  return NextResponse.json({ checkedAt: new Date().toISOString(), results, adapter });
 }
