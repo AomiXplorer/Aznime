@@ -27,8 +27,36 @@ const ANIMEIN_HOSTS = new Set([
 ]);
 
 const NEKOPOI_HOSTS = new Set(['nekopoi.care', 'www.nekopoi.care']);
-/* Poster dan halaman chapter komik: host utama plus dua mirror resminya. */
-const KOMIKU_HOSTS = new Set(['img.komiku.org', 'image1.komiku.to', 'image2.komiku.to']);
+/* Poster dan halaman chapter komik: host utama plus dua mirror resminya.
+   thumbnail.komiku.org adalah host sampul yang dipakai daftar dan peringkat. */
+const KOMIKU_HOSTS = new Set([
+  'img.komiku.org',
+  'thumbnail.komiku.org',
+  'image1.komiku.to',
+  'image2.komiku.to',
+]);
+
+/**
+ * komiku.org beserta host gambarnya duduk di belakang Cloudflare dan menolak
+ * (403) permintaan dari alamat pusat data, termasuk lambda Vercel. Proksi
+ * terjemahan Google mengambil berkas yang sama dari alamat Google, jadi sampul
+ * tetap tampil. Alamat asli tetap dicoba lebih dulu supaya kualitas dan
+ * kecepatannya tidak berubah kalau sumbernya nanti terbuka lagi.
+ */
+const KOMIKU_PROXY_HOSTS: Record<string, string> = {
+  'img.komiku.org': 'img-komiku-org.translate.goog',
+  'thumbnail.komiku.org': 'thumbnail-komiku-org.translate.goog',
+  'image1.komiku.to': 'image1-komiku-to.translate.goog',
+  'image2.komiku.to': 'image2-komiku-to.translate.goog',
+};
+
+function komikuProxyUrl(url: URL): URL | null {
+  const host = KOMIKU_PROXY_HOSTS[url.hostname.toLowerCase()];
+  if (!host) return null;
+  const proxied = new URL(url.toString());
+  proxied.hostname = host;
+  return proxied;
+}
 /* Sampul webtoon menolak hotlink: 403 tanpa Referer m.webtoons.com. */
 const WEBTOON_HOSTS = new Set(['webtoon-phinf.pstatic.net']);
 const HIDORI_HOSTS = new Set(['v10.hidoristream.online', 'hidoristream.online']);
@@ -74,23 +102,41 @@ function parseWidth(params: URLSearchParams): number | null {
   return Number.isFinite(width) && width >= 64 ? Math.min(Math.round(width), 1920) : null;
 }
 
-async function fetchUpstream(target: { url: URL; upstream: Upstream }) {
+async function fetchDirect(url: URL, upstream: Upstream, followRedirects = false) {
   const headers: Record<string, string> = {
     'User-Agent': BROWSER_USER_AGENT,
     Accept: 'image/avif,image/webp,image/*,*/*;q=0.8',
   };
-  const referer = refererFor(target.upstream);
+  const referer = refererFor(upstream);
   if (referer) headers.Referer = referer;
 
-  return fetch(target.url.toString(), {
+  return fetch(url.toString(), {
     headers,
     signal: AbortSignal.timeout(8000),
     next: { revalidate: 604800 },
     /* Host yang lolos allowlist tetap bisa mengalihkan ke alamat lain, termasuk
        alamat internal jaringan. Server tidak mengikuti pengalihan itu; 3xx
-       dianggap gagal lalu diteruskan ke browser sebagai 302 biasa. */
-    redirect: 'manual',
+       dianggap gagal lalu diteruskan ke browser sebagai 302 biasa. Proksi
+       terjemahan Google memang mengalihkan sebagian permintaan, jadi hanya
+       jalur itu yang boleh mengikuti pengalihan. */
+    redirect: followRedirects ? 'follow' : 'manual',
   });
+}
+
+/** Balasan yang benar-benar berisi gambar. Halaman penolakan Cloudflare berupa HTML. */
+function isImageResponse(response: Response): boolean {
+  return response.ok && (response.headers.get('content-type') || '').startsWith('image/');
+}
+
+async function fetchUpstream(target: { url: URL; upstream: Upstream }) {
+  const direct = await fetchDirect(target.url, target.upstream);
+  if (isImageResponse(direct)) return direct;
+
+  const proxied = target.upstream === 'komiku' ? komikuProxyUrl(target.url) : null;
+  if (!proxied) return direct;
+
+  const viaProxy = await fetchDirect(proxied, target.upstream, true);
+  return isImageResponse(viaProxy) ? viaProxy : direct;
 }
 
 async function respondWithImage(

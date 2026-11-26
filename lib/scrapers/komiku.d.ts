@@ -26,6 +26,17 @@ export interface KomikuHomeCard {
   latestLabel: string | null;
 }
 
+/** Kartu /p/ranking/: sampul potret, genre + views, chapter terakhir. */
+export interface KomikuRankingCard {
+  title: string | null;
+  slug: string | null;
+  url: string | null;
+  poster: string | null;
+  meta: string | null;
+  latestLabel: string | null;
+  rank: number | null;
+}
+
 export interface KomikuChapterRef {
   number: { number: number; part: number | null } | null;
   label: string;
@@ -90,8 +101,12 @@ export function getChapters(slugOrUrl: string): Promise<KomikuChapterRef[]>;
 export function getChapter(slugOrUrl: string, opts?: object): Promise<KomikuChapter>;
 export function getImages(slugOrUrl: string, opts?: object): Promise<KomikuChapterImage[]>;
 export function getHome(): Promise<KomikuHomeCard[]>;
+export function getRanking(): Promise<KomikuRankingCard[]>;
 export function getGenres(): Promise<Record<string, string>>;
 export function getGenre(slug: string, opts?: { page?: number }): Promise<KomikuCard[]>;
 export function getSlug(input: string): string | null;
 export function getChapterSlug(input: string): string | null;
 export function toMirror(url: string, key?: string): string;
+export function viaProxy(url: string): string | null;
+export function unproxyHtml(html: string): string;
+export const PROXY_HOSTS: Record<string, string>;

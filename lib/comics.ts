@@ -86,6 +86,41 @@ export function komikHref(slug: string): string {
   return `/komik/${encodeURIComponent(slug)}`;
 }
 
+/**
+ * komiku.org menulis judul lengkap untuk mesin pencari: "Baca Manga One Piece
+ * Bahasa Indonesia". Awalan dan akhiran itu dibuang supaya kartu hanya memuat
+ * nama judulnya.
+ */
+function komikTitle(value: string | null | undefined): string | null {
+  const text = trim(value);
+  if (!text) return null;
+  const cleaned = text
+    .replace(/^Baca\s+(?:Komik|Manga|Manhwa|Manhua|Webtoon)\s+/i, '')
+    /* Judul chapter ditulis "Baca <seri> <chapter> Bahasa Indonesia". */
+    .replace(/^Baca\s+/i, '')
+    .replace(/\s+Bahasa\s+Indonesia$/i, '')
+    .trim();
+  return cleaned || text;
+}
+
+/**
+ * Sampul sumber membawa `?resize=240,280`. Parameter itu dibuang karena
+ * /api/img yang menentukan ukuran akhir sesuai lebar kartu; kalau diteruskan,
+ * gambar datang sudah dipotong dan tidak bisa diperbesar lagi.
+ */
+function komikPoster(value: string | null | undefined): string | null {
+  const url = trim(value);
+  if (!url) return null;
+  return url.split('?')[0] || null;
+}
+
+/** "Fantasi · 32,715 views" -> "Fantasi". */
+function komikMeta(value: string | null | undefined): string | null {
+  const text = trim(value);
+  if (!text) return null;
+  return trim(text.split('·')[0]);
+}
+
 function komikCard(item: {
   title?: string | null;
   slug?: string | null;
@@ -96,7 +131,7 @@ function komikCard(item: {
   latestLabel?: string | null;
   meta?: string | null;
 }): ComicCard | null {
-  const title = trim(item.title);
+  const title = komikTitle(item.title);
   const slug = trim(item.slug);
   if (!title || !slug) return null;
   const latestRaw = typeof item.latest === 'string' ? item.latest : item.latest?.label || item.latest?.chapter;
@@ -105,18 +140,32 @@ function komikCard(item: {
     id: `komiku:${slug}`,
     source: 'komiku',
     title,
-    poster: trim(item.poster),
-    meta: trim(item.genre) || trim(item.type) || trim(item.meta),
+    poster: komikPoster(item.poster),
+    meta: komikMeta(item.genre) || komikMeta(item.meta) || trim(item.type),
     latest,
     href: komikHref(slug),
   };
 }
 
+function komikItems(cards: Parameters<typeof komikCard>[0][]): ComicCard[] {
+  return cards.map(komikCard).filter((item): item is ComicCard => item !== null);
+}
+
+/**
+ * Baris komik di beranda memakai /p/ranking/: sampulnya potret, dan setiap
+ * kartu membawa genre serta jumlah views. Kalau halaman peringkat berubah
+ * bentuk, beranda sumber dipakai sebagai cadangan.
+ */
 export function getKomikFeed(limit = 16): Promise<ComicFeed> {
   return cached(`komik:home:${limit}`, async () => {
     try {
-      const cards = await withTimeout(komiku.getHome());
-      const items = cards.map(komikCard).filter((item): item is ComicCard => item !== null);
+      const items = komikItems(await withTimeout(komiku.getRanking()));
+      if (items.length > 0) return { items: items.slice(0, limit), offline: false };
+    } catch {
+      /* lanjut ke cadangan */
+    }
+    try {
+      const items = komikItems(await withTimeout(komiku.getHome()));
       return { items: items.slice(0, limit), offline: items.length === 0 };
     } catch {
       return { items: [], offline: true };
@@ -128,9 +177,12 @@ export function getKomikCatalog(query = '', limit = 40): Promise<ComicFeed> {
   const q = query.trim();
   return cached(`komik:list:${q}:${limit}`, async () => {
     try {
-      const cards = q ? await withTimeout(komiku.search(q)) : await withTimeout(komiku.getHome());
-      const items = cards.map(komikCard).filter((item): item is ComicCard => item !== null);
-      return { items: items.slice(0, limit), offline: items.length === 0 };
+      const cards = q
+        ? await withTimeout(komiku.search(q))
+        : await withTimeout(komiku.getRanking());
+      /* Sumber menjawab dengan baik tetapi tidak punya judul yang cocok.
+         Itu bukan gangguan, jadi halaman harus bilang "tidak ditemukan". */
+      return { items: komikItems(cards).slice(0, limit), offline: false };
     } catch {
       return { items: [], offline: true };
     }
@@ -159,7 +211,7 @@ export async function getKomikDetail(slug: string): Promise<KomikDetail | null> 
         slug: manga.slug || slug,
         title: trim(manga.title) || slug.replaceAll('-', ' '),
         altTitle: trim(manga.altTitle),
-        poster: trim(manga.poster),
+        poster: komikPoster(manga.poster),
         synopsis: trim(manga.synopsis),
         type: trim(manga.type),
         status: trim(manga.status),
@@ -170,8 +222,8 @@ export async function getKomikDetail(slug: string): Promise<KomikDetail | null> 
           .filter((chapter) => chapter.slug)
           .map((chapter) => ({
             slug: chapter.slug as string,
-            label: trim(chapter.label) || trim(chapter.title) || (chapter.slug as string),
-            title: trim(chapter.title) || '',
+            label: trim(chapter.label) || komikTitle(chapter.title) || (chapter.slug as string),
+            title: komikTitle(chapter.title) || '',
             date: trim(chapter.date) || '',
           })),
       };
@@ -342,7 +394,9 @@ export function getWebtoonCatalog(query = '', limit = 40): Promise<ComicFeed> {
           );
         }
       }
-      return { items: items.slice(0, limit), offline: items.length === 0 };
+      /* Pencarian yang tidak menemukan apa pun tetap jawaban sumber yang
+         sehat, jadi bukan "sedang tidak bisa dihubungi". */
+      return { items: items.slice(0, limit), offline: false };
     } catch {
       return { items: [], offline: true };
     }
