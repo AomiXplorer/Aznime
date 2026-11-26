@@ -5,13 +5,10 @@ import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Loader2,
   Play,
   RotateCw,
   Server,
-  ShieldCheck,
-  ShieldOff,
   X,
 } from 'lucide-react';
 import type { MirrorServer } from '@/lib/scraper/types';
@@ -36,18 +33,7 @@ interface NekopoiPlayerProps {
   seriesTitle: string | null;
 }
 
-/**
- * Pemutar Nekopoi memakai iframe pihak ketiga (playmogo/stmpoi). Dua lapis
- * pengaman dipakai supaya iklan sumber tidak menyeret penonton keluar:
- *
- * 1. Iframe baru dipasang setelah tombol tonton ditekan, jadi skrip iklan tidak
- *    jalan saat halaman dibuka.
- * 2. Sandbox tanpa allow-popups dan allow-top-navigation memblokir pop-up
- *    sekaligus pengalihan seluruh halaman (iklan "teleport" ke toko online).
- *
- * Kalau sebuah host menolak diputar di dalam sandbox, penonton bisa memilih
- * mode kompatibel. Pilihannya per episode dan disertai peringatan.
- */
+// Izin pemutaran untuk iframe lintas origin. Popup dan navigasi tab induk tetap diblokir.
 const SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-presentation';
 
 export function NekopoiPlayer({
@@ -66,21 +52,12 @@ export function NekopoiPlayer({
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [started, setStarted] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  /**
-   * Sandbox dimatikan secara bawaan. Host playmogo/stmpoi dilindungi
-   * Cloudflare, dan halaman verifikasinya menyelesaikan diri dengan memuat
-   * ulang frame teratas; di dalam iframe ber-sandbox langkah itu diblokir
-   * sehingga hasilnya selalu "Verification failed" dan video tidak pernah
-   * tampil. Mode aman tetap tersedia sebagai pilihan, bukan default.
-   */
-  const [sandboxed, setSandboxed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   // Host video kadang menolak tampil tanpa memberi sinyal apa pun ke halaman
   // induk. Bila iframe tidak selesai dimuat, bantuan dibuka sendiri.
   const [stuck, setStuck] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Satu percobaan ulang otomatis: challenge Cloudflare sering lolos di
-  // permintaan kedua tanpa perlu campur tangan penonton.
+  // Coba sekali lagi jika iframe belum selesai dimuat.
   const retried = useRef(false);
 
   const active = playable[selectedIdx] || playable[0] || null;
@@ -88,6 +65,8 @@ export function NekopoiPlayer({
   const pick = (idx: number) => {
     if (idx === selectedIdx) return;
     setLoaded(false);
+    setStuck(false);
+    setHelpOpen(false);
     retried.current = false;
     setSelectedIdx(idx);
   };
@@ -100,13 +79,9 @@ export function NekopoiPlayer({
 
   const reload = () => {
     setLoaded(false);
+    setStuck(false);
+    setHelpOpen(false);
     setReloadKey((prev) => prev + 1);
-  };
-
-  const toggleSandbox = () => {
-    setLoaded(false);
-    retried.current = false;
-    setSandboxed((prev) => !prev);
   };
 
   useEffect(() => {
@@ -124,7 +99,7 @@ export function NekopoiPlayer({
       window.clearTimeout(retry);
       window.clearTimeout(giveUp);
     };
-  }, [started, loaded, active?.url, reloadKey, sandboxed, selectedIdx]);
+  }, [started, loaded, active?.url, reloadKey, selectedIdx]);
 
   const showHelp = Boolean(started && active?.url && (helpOpen || stuck));
 
@@ -142,10 +117,10 @@ export function NekopoiPlayer({
         ) : started ? (
           <>
             <iframe
-              key={`${active.url}-${sandboxed ? 'safe' : 'compat'}-${reloadKey}`}
+              key={`${active.url}-${reloadKey}`}
               src={active.url}
               title={title}
-              sandbox={sandboxed ? SANDBOX : undefined}
+              sandbox={SANDBOX}
               className="absolute inset-0 h-full w-full"
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
@@ -176,9 +151,7 @@ export function NekopoiPlayer({
                     </button>
                   </div>
                   <p className="mt-1.5 text-[11.5px] leading-relaxed text-zinc-400">
-                    Host video dilindungi Cloudflare. Kalau muncul tulisan{' '}
-                    <span className="text-zinc-200">Verification failed</span> atau layar kosong,
-                    server ini menolak diputar di dalam halaman.
+                    Kalau verifikasi gagal atau layar tetap kosong, coba muat ulang atau pilih server lain.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <button
@@ -199,25 +172,7 @@ export function NekopoiPlayer({
                         Server lain
                       </button>
                     ) : null}
-                    <a
-                      href={active.url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-white/15 px-2.5 text-[11.5px] font-semibold text-zinc-200 transition-colors duration-150 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                      Tab baru
-                    </a>
                   </div>
-                  <button
-                    type="button"
-                    onClick={toggleSandbox}
-                    className="mt-2.5 cursor-pointer text-[11px] font-medium text-zinc-500 underline decoration-white/20 underline-offset-2 transition-colors hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                  >
-                    {sandboxed
-                      ? 'Masih kosong? Matikan mode aman: host yang menolak sandbox akan memutar.'
-                      : 'Nyalakan mode aman untuk memblokir pop-up iklan (sebagian host menolak).'}
-                  </button>
                 </div>
               </div>
             ) : null}
@@ -245,11 +200,6 @@ export function NekopoiPlayer({
                 <Play className="h-4 w-4 fill-current" aria-hidden="true" />
                 Tonton {active.name}
               </button>
-              <p className="text-[11.5px] text-zinc-400">
-                {sandboxed
-                  ? 'Pemutar pihak ketiga. Mode aman: pop-up dan pengalihan halaman diblokir.'
-                  : 'Pemutar pihak ketiga. Iklan dari host bisa membuka tab baru.'}
-              </p>
             </div>
           </>
         )}
@@ -287,19 +237,6 @@ export function NekopoiPlayer({
           ))}
         </div>
 
-        {active?.url ? (
-          <a
-            href={active.url}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-            title="Buka server di tab baru"
-            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-[4px] px-2 text-[12px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          >
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="hidden sm:inline">Tab baru</span>
-          </a>
-        ) : null}
-
         {navigation.next ? (
           <Link
             href={navigation.next.href}
@@ -316,9 +253,7 @@ export function NekopoiPlayer({
       {active?.url ? (
         <div className="flex items-center justify-between gap-3 border-t border-[#241d1d] bg-surface px-3 py-2">
           <p className="text-[11px] leading-snug text-zinc-500">
-            {sandboxed
-              ? 'Mode aman: pop-up dan pengalihan iklan diblokir.'
-              : 'Mode kompatibel: iklan host bisa terbuka.'}{' '}
+            Pop-up dan pengalihan tab dari pemutar diblokir.{' '}
             <button
               type="button"
               onClick={() => setHelpOpen(true)}
@@ -338,24 +273,6 @@ export function NekopoiPlayer({
               </>
             ) : null}
           </p>
-          <button
-            type="button"
-            onClick={toggleSandbox}
-            aria-pressed={sandboxed}
-            className={cn(
-              'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[4px] px-2.5 text-[11.5px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
-              sandboxed
-                ? 'bg-emerald-500/12 text-emerald-300 hover:bg-emerald-500/20'
-                : 'bg-amber-500/12 text-amber-300 hover:bg-amber-500/20'
-            )}
-          >
-            {sandboxed ? (
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-            ) : (
-              <ShieldOff className="h-3.5 w-3.5" aria-hidden="true" />
-            )}
-            {sandboxed ? 'Mode aman' : 'Mode kompatibel'}
-          </button>
         </div>
       ) : null}
     </div>
