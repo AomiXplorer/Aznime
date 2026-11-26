@@ -17,6 +17,7 @@ import type {
   ScheduleMap,
   TaxonomyResponse,
 } from './types';
+import { cleanGenres } from '@/lib/genres';
 import {
   BASE_URL,
   cleanAnimeTitle,
@@ -263,7 +264,9 @@ export async function getFilterOptions(): Promise<FilterOptionsMap> {
       });
 
     if (key) {
-      options[key] = items;
+      /* Genre sumber memuat judul anime; hanya genre yang benar-benar ada yang
+         dipakai supaya panel filter tidak berisi pilihan aneh. */
+      options[key] = key === 'genre' ? cleanGenres(items) : items;
     }
   });
 

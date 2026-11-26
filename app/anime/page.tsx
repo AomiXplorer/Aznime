@@ -37,15 +37,8 @@ const ARCHIVE_PAGE_SIZE = 24;
  * katalog, yang langsung mengarah ke /hentai.
  */
 const HENTAI_VALUE = 'hentai';
-const HENTAI_OPTION = { label: 'Hentai (18+)', value: HENTAI_VALUE };
 
 const isHentaiValue = (value: string) => value.trim().toLowerCase() === HENTAI_VALUE;
-
-/** Hentai dipasang sebagai tipe, bukan genre. */
-function withHentaiType(options: FilterOptionsMap): FilterOptionsMap {
-  const type = (options.type || []).filter((item) => !isHentaiValue(item.value));
-  return { ...options, type: [...type, HENTAI_OPTION] };
-}
 
 /** Genre Hentai bawaan sumber dibuang supaya jalan masuknya tetap satu. */
 function withoutHentaiGenre(options: FilterOptionsMap): FilterOptionsMap {
@@ -102,7 +95,7 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
     .then((value) => ({ ok: true as const, value }))
     .catch(() => ({ ok: false as const, value: {} as FilterOptionsMap }));
 
-  const options = withHentaiType(withoutHentaiGenre(filterRes.value));
+  const options = withoutHentaiGenre(filterRes.value);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

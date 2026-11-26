@@ -31,17 +31,26 @@ const STATUS_LABELS: Record<string, string> = {
   hiatus: 'Hiatus',
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  '': 'Semua tipe',
-  tv: 'TV Series',
-  movie: 'Movie',
-  ova: 'OVA',
-  ona: 'ONA',
-  special: 'Special',
-  bd: 'BD',
-  music: 'Music',
-  'live action': 'Live Action',
-};
+/**
+ * Panel "Tipe" berisi jenis konten yang benar-benar ada di situs ini, bukan
+ * format tayang sumber (TV, OVA, Special, BD, ...) yang sebagian besar kosong
+ * dan tidak bisa dibuka. Setiap pilihan langsung menuju bagiannya.
+ */
+interface ContentType {
+  label: string;
+  value: string;
+  href: string;
+  /** Butuh gerbang 18+ sebelum dibuka. */
+  adult?: boolean;
+}
+
+const CONTENT_TYPES: ContentType[] = [
+  { label: 'Anime', value: 'anime', href: '/anime' },
+  { label: 'Movie', value: 'movie', href: '/anime?type=movie' },
+  { label: 'Webtoon', value: 'webtoon', href: '/webtoon' },
+  { label: 'Hentai', value: 'hentai', href: '/hentai', adult: true },
+  { label: 'Komiku', value: 'komiku', href: '/komik' },
+];
 
 const ORDER_LABELS: Record<string, string> = {
   update: 'Terbaru',
@@ -60,14 +69,6 @@ const FALLBACK_STATUS: FilterOptionItem[] = [
   { label: 'Segera tayang', value: 'upcoming' },
 ];
 
-const FALLBACK_TYPE: FilterOptionItem[] = [
-  { label: 'Semua tipe', value: '' },
-  { label: 'TV Series', value: 'tv' },
-  { label: 'Movie', value: 'movie' },
-  { label: 'OVA', value: 'ova' },
-  { label: 'ONA', value: 'ona' },
-];
-
 const FALLBACK_ORDER: FilterOptionItem[] = [
   { label: 'Terbaru', value: 'update' },
   { label: 'Populer', value: 'popular' },
@@ -77,7 +78,7 @@ const FALLBACK_ORDER: FilterOptionItem[] = [
 
 const PANEL_COPY: Record<PanelKey, { title: string; hint?: string }> = {
   status: { title: 'Mau yang mana?', hint: 'Status tayang anime.' },
-  type: { title: 'Pilih tipe', hint: 'Format tayangnya.' },
+  type: { title: 'Pilih tipe', hint: 'Jenis konten yang mau dibuka.' },
   genre: { title: 'Pilih genre', hint: 'Boleh pilih lebih dari satu.' },
   order: { title: 'Urutkan katalog', hint: 'Dari yang paling pas buat kamu.' },
 };
@@ -121,10 +122,16 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
     [options.status]
   );
 
+  /* Tipe konten tidak lagi diambil dari sumber: daftarnya tetap dan setiap
+     pilihan berpindah bagian, jadi tidak ada tipe kosong yang bisa dipilih. */
   const typeItems = useMemo(
-    () => prepare(options.type, FALLBACK_TYPE, TYPE_LABELS),
-    [options.type]
+    () => CONTENT_TYPES.map((item) => ({ label: item.label, value: item.value })),
+    []
   );
+
+  /* Halaman ini adalah katalog anime; ?type=movie adalah satu-satunya
+     penyaring format yang masih dipakai. */
+  const selectedType = current.type.trim().toLowerCase() === 'movie' ? 'movie' : 'anime';
 
   const orderItems = useMemo(() => {
     const list = prepare(options.order, FALLBACK_ORDER, ORDER_LABELS).filter(
@@ -218,10 +225,18 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
 
   const chooseSingle = useCallback(
     (key: 'status' | 'type' | 'order', value: string) => {
-      if (key === 'type' && value.trim().toLowerCase() === 'hentai') {
-        setAdultPrompt(true);
-        close();
-        return;
+      if (key === 'type') {
+        const target = CONTENT_TYPES.find((item) => item.value === value);
+        if (target?.adult) {
+          setAdultPrompt(true);
+          close();
+          return;
+        }
+        if (target) {
+          router.push(target.href);
+          close();
+          return;
+        }
       }
 
       const next: CatalogFilterState = {
@@ -381,7 +396,8 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
     return (
       <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3" role="listbox" aria-label={PANEL_COPY[openKey!].title}>
         {items.map((item) => {
-          const selected = currentSingle === item.value;
+          const selected =
+            openKey === 'type' ? selectedType === item.value : currentSingle === item.value;
           return (
             <button
               key={item.value || 'all'}
@@ -429,7 +445,7 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
           className={triggerClass(Boolean(current.type))}
         >
           <span className={triggerLabelClass}>Tipe</span>
-          <span>{shortValue(current.type, TYPE_LABELS[current.type] ?? current.type)}</span>
+          <span>{selectedType === 'movie' ? 'Movie' : 'Anime'}</span>
           <ChevronDown className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
         </button>
 
