@@ -43,10 +43,11 @@ async function cached<T>(key: string, load: () => Promise<T>, ttl = TTL_MS): Pro
 
 /**
  * Batas waktu keras untuk satu panggilan sumber luar. Scraper memakai 25 detik
- * per permintaan; dua permintaan berurutan sudah cukup membuat halaman
- * menggantung hampir satu menit, jadi di sini dipotong.
+ * per permintaan, terlalu lama untuk ditunggu halaman. 15 detik dipilih dari
+ * pengukuran: permintaan pertama dari lambda dingin ke WEBTOON bisa 9-12 detik
+ * (DNS + TLS + halaman 300 KB), sedangkan panggilan hangat 1-4 detik.
  */
-function withTimeout<T>(promise: Promise<T>, ms = 9000): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms = 15000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),

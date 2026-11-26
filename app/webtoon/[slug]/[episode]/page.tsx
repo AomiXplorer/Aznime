@@ -47,7 +47,10 @@ export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps
        ditampilkan sebagai keadaan error supaya tidak tersimpan sebagai 404. */
     const detail = await getWebtoonDetail(parsed.titleNo, parsed.slug);
     const exists = detail?.episodes.some((episode) => episode.episodeNo === episodeNo);
-    if (!exists) notFound();
+    /* 404 hanya kalau daftar episode benar-benar terbaca dan nomornya tidak
+       ada di sana. Daftar kosong berarti sumbernya yang gagal, bukan episode
+       yang hilang, jadi jangan dicap 404. */
+    if (detail && detail.episodes.length > 0 && !exists) notFound();
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <h1 className="font-display text-[22px] font-semibold text-white">
