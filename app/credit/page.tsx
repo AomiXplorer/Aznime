@@ -84,7 +84,14 @@ function ContributorDetails({ person }: { person: Contributor }) {
 
 export default function CreditPage() {
   const developers = CONTRIBUTORS.filter((person) => person.role !== 'Contributor');
-  const [lead, ...engineering] = developers;
+  const [featuredDeveloper, ...engineering] = developers;
+  const lead: Contributor | undefined = featuredDeveloper?.id === 'aomi'
+    ? {
+        ...featuredDeveloper,
+        avatar: { kind: 'image', src: '/contributors/aomi-credit.gif' },
+        note: 'Merancang, mengembangkan, dan mengelola infrastruktur web Aznime, mulai dari frontend, backend, database, hingga integrasi layanan dan optimasi sistem',
+      }
+    : featuredDeveloper;
   const contributors = CONTRIBUTORS.filter((person) => person.role === 'Contributor');
 
   return (
