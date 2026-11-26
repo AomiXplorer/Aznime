@@ -282,8 +282,9 @@ async function malzMetadata(id: string): Promise<Metadata> {
         images: image ? [image] : undefined,
       },
     };
-  } catch {
-    return { title: 'Detail anime' };
+  } catch (err) {
+    if (err instanceof UpstreamError && err.isNotFound) notFound();
+    return { title: 'Detail anime', robots: { index: false, follow: true } };
   }
 }
 
@@ -299,13 +300,25 @@ export async function generateMetadata({ params }: AnimeDetailPageProps): Promis
     if (readableMalzId) return malzMetadata(readableMalzId);
   }
 
+  /* Halaman detail merender isinya di dalam Suspense, jadi notFound() dari
+     komponen sudah terlambat mengubah status. Slug yang memang tidak ada
+     dijawab 404 dari sini; kegagalan upstream sesaat tidak dianggap 404. */
+  let detail: Awaited<ReturnType<typeof getDetail>> | null = null;
+  let failure: unknown = null;
   try {
-    const detail = await getDetail(decodedSlug);
-    if (!detail.title) {
-      const readableMalzId = await resolveMalzAnimeId(decodedSlug);
-      return readableMalzId ? malzMetadata(readableMalzId) : { title: 'Anime tidak ditemukan' };
-    }
+    detail = await getDetail(decodedSlug);
+  } catch (err) {
+    failure = err;
+  }
 
+  if (!detail || !detail.title) {
+    const readableMalzId = await resolveMalzAnimeId(decodedSlug).catch(() => null);
+    if (readableMalzId) return malzMetadata(readableMalzId);
+    if (!failure || (failure instanceof UpstreamError && failure.isNotFound)) notFound();
+    return { title: 'Detail anime', robots: { index: false, follow: true } };
+  }
+
+  {
     const description = detail.synopsis
       ? detail.synopsis.slice(0, 155).trim()
       : `Tonton dan unduh ${detail.title} subtitle Indonesia lengkap di Aznime.`;
@@ -327,9 +340,6 @@ export async function generateMetadata({ params }: AnimeDetailPageProps): Promis
         images: detail.poster ? [detail.poster] : undefined,
       },
     };
-  } catch {
-    const readableMalzId = await resolveMalzAnimeId(decodedSlug);
-    return readableMalzId ? malzMetadata(readableMalzId) : { title: 'Detail anime' };
   }
 }
 

@@ -19,6 +19,11 @@ export async function GET(req: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: 'Parameter id wajib diisi' }, { status: 400 });
   }
+  /* Id arsip selalu numerik; nilai lain tidak akan pernah punya episode, jadi
+     dijawab 400 di sini alih-alih diteruskan dan berakhir 502. */
+  if (!/^\d{1,12}$/.test(id)) {
+    return NextResponse.json({ error: 'Parameter id tidak valid' }, { status: 400 });
+  }
 
   try {
     const data = await getMalzEpisodes(id, page);

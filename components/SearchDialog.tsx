@@ -17,7 +17,6 @@ interface SearchDialogProps {
 }
 
 function hrefFor(item: QuickSearchItem): string {
-  if (item.source === 'lk21') return '/film/' + encodeURIComponent(item.slug || '');
   if (item.source === 'nekopoi') return nekopoiCardHref(item);
   if (!item.slug) return '/anime';
   return `${item.kind === 'episode' ? '/watch' : '/anime'}/${encodeURIComponent(item.slug)}`;
@@ -153,7 +152,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
             ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label={adult ? 'Cari hentai' : 'Cari anime dan film'}
+            aria-label={adult ? 'Cari hentai' : 'Cari anime'}
             initial={reduce ? false : { opacity: 0, y: -16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
@@ -171,7 +170,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={adult ? 'Cari judul hentai' : 'Cari judul anime atau film'}
+                placeholder={adult ? 'Cari judul hentai' : 'Cari judul anime'}
                 autoComplete="off"
                 className="h-14 flex-1 bg-transparent text-[1.05rem] text-white placeholder:text-zinc-500 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
               />

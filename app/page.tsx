@@ -1,4 +1,3 @@
-import { FilmCatalog } from '@/components/FilmCatalog';
 import Link from 'next/link';
 import { getHome, getOngoing } from '@/lib/scraper';
 import { withoutAdult } from '@/lib/adult';
@@ -41,7 +40,6 @@ export default async function HomePage() {
     return (
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <ErrorState title="Beranda tidak bisa dimuat" message={message} />
-        <FilmCatalog home />
       </div>
     );
   }
@@ -112,7 +110,6 @@ export default async function HomePage() {
           </section>
         ) : null}
         <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />
-        <FilmCatalog home />
       </div>
     </>
   );

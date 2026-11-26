@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
 import { PageHeader } from '@/components/PageHeader';
 import { ProfileView } from '@/components/profile/ProfileView';
 
@@ -6,6 +7,8 @@ export const metadata: Metadata = {
   title: 'Profil',
   description: 'Akun Aznime: ringkasan riwayat tontonan, favorit, dan status sesi.',
   robots: { index: false, follow: true },
+  ...socialMeta('Profil',
+    'Akun Aznime: ringkasan riwayat tontonan, favorit, dan status sesi.'),
 };
 
 export default function ProfilePage() {

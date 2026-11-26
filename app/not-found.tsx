@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+/* Tanpa ini halaman 404 mewarisi judul beranda, sehingga dua halaman berbeda
+   tampil dengan judul identik di hasil pencarian. */
+export const metadata: Metadata = {
+  title: 'Halaman tidak ditemukan',
+  robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
   return (

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
 import Link from 'next/link';
 import { Calendar, Clock } from 'lucide-react';
 import { getSchedule } from '@/lib/scraper';
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
   description:
     'Jadwal rilis anime subtitle Indonesia harian dari Senin sampai Minggu beserta jam tayang.',
   alternates: { canonical: '/schedule' },
+  ...socialMeta('Jadwal Tayang Anime',
+    'Jadwal rilis anime subtitle Indonesia harian dari Senin sampai Minggu beserta jam tayang.'),
 };
 
 export const revalidate = 300;

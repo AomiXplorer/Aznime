@@ -1,10 +1,16 @@
+import type { Metadata } from 'next';
 import {
   absoluteUrl,
   HOME_URL,
   SITE_ALTERNATE_NAME,
   SITE_DESCRIPTION,
   SITE_LANG,
+  SITE_LOCALE,
   SITE_LOGO_PATH,
+  OG_IMAGE_ALT,
+  OG_IMAGE_HEIGHT,
+  OG_IMAGE_PATH,
+  OG_IMAGE_WIDTH,
   SITE_NAME,
   SITE_URL,
 } from './site';
@@ -88,5 +94,43 @@ export function breadcrumbJsonLd(items: BreadcrumbItem[]): Record<string, unknow
       name: item.name,
       item: absoluteUrl(item.path),
     })),
+  };
+}
+
+/**
+ * Kartu sosial per halaman.
+ *
+ * Root layout hanya punya satu og:title; halaman yang tidak mengirim openGraph
+ * sendiri mewarisi objek itu utuh sehingga setiap tautan yang dibagikan tampil
+ * dengan judul beranda. Helper ini mengirim openGraph + twitter lengkap.
+ */
+export function socialMeta(
+  title: string,
+  description?: string
+): Pick<Metadata, 'openGraph' | 'twitter'> {
+  const image = absoluteUrl(OG_IMAGE_PATH);
+  return {
+    openGraph: {
+      type: 'website',
+      locale: SITE_LOCALE,
+      siteName: SITE_NAME,
+      title,
+      ...(description ? { description } : {}),
+      images: [
+        {
+          url: image,
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+          alt: OG_IMAGE_ALT,
+          type: 'image/jpeg',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      ...(description ? { description } : {}),
+      images: [image],
+    },
   };
 }

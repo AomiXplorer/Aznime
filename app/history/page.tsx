@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
 import { PageHeader } from '@/components/PageHeader';
 import { HistoryView } from '@/components/history/HistoryView';
 
@@ -6,6 +7,8 @@ export const metadata: Metadata = {
   title: 'Riwayat tontonan',
   description: 'Lanjutkan anime yang terakhir kamu tonton. Riwayat tersimpan di akun dan tersedia di perangkat lain.',
   robots: { index: false, follow: true },
+  ...socialMeta('Riwayat tontonan',
+    'Lanjutkan anime yang terakhir kamu tonton. Riwayat tersimpan di akun dan tersedia di perangkat lain.'),
 };
 
 export default function HistoryPage() {

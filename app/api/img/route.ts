@@ -34,7 +34,7 @@ const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-type Upstream = 'animein' | 'nekopoi' | 'hidori' | 'anilist' | 'youtube' | 'lk21';
+type Upstream = 'animein' | 'nekopoi' | 'hidori' | 'anilist' | 'youtube';
 
 function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | null {
   if (!raw) return null;
@@ -42,7 +42,6 @@ function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | n
     const parsed = new URL(raw);
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
     const host = parsed.hostname.toLowerCase();
-    if (parsed.origin === 'https://poster.assetsy.de') return { url: parsed, upstream: 'lk21' };
     if (ANIMEIN_HOSTS.has(host)) return { url: parsed, upstream: 'animein' };
     if (NEKOPOI_HOSTS.has(host)) return { url: parsed, upstream: 'nekopoi' };
     if (HIDORI_HOSTS.has(host)) return { url: parsed, upstream: 'hidori' };
@@ -169,19 +168,10 @@ async function serveTitlePoster(params: URLSearchParams) {
   if (!title) return badRequest();
 
   const cover = await getAniListCover(title, (params.get('a') || '').slice(0, 100) || null);
-  if (!cover) {
-    /* Judul tanpa padanan di AniList. Cache singkat supaya percobaan ulang
-       tetap murah tetapi tidak mengunci judul yang baru muncul di AniList. */
-    return new NextResponse(null, {
-      status: 404,
-      headers: { 'Cache-Control': 'public, max-age=600, s-maxage=600' },
-    });
-  }
+  if (!cover) return placeholderPoster();
 
   const target = resolveTarget(cover);
-  if (!target) {
-    return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'public, max-age=600' } });
-  }
+  if (!target) return placeholderPoster();
   return respondWithImage(target, params);
 }
 
@@ -201,6 +191,30 @@ export async function GET(request: Request) {
 
 function badRequest() {
   return NextResponse.json({ error: 'Parameter gambar tidak valid' }, { status: 400 });
+}
+
+/**
+ * Poster pengganti ketika host sumber menolak dan AniList tidak punya cover.
+ *
+ * Dulu dijawab 404: kartu tampil kosong dan setiap kartu menulis satu error di
+ * konsol. SVG ~500 byte ini membuat kartu tetap rapi, sekali di-cache CDN.
+ */
+function placeholderPoster() {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="340" height="480" viewBox="0 0 340 480" role="img">' +
+    '<rect width="340" height="480" fill="#141010"/>' +
+    '<rect x="0.5" y="0.5" width="339" height="479" fill="none" stroke="#2a2222"/>' +
+    '<circle cx="170" cy="222" r="26" fill="none" stroke="#3d3232" stroke-width="2"/>' +
+    '<path d="M160 210 L160 234 L182 222 Z" fill="#3d3232"/>' +
+    '<text x="170" y="286" font-family="system-ui,sans-serif" font-size="13" fill="#5a4c4c" text-anchor="middle">Poster belum tersedia</text>' +
+    '</svg>';
+  return new NextResponse(svg, {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+    },
+  });
 }
 
 function fallback(target: { url: URL; upstream: Upstream }, hardFailure = false) {

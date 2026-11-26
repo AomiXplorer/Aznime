@@ -25,6 +25,7 @@ import { EpisodeList } from '@/components/EpisodeList';
 import { MalzEpisodeList } from '@/components/MalzEpisodeList';
 import { WatchLayout, type WatchMetaItem } from '@/components/WatchLayout';
 import { ErrorState } from '@/components/ErrorState';
+import { socialMeta } from '@/lib/seo';
 import { getSessionUser } from '@/lib/auth/session';
 import { isEpisodeLocked } from '@/lib/auth/episode-policy';
 import { AuthGate } from '@/components/auth/AuthGate';
@@ -232,10 +233,12 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
           : label;
       const canonicalSlug = malzEpisodeSlug(malzEpisodeId, seriesTitle, episode.episode);
 
+      const description = `Nonton streaming ${uniqueLabel} subtitle Indonesia di Aznime. Pilih kualitas video yang tersedia.`;
       return {
         title: uniqueLabel,
-        description: `Nonton streaming ${uniqueLabel} subtitle Indonesia di Aznime. Pilih kualitas video yang tersedia.`,
+        description,
         alternates: { canonical: `/watch/${encodeURIComponent(canonicalSlug)}` },
+        ...socialMeta(uniqueLabel, description),
       };
     } catch {
       return { title: 'Nonton anime' };
@@ -244,14 +247,20 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
 
   try {
     const ep = await getEpisode(decodedSlug);
-    if (!ep.title) return { title: 'Nonton anime' };
+    if (!ep.title) notFound();
+    const description = `Nonton streaming ${ep.title} subtitle Indonesia di Aznime. Pilih server yang tersedia dan tautan unduhan per resolusi.`;
     return {
       title: ep.title,
-      description: `Nonton streaming ${ep.title} subtitle Indonesia di Aznime. Pilih server yang tersedia dan tautan unduhan per resolusi.`,
+      description,
       alternates: { canonical: `/watch/${encodeURIComponent(decodedSlug)}` },
+      ...socialMeta(ep.title, description),
     };
-  } catch {
-    return { title: 'Nonton anime' };
+  } catch (err) {
+    if (err instanceof UpstreamError && err.isNotFound) notFound();
+    /* Halaman ini punya loading.tsx, jadi header 200 sudah terkirim bersama
+       kerangka sebelum episode sempat diperiksa. Slug yang tidak ada tetap
+       menampilkan halaman 404, dan noindex mencegahnya masuk indeks. */
+    return { title: 'Nonton anime', robots: { index: false, follow: true } };
   }
 }
 

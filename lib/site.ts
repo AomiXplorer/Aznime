@@ -31,6 +31,11 @@ export const SITE_LOCALE = 'id_ID';
 export const SITE_LANG = 'id-ID';
 
 /** Beranda kanonik, selalu dengan garis miring penutup. */
+export const OG_IMAGE_PATH = '/og/aznime-og-v3.jpg';
+export const OG_IMAGE_ALT = 'Aznime key visual – anime girl with pink hair and a white high-neck sweater';
+export const OG_IMAGE_WIDTH = 1200;
+export const OG_IMAGE_HEIGHT = 630;
+
 export const HOME_URL = `${SITE_URL}/`;
 
 /** Ubah path relatif (mis. `/anime/naruto`) menjadi URL absolut kanonik. */

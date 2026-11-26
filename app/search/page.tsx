@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
-import { FilmCatalog } from '@/components/FilmCatalog';
 import { Search } from 'lucide-react';
 import { searchAcrossSources } from '@/lib/sources';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { PageHeader } from '@/components/PageHeader';
+import { socialMeta } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,11 +21,14 @@ function getQueryString(val: string | string[] | undefined): string {
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
   const sp = await searchParams;
   const q = getQueryString(sp.q);
+  const title = q ? `Hasil pencarian: ${q}` : 'Cari anime';
+  const description = q
+    ? `Hasil pencarian anime subtitle Indonesia untuk "${q}" di Aznime.`
+    : 'Cari anime subtitle Indonesia berdasarkan judul di Aznime.';
   return {
-    title: q ? `Hasil pencarian: ${q}` : 'Cari anime dan film',
-    description: q
-      ? `Hasil pencarian anime subtitle Indonesia untuk "${q}" di Aznime.`
-      : 'Cari anime subtitle Indonesia berdasarkan judul di Aznime.',
+    title,
+    description,
+    ...socialMeta(title, description),
     // Halaman hasil pencarian tidak diindeks: kontennya dinamis, bertumpuk
     // dengan katalog, dan bisa menghasilkan URL tak terbatas.
     robots: { index: false, follow: true },
@@ -51,11 +53,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader title="Cari anime dan film" />
+      <PageHeader title="Cari anime" />
 
       <form action="/search" method="GET" className="mb-8 flex max-w-xl gap-2">
         <label htmlFor="page-search-input" className="sr-only">
-          Kata kunci judul anime atau film
+          Kata kunci judul anime
         </label>
         <div className="relative flex-1">
           <Search
@@ -67,7 +69,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             name="q"
             type="search"
             defaultValue={q}
-            placeholder="Masukkan judul anime atau film"
+            placeholder="Masukkan judul anime"
             required
             className="h-11 w-full rounded-[4px] border border-white/10 bg-white/[0.03] pl-10 pr-4 text-[13.5px] text-white placeholder:text-zinc-500 transition-colors focus:border-white/30 focus:bg-white/[0.05] focus:outline-none"
           />
@@ -80,10 +82,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </button>
       </form>
 
-      {q && <Suspense fallback={<p>Mencari film…</p>}><FilmCatalog query={q.slice(0, 100)} /></Suspense>}
       {!q ? (
         <EmptyState
-          title="Masukkan judul anime atau film"
+          title="Masukkan judul anime"
           description="Ketik judul pada kolom di atas, atau tekan Ctrl+K dari halaman mana pun."
           actionLabel="Lihat katalog populer"
           actionHref="/anime?order=popular"

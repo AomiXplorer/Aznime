@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
 import { PageHeader } from '@/components/PageHeader';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 
@@ -6,6 +7,8 @@ export const metadata: Metadata = {
   title: 'Favorit',
   description: 'Daftar anime favorit yang kamu simpan di akun Aznime.',
   robots: { index: false, follow: true },
+  ...socialMeta('Favorit',
+    'Daftar anime favorit yang kamu simpan di akun Aznime.'),
 };
 
 export default function FavoritesPage() {

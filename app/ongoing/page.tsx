@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
 import Link from 'next/link';
 import { CalendarDays } from 'lucide-react';
 import { getOngoing } from '@/lib/scraper';
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
   title: 'Anime Ongoing',
   description: 'Daftar anime ongoing subtitle Indonesia yang masih tayang dan diperbarui setiap minggu.',
   alternates: { canonical: '/ongoing' },
+  ...socialMeta('Anime Ongoing',
+    'Daftar anime ongoing subtitle Indonesia yang masih tayang dan diperbarui setiap minggu.'),
 };
 
 export const revalidate = 180;

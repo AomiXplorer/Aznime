@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
 import { getCompleted } from '@/lib/scraper';
 import { supplementWithArchive } from '@/lib/sources';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
@@ -9,6 +10,8 @@ export const metadata: Metadata = {
   title: 'Anime Completed',
   description: 'Koleksi anime completed subtitle Indonesia yang sudah tamat seluruh episodenya.',
   alternates: { canonical: '/completed' },
+  ...socialMeta('Anime Completed',
+    'Koleksi anime completed subtitle Indonesia yang sudah tamat seluruh episodenya.'),
 };
 
 export const revalidate = 300;

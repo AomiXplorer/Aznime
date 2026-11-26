@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { CONTRIBUTORS } from '@/lib/credits';
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
   title: 'Credits',
   description: 'Behind the platform, powered by the people.',
   alternates: { canonical: '/credit' },
+  ...socialMeta('Credits',
+    'Behind the platform, powered by the people.'),
 };
 
 export default function CreditPage() {

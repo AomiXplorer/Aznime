@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Menu, Search, Users, X } from 'lucide-react';
+import { Menu, Search, X } from 'lucide-react';
+import { MobileMenu } from './MobileMenu';
 import { Wordmark } from './Wordmark';
 import { useAuth } from './auth/AuthProvider';
 
@@ -172,13 +173,13 @@ export function Navbar() {
             {authLoading ? (
               <span
                 aria-hidden="true"
-                className="h-9 w-9 animate-pulse rounded-[4px] border border-white/10 bg-white/[0.03]"
+                className="h-12 w-12 animate-pulse rounded-[4px] border border-white/10 bg-white/[0.03] sm:h-9 sm:w-9"
               />
             ) : user ? (
               <Link
                 href="/profile"
                 aria-label={`Akun ${user.username}`}
-                className="inline-flex h-9 items-center gap-2 rounded-[4px] border border-white/10 bg-white/[0.03] px-2 text-[12.5px] font-medium text-zinc-200 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="inline-flex h-12 items-center gap-2 rounded-[4px] border border-white/10 bg-white/[0.03] px-2 text-[12.5px] sm:h-9 font-medium text-zinc-200 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-elevated text-[10px] font-semibold text-zinc-200">
                   {user.avatar ? (
@@ -194,7 +195,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => openAuth('login', pathname)}
-                className="inline-flex h-9 cursor-pointer items-center rounded-[4px] bg-white/[0.08] px-3 text-[12.5px] font-semibold text-white transition-colors duration-150 hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="inline-flex h-12 cursor-pointer items-center rounded-[4px] bg-white/[0.08] px-3 text-[12.5px] sm:h-9 font-semibold text-white transition-colors duration-150 hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 Masuk
               </button>
@@ -207,10 +208,10 @@ export function Navbar() {
                 setSearchOpen(true);
               }}
               aria-label={adult ? 'Buka pencarian hentai' : 'Buka pencarian anime'}
-              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-zinc-300 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-zinc-300 sm:h-9 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{adult ? 'Cari hentai' : 'Cari anime dan film'}</span>
+              <span className="hidden sm:inline">{adult ? 'Cari hentai' : 'Cari anime'}</span>
             </button>
 
             <button
@@ -219,7 +220,7 @@ export function Navbar() {
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-panel"
               aria-label={mobileOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
-              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 px-2.5 text-zinc-200 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 px-2.5 text-zinc-200 sm:h-9 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               {mobileOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
               <span className="hidden text-[12.5px] font-medium sm:inline">Menu</span>
@@ -227,83 +228,16 @@ export function Navbar() {
           </div>
         </div>
 
-        {mobileOpen ? (
-          <nav
-            id="mobile-nav-panel"
-            aria-label="Menu navigasi"
-            className="page-enter max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-[#241d1d] bg-canvas"
-          >
-            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-              <ul className="grid gap-1 md:grid-cols-2 md:gap-x-10">
-                {NAV_LINKS.map((link) => {
-                  const active = isActive(pathname, link.href);
-                  return (
-                    <li key={link.href}>
-                      <Link
-                        href={link.href}
-                        aria-current={active ? 'page' : undefined}
-                        className={`flex items-center justify-between rounded-[4px] px-3 py-2.5 text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
-                          active
-                            ? 'bg-white/[0.07] font-semibold text-white'
-                            : 'font-medium text-zinc-400 hover:bg-white/[0.04] hover:text-white'
-                        }`}
-                      >
-                        {link.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-
-                <li className="mt-1 border-t border-[#241d1d] pt-1 md:col-span-2">
-                  <Link
-                    href="/credit"
-                    aria-current={isActive(pathname, '/credit') ? 'page' : undefined}
-                    className={`flex items-center justify-between gap-3 rounded-[4px] px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
-                      isActive(pathname, '/credit')
-                        ? 'bg-white/[0.07] text-white'
-                        : 'text-zinc-300 hover:bg-white/[0.04] hover:text-white'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2.5 text-[13.5px] font-medium">
-                      <Users className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-                      Credits
-                    </span>
-                  </Link>
-                </li>
-              </ul>
-
-              <div className="mt-3 grid gap-1 border-t border-[#241d1d] pt-3 md:grid-cols-2 md:gap-x-10">
-                {user ? (
-                  [
-                    { href: '/history', label: 'Riwayat tontonan' },
-                    { href: '/favorites', label: 'Favorit' },
-                    { href: '/profile', label: 'Profil' },
-                  ].map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="rounded-[4px] px-3 py-2.5 text-[13.5px] font-medium text-zinc-400 transition-colors duration-150 hover:bg-white/[0.04] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                    >
-                      {link.label}
-                    </Link>
-                  ))
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileOpen(false);
-                      openAuth('login', pathname);
-                    }}
-                    className="cursor-pointer rounded-[4px] px-3 py-2.5 text-left text-[13.5px] font-semibold text-white transition-colors duration-150 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                  >
-                    Masuk atau daftar
-                  </button>
-                )}
-              </div>
-            </div>
-          </nav>
-        ) : null}
       </header>
+
+      <MobileMenu
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        pathname={pathname}
+        user={user}
+        authLoading={authLoading}
+        onLogin={() => openAuth('login', pathname)}
+      />
 
       {searchMounted ? (
         <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} adult={adult} />

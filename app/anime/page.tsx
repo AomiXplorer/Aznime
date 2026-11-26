@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { socialMeta } from '@/lib/seo';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Archive } from 'lucide-react';
@@ -14,12 +16,15 @@ import { CatalogFilters } from '@/components/CatalogFilters';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { ErrorState } from '@/components/ErrorState';
 import { PageHeader } from '@/components/PageHeader';
+import { AnimeGridSkeleton } from '@/components/Skeleton';
 
 export const metadata: Metadata = {
   title: 'Katalog Anime',
   description:
     'Jelajahi katalog lengkap anime subtitle Indonesia berdasarkan genre, status, tipe, dan urutan terbaru, termasuk arsip judul lama, dengan infinite scrolling.',
   alternates: { canonical: '/anime' },
+  ...socialMeta('Katalog Anime',
+    'Jelajahi katalog lengkap anime subtitle Indonesia berdasarkan genre, status, tipe, dan urutan terbaru, termasuk arsip judul lama, dengan infinite scrolling.'),
 };
 
 export const dynamic = 'force-dynamic';
@@ -90,36 +95,14 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
     redirect('/hentai');
   }
 
-  const [listRes, filterRes, poolRes] = await Promise.allSettled([
-    archiveMode
-      ? Promise.resolve(null)
-      : getAnimeList({
-          page: 1,
-          status: status || undefined,
-          type: type || undefined,
-          order: order || undefined,
-          genre: genres.length ? genres : undefined,
-        }),
-    getFilterOptions(),
-    archiveMode ? getMalzArchivePool() : Promise.resolve([]),
-  ]);
+  /* Filter diambil lebih dulu karena barisnya bagian dari kerangka halaman;
+     daftar anime yang lambat dipindah ke Suspense di bawah supaya judul dan
+     filter sudah terlihat saat daftar masih diambil. */
+  const filterRes = await getFilterOptions()
+    .then((value) => ({ ok: true as const, value }))
+    .catch(() => ({ ok: false as const, value: {} as FilterOptionsMap }));
 
-  const baseOptions = filterRes.status === 'fulfilled' ? filterRes.value : {};
-  const options = withHentaiType(withoutHentaiGenre(baseOptions));
-  const pool = poolRes.status === 'fulfilled' ? poolRes.value : [];
-  const archiveItems = pool.slice(0, ARCHIVE_PAGE_SIZE);
-
-  const data =
-    !archiveMode && listRes.status === 'fulfilled' && listRes.value
-      ? {
-          ...listRes.value,
-          results: await supplementWithArchive(listRes.value.results, {
-            status: status || undefined,
-            type: type || undefined,
-            genres,
-          }),
-        }
-      : null;
+  const options = withHentaiType(withoutHentaiGenre(filterRes.value));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -148,37 +131,94 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
         />
       </div>
 
-      {archiveMode ? (
-        <InfiniteAnimeCatalog
-          initialItems={archiveItems}
-          initialPagination={archivePagination(pool.length)}
-          apiPath="/api/anime"
-          queryParams={{ order: 'archive' }}
-          emptyTitle="Arsip belum tersedia"
-          emptyDescription="Arsip sumber kedua sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi."
+      <Suspense fallback={<AnimeGridSkeleton count={18} />}>
+        <CatalogResults
+          archiveMode={archiveMode}
+          status={status}
+          type={type}
+          order={order}
+          genres={genres}
         />
-      ) : data ? (
-        <InfiniteAnimeCatalog
-          initialItems={data.results}
-          initialPagination={data.pagination}
-          apiPath="/api/anime"
-          queryParams={{
+      </Suspense>
+    </div>
+  );
+}
+
+interface CatalogResultsProps {
+  archiveMode: boolean;
+  status: string;
+  type: string;
+  order: string;
+  genres: string[];
+}
+
+/** Daftar katalog; sengaja dipisah agar bisa dialirkan setelah kerangka tampil. */
+async function CatalogResults({ archiveMode, status, type, order, genres }: CatalogResultsProps) {
+  const [listRes, poolRes] = await Promise.allSettled([
+    archiveMode
+      ? Promise.resolve(null)
+      : getAnimeList({
+          page: 1,
+          status: status || undefined,
+          type: type || undefined,
+          order: order || undefined,
+          genre: genres.length ? genres : undefined,
+        }),
+    archiveMode ? getMalzArchivePool() : Promise.resolve([]),
+  ]);
+
+  const pool = poolRes.status === 'fulfilled' ? poolRes.value : [];
+  const archiveItems = pool.slice(0, ARCHIVE_PAGE_SIZE);
+
+  const data =
+    !archiveMode && listRes.status === 'fulfilled' && listRes.value
+      ? {
+          ...listRes.value,
+          results: await supplementWithArchive(listRes.value.results, {
             status: status || undefined,
             type: type || undefined,
-            order: order || undefined,
-            genre: genres.length ? genres : undefined,
-          }}
-        />
-      ) : (
-        <ErrorState
-          title="Gagal memuat katalog anime"
-          message={
-            listRes.status === 'rejected' && listRes.reason instanceof Error
-              ? listRes.reason.message
-              : 'Tidak dapat mengambil daftar anime saat ini.'
-          }
-        />
-      )}
-    </div>
+            genres,
+          }),
+        }
+      : null;
+
+  if (archiveMode) {
+    return (
+      <InfiniteAnimeCatalog
+        initialItems={archiveItems}
+        initialPagination={archivePagination(pool.length)}
+        apiPath="/api/anime"
+        queryParams={{ order: 'archive' }}
+        emptyTitle="Arsip belum tersedia"
+        emptyDescription="Arsip sumber kedua sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi."
+      />
+    );
+  }
+
+  if (data) {
+    return (
+      <InfiniteAnimeCatalog
+        initialItems={data.results}
+        initialPagination={data.pagination}
+        apiPath="/api/anime"
+        queryParams={{
+          status: status || undefined,
+          type: type || undefined,
+          order: order || undefined,
+          genre: genres.length ? genres : undefined,
+        }}
+      />
+    );
+  }
+
+  return (
+    <ErrorState
+      title="Gagal memuat katalog anime"
+      message={
+        listRes.status === 'rejected' && listRes.reason instanceof Error
+          ? listRes.reason.message
+          : 'Tidak dapat mengambil daftar anime saat ini.'
+      }
+    />
   );
 }

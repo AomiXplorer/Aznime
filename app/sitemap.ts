@@ -26,9 +26,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const seen = new Set<string>();
   const detailRoutes: MetadataRoute.Sitemap = [];
 
+  /* Sebagian daftar sumber mengembalikan slug EPISODE (…-episode-8-subtitle-
+     indonesia). Slug itu hanya hidup di /watch, jadi memetakannya ke /anime
+     menghasilkan URL 404 di dalam sitemap. */
+  const EPISODE_SLUG = /-episode-\d+/i;
+
   const addSlug = (slug: string | null | undefined, priority: number) => {
     if (!slug) return;
-    const url = `${SITE_URL}/anime/${encodeURIComponent(slug)}`;
+    const url = EPISODE_SLUG.test(slug)
+      ? `${SITE_URL}/watch/${encodeURIComponent(slug)}`
+      : `${SITE_URL}/anime/${encodeURIComponent(slug)}`;
     if (seen.has(url)) return;
     seen.add(url);
     detailRoutes.push({
