@@ -25,10 +25,12 @@ function posterHeight(width: number, aspect: '2/3' | '3/4'): number {
   return Math.round(width * (aspect === '2/3' ? 1.5 : 4 / 3));
 }
 
-/* Kartu selebar ~110 px di HP dan ~160 px di desktop. Dua ukuran sampul cukup:
-   240 px untuk layar 2x yang paling banyak dipakai, 340 px untuk layar 3x.
-   Tanpa ini setiap HP mengunduh sampul 340 px untuk kotak 110 px. */
-const POSTER_WIDTHS = [240, 340] as const;
+/* Kartu selebar ~117 px di HP dan ~168 px di desktop. Kerapatan dibatasi 2x:
+   sampul 240 px sudah dua kali lipat kotak 117 px, sementara sampul 340 px
+   membuat satu halaman katalog menarik tiga kali lebih banyak byte untuk
+   selisih yang tidak terlihat. Poster anime dari sumbernya hanya ~7 KB,
+   sampul komik 340 px bisa ~49 KB; batas ini yang menyamakan kecepatannya. */
+const POSTER_WIDTHS = [160, 240] as const;
 
 /* Lebar kartu sebenarnya per breakpoint grid (kolom dan gap mengikuti
    ComicGrid), supaya browser memilih ukuran sampul yang pas, bukan perkiraan
@@ -53,7 +55,7 @@ export function ComicCard({
   className,
   sizes = GRID_SIZES,
 }: ComicCardProps) {
-  const poster = comicPosterSrc(item, 340, posterHeight(340, aspect));
+  const poster = comicPosterSrc(item, 240, posterHeight(240, aspect));
   const srcSet = poster
     ? POSTER_WIDTHS.map(
         (width) => `${comicPosterSrc(item, width, posterHeight(width, aspect))} ${width}w`
@@ -82,9 +84,6 @@ export function ComicCard({
               alt={item.title}
               loading="lazy"
               decoding="async"
-              /* Sampul katalog selalu di bawah lipatan; jangan berebut
-                 koneksi dengan hero dan elemen pertama layar. */
-              fetchPriority="low"
               className="h-full w-full object-cover"
             />
           ) : (
