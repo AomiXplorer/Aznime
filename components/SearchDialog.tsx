@@ -16,6 +16,14 @@ interface SearchDialogProps {
   adult?: boolean;
 }
 
+interface QuickComic {
+  title: string;
+  poster: string | null;
+  href: string;
+  meta: string | null;
+  source: 'komiku' | 'webtoon';
+}
+
 function hrefFor(item: QuickSearchItem): string {
   if (item.source === 'nekopoi') return nekopoiCardHref(item);
   if (!item.slug) return '/anime';
@@ -30,6 +38,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<QuickSearchItem[]>([]);
+  const [comics, setComics] = useState<QuickComic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -51,6 +60,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
   useEffect(() => {
     if (!open || trimmed.length < 2) {
       setResults([]);
+      setComics([]);
       setError(null);
       setLoading(false);
       setActiveIndex(-1);
@@ -67,9 +77,14 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
           `/api/search?mode=quick&q=${encodeURIComponent(trimmed)}${adult ? '&adult=1' : ''}`,
           { signal: controller.signal }
         );
-        const data = (await res.json()) as { results?: QuickSearchItem[]; error?: string };
+        const data = (await res.json()) as {
+          results?: QuickSearchItem[];
+          comics?: QuickComic[];
+          error?: string;
+        };
         if (!res.ok) throw new Error(data.error || 'Pencarian gagal');
         setResults(data.results || []);
+        setComics(data.comics || []);
         setActiveIndex(-1);
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -205,7 +220,7 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                 <p role="alert" className="px-3 py-8 text-center text-sm text-rose-400">
                   {error}
                 </p>
-              ) : results.length === 0 ? (
+              ) : results.length === 0 && comics.length === 0 ? (
                 <div className="px-3 py-8 text-center">
                   <p className="text-sm text-zinc-300">Tidak ada hasil untuk &ldquo;{trimmed}&rdquo;.</p>
                   <button
@@ -257,6 +272,51 @@ export function SearchDialog({ open, onClose, adult = false }: SearchDialogProps
                       );
                     })}
                   </ul>
+
+                  {comics.length > 0 ? (
+                    <div className="mt-2 border-t border-white/[0.07] pt-2">
+                      <p className="px-2 pb-1 text-[10.5px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                        Komik &amp; Webtoon
+                      </p>
+                      <ul className="space-y-0.5">
+                        {comics.map((item) => (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              onClick={onClose}
+                              className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white/[0.06] active:scale-[0.99]"
+                            >
+                              <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-elevated">
+                                {item.poster ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={
+                                      item.source === 'komiku'
+                                        ? `/api/img?u=${encodeURIComponent(item.poster)}&w=120`
+                                        : item.poster
+                                    }
+                                    alt=""
+                                    loading="lazy"
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-white">{item.title}</p>
+                                <p className="mt-0.5 truncate text-xs text-muted">
+                                  {[item.source === 'komiku' ? 'Komik' : 'Webtoon', item.meta]
+                                    .filter(Boolean)
+                                    .join('  ')}
+                                </p>
+                              </div>
+                              <ArrowRight className="h-4 w-4 shrink-0 text-zinc-600" aria-hidden="true" />
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
                   <Link
                     href={allResultsHref(trimmed)}
                     onClick={onClose}

@@ -15,6 +15,8 @@ import { HeroSection } from '@/components/HeroSection';
 import { PopularRanking } from '@/components/PopularRanking';
 import { AnimeRow } from '@/components/AnimeRow';
 import { AnimeGrid } from '@/components/AnimeGrid';
+import { ComicRow } from '@/components/comics/ComicRow';
+import { getKomikFeed, getWebtoonFeed } from '@/lib/comics';
 import { ErrorState } from '@/components/ErrorState';
 
 export const revalidate = 180;
@@ -61,6 +63,11 @@ export default async function HomePage() {
   /* Sumber utama peringkat: arsip Malz (views + favorit). Daftar populer
      Hidori hanya dipakai kalau Malz sedang tidak bisa dihubungi, supaya
      bagian ini tidak pernah kosong. */
+  const [komikFeed, webtoonFeed] = await Promise.all([
+    getKomikFeed(14),
+    getWebtoonFeed(14),
+  ]);
+
   const malzRanking = await getMalzPopularRanking(5).catch(() => null);
   const popular =
     malzRanking && malzRanking.trending.length > 0
@@ -91,8 +98,8 @@ export default async function HomePage() {
           favorite={withoutAdult(popular.favorite)}
           mostViewed={withoutAdult(popular.mostViewed)}
         />
-        <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" priorityCount={2} />
-        <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" />
+        <AnimeRow title="Sedang tayang" items={ongoingWithArchive} viewAllHref="/ongoing" priorityCount={2} />
+        <AnimeRow title="Episode terbaru" items={latestRelease} viewAllHref="/anime?order=update" />
         {archiveRow.length > 0 ? (
           <section aria-label="Dari arsip">
             <div className="mb-5 flex items-end justify-between gap-4 border-b border-line pb-2.5">
@@ -110,6 +117,21 @@ export default async function HomePage() {
           </section>
         ) : null}
         <AnimeRow title="Baru tamat" items={completedLatest} viewAllHref="/completed" />
+
+        <ComicRow
+          title="Komik"
+          note="Dari komiku.org"
+          items={komikFeed.items}
+          viewAllHref="/komik"
+        />
+
+        <ComicRow
+          title="Webtoon"
+          note="Dari WEBTOON bahasa Indonesia"
+          items={webtoonFeed.items}
+          viewAllHref="/webtoon"
+          aspect="3/4"
+        />
       </div>
     </>
   );

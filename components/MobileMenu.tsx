@@ -18,6 +18,8 @@ const BROWSE_LINKS: MenuLink[] = [
   { href: '/ongoing', label: 'Ongoing' },
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
+  { href: '/komik', label: 'Komik' },
+  { href: '/webtoon', label: 'Webtoon' },
 ];
 
 const ACCOUNT_LINKS: MenuLink[] = [

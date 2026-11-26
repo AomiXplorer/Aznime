@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitGuard, upstreamFailure } from '@/lib/api-guard';
+import { searchComics } from '@/lib/comics';
 import { quickSearch } from '@/lib/scraper';
 import type { PaginationInfo, QuickSearchItem } from '@/lib/scraper/types';
 import { getMalzSearch, malzToQuickItem } from '@/lib/malz';
@@ -76,13 +77,25 @@ export async function GET(req: NextRequest) {
 
     if (mode === 'quick') {
       const adult = searchParams.get('adult') === '1';
-      const [merged, adultItems] = await Promise.all([
+      const [merged, adultItems, comics] = await Promise.all([
         quickSearch(q).then(items => mergeQuickResults(q, items)).catch(() => []),
         adult ? searchAdultQuick(q) : Promise.resolve([]),
+        adult
+          ? Promise.resolve({ komik: [], webtoon: [] })
+          : searchComics(q, 4).catch(() => ({ komik: [], webtoon: [] })),
       ]);
       const results = [...adultItems, ...merged].slice(0, QUICK_TOTAL_LIMIT);
+      /* Komik dan webtoon dikirim terpisah: dialog menampilkannya sebagai
+         bagian sendiri, dan navigasi panah tetap hanya untuk hasil anime. */
+      const comicResults = [...comics.komik, ...comics.webtoon].map((item) => ({
+        title: item.title,
+        poster: item.poster,
+        href: item.href,
+        meta: item.meta,
+        source: item.source,
+      }));
       return NextResponse.json(
-        { query: q, results },
+        { query: q, results, comics: comicResults },
         {
           headers: {
             'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=180',

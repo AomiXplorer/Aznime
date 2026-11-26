@@ -27,6 +27,8 @@ const ANIMEIN_HOSTS = new Set([
 ]);
 
 const NEKOPOI_HOSTS = new Set(['nekopoi.care', 'www.nekopoi.care']);
+/* Poster dan halaman chapter komik: host utama plus dua mirror resminya. */
+const KOMIKU_HOSTS = new Set(['img.komiku.org', 'image1.komiku.to', 'image2.komiku.to']);
 const HIDORI_HOSTS = new Set(['v10.hidoristream.online', 'hidoristream.online']);
 const ANILIST_HOSTS = new Set(['s4.anilist.co']);
 const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
@@ -34,7 +36,7 @@ const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-type Upstream = 'animein' | 'nekopoi' | 'hidori' | 'anilist' | 'youtube';
+type Upstream = 'animein' | 'nekopoi' | 'hidori' | 'anilist' | 'youtube' | 'komiku';
 
 function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | null {
   if (!raw) return null;
@@ -44,6 +46,7 @@ function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | n
     const host = parsed.hostname.toLowerCase();
     if (ANIMEIN_HOSTS.has(host)) return { url: parsed, upstream: 'animein' };
     if (NEKOPOI_HOSTS.has(host)) return { url: parsed, upstream: 'nekopoi' };
+    if (KOMIKU_HOSTS.has(host)) return { url: parsed, upstream: 'komiku' };
     if (HIDORI_HOSTS.has(host)) return { url: parsed, upstream: 'hidori' };
     if (ANILIST_HOSTS.has(host)) return { url: parsed, upstream: 'anilist' };
     if (YOUTUBE_HOSTS.has(host)) return { url: parsed, upstream: 'youtube' };
@@ -56,6 +59,7 @@ function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | n
 function refererFor(upstream: Upstream): string | undefined {
   if (upstream === 'animein') return 'https://animein.net/';
   if (upstream === 'hidori') return 'https://v10.hidoristream.online/';
+  if (upstream === 'komiku') return 'https://komiku.org/';
   return undefined;
 }
 

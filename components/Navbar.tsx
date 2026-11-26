@@ -22,6 +22,8 @@ const NAV_LINKS = [
   { href: '/ongoing', label: 'Ongoing' },
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
+  { href: '/komik', label: 'Komik' },
+  { href: '/webtoon', label: 'Webtoon' },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -127,7 +129,7 @@ export function Navbar() {
             <Wordmark />
           </Link>
 
-          <nav aria-label="Navigasi utama" className="hidden flex-1 items-center gap-6 md:flex">
+          <nav aria-label="Navigasi utama" className="hidden flex-1 items-center gap-5 md:flex lg:gap-6">
             {user
               ? [
                   { href: '/history', label: 'Riwayat' },

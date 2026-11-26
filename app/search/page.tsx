@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { searchAcrossSources } from '@/lib/sources';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { PageHeader } from '@/components/PageHeader';
+import { ComicGrid } from '@/components/comics/ComicGrid';
+import { searchComics } from '@/lib/comics';
 import { socialMeta } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +45,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   let data = null;
   let errorMsg: string | null = null;
+
+  /* Satu kotak pencarian untuk semua jenis karya: anime, komik, dan webtoon
+     dicari bersamaan lalu ditampilkan sebagai bagian terpisah. */
+  const [comicHits] = await Promise.all([
+    q ? searchComics(q, 12).catch(() => ({ komik: [], webtoon: [] })) : Promise.resolve({ komik: [], webtoon: [] }),
+  ]);
 
   if (q) {
     try {
@@ -92,7 +101,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ) : errorMsg ? (
         <ErrorState title="Pencarian gagal" message={errorMsg} />
       ) : data ? (
-        <div className="space-y-5">
+        <div className="space-y-9">
           <p className="text-sm text-muted">
             Hasil untuk <span className="font-semibold text-white">&ldquo;{q}&rdquo;</span>
           </p>
@@ -104,6 +113,40 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             emptyTitle={`Tidak ada anime untuk "${q}"`}
             emptyDescription="Periksa ejaan judul atau coba kata kunci yang lebih singkat."
           />
+
+          {comicHits.komik.length > 0 ? (
+            <section aria-label="Hasil komik" className="space-y-4">
+              <div className="flex items-end justify-between gap-4 border-b border-[#2b2222] pb-2">
+                <h2 className="font-display text-[17px] font-semibold tracking-[-0.02em] text-white">
+                  Komik
+                </h2>
+                <Link
+                  href={`/komik?q=${encodeURIComponent(q)}`}
+                  className="text-[12px] font-medium text-zinc-400 transition-colors hover:text-white"
+                >
+                  Semua komik
+                </Link>
+              </div>
+              <ComicGrid items={comicHits.komik} showSource />
+            </section>
+          ) : null}
+
+          {comicHits.webtoon.length > 0 ? (
+            <section aria-label="Hasil webtoon" className="space-y-4">
+              <div className="flex items-end justify-between gap-4 border-b border-[#2b2222] pb-2">
+                <h2 className="font-display text-[17px] font-semibold tracking-[-0.02em] text-white">
+                  Webtoon
+                </h2>
+                <Link
+                  href={`/webtoon?q=${encodeURIComponent(q)}`}
+                  className="text-[12px] font-medium text-zinc-400 transition-colors hover:text-white"
+                >
+                  Semua webtoon
+                </Link>
+              </div>
+              <ComicGrid items={comicHits.webtoon} aspect="3/4" showSource />
+            </section>
+          ) : null}
         </div>
       ) : null}
     </div>
