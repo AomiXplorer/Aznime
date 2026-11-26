@@ -91,3 +91,47 @@ export const CONTRIBUTORS: Contributor[] = [
 
 export const PRIMARY_WHATSAPP_URL =
   CONTRIBUTORS.find((contributor) => contributor.whatsapp)?.whatsapp?.url ?? null;
+
+export interface Promotor {
+  id: string;
+  name: string;
+  handle: string;
+  avatar: string;
+  bio: string;
+  platform: 'tiktok' | 'whatsapp';
+  url: string;
+  buttonLabel: string;
+}
+
+export const PROMOTORS: Promotor[] = [
+  {
+    id: 'valkcarol',
+    name: 'ValkCarol',
+    handle: '@valkcarol_',
+    avatar: '/contributors/valkcarol.jpg',
+    bio: 'hanya Content Creator Kecil yaa~ Pangil aj Pinaa ♡',
+    platform: 'tiktok',
+    url: 'https://www.tiktok.com/@valkcarol_',
+    buttonLabel: 'TikTok',
+  },
+  {
+    id: 'hibiskuy',
+    name: 'Hibiskuy',
+    handle: '@hibikii2',
+    avatar: '/contributors/hibiskuy.jpg',
+    bio: 'just here for fun',
+    platform: 'tiktok',
+    url: 'https://www.tiktok.com/@hibikii2?_r=1&_t=ZS-9BjBgmGxtno',
+    buttonLabel: 'TikTok',
+  },
+  {
+    id: 'azura-promotor',
+    name: 'Azura',
+    handle: '@azura',
+    avatar: '/contributors/azura.jpg',
+    bio: 'Kanal komunitas & partner promosi Aznime.',
+    platform: 'whatsapp',
+    url: 'https://whatsapp.com/channel/0029Vb8E7w7KrWR25KfJ6o41',
+    buttonLabel: 'With Azura',
+  },
+];
