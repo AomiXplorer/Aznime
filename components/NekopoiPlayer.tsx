@@ -33,8 +33,8 @@ interface NekopoiPlayerProps {
   seriesTitle: string | null;
 }
 
-// Izin pemutaran untuk iframe lintas origin. Popup dan navigasi tab induk tetap diblokir.
-const SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-presentation';
+// Izinkan popup pemutar lintas origin sambil memblokir navigasi tab induk.
+const SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-presentation allow-popups';
 
 export function NekopoiPlayer({
   title,
@@ -253,7 +253,7 @@ export function NekopoiPlayer({
       {active?.url ? (
         <div className="flex items-center justify-between gap-3 border-t border-[#241d1d] bg-surface px-3 py-2">
           <p className="text-[11px] leading-snug text-zinc-500">
-            Pop-up dan pengalihan tab dari pemutar diblokir.{' '}
+            Pengalihan tab utama dari pemutar diblokir.{' '}
             <button
               type="button"
               onClick={() => setHelpOpen(true)}
