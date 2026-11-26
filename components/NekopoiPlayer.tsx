@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -34,8 +34,7 @@ interface NekopoiPlayerProps {
   seriesTitle: string | null;
 }
 
-// Izinkan popup pemutar lintas origin sambil memblokir navigasi tab induk.
-const SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-presentation allow-popups';
+const REDUCED_ADS_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-presentation';
 
 export function NekopoiPlayer({
   title,
@@ -52,14 +51,13 @@ export function NekopoiPlayer({
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [started, setStarted] = useState(false);
+  const [reduceAds, setReduceAds] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   // Host video kadang menolak tampil tanpa memberi sinyal apa pun ke halaman
   // induk. Bila iframe tidak selesai dimuat, bantuan dibuka sendiri.
   const [stuck, setStuck] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Coba sekali lagi jika iframe belum selesai dimuat.
-  const retried = useRef(false);
 
   const active = playable[selectedIdx] || playable[0] || null;
   const externalUrl =
@@ -72,14 +70,12 @@ export function NekopoiPlayer({
     setLoaded(false);
     setStuck(false);
     setHelpOpen(false);
-    retried.current = false;
     setSelectedIdx(idx);
   };
 
   const start = () => {
     setLoaded(false);
     setStarted(true);
-    retried.current = false;
   };
 
   const reload = () => {
@@ -94,17 +90,9 @@ export function NekopoiPlayer({
       setStuck(false);
       return;
     }
-    const retry = window.setTimeout(() => {
-      if (retried.current) return;
-      retried.current = true;
-      setReloadKey((prev) => prev + 1);
-    }, 6000);
     const giveUp = window.setTimeout(() => setStuck(true), 12000);
-    return () => {
-      window.clearTimeout(retry);
-      window.clearTimeout(giveUp);
-    };
-  }, [started, loaded, active?.url, reloadKey, selectedIdx]);
+    return () => window.clearTimeout(giveUp);
+  }, [started, loaded, active?.url, reloadKey, reduceAds, selectedIdx]);
 
   const showHelp = Boolean(started && active?.url && (helpOpen || stuck));
 
@@ -122,10 +110,10 @@ export function NekopoiPlayer({
         ) : started ? (
           <>
             <iframe
-              key={`${active.url}-${reloadKey}`}
+              key={`${active.url}-${reloadKey}-${reduceAds}`}
               src={active.url}
               title={title}
-              sandbox={SANDBOX}
+              sandbox={reduceAds ? REDUCED_ADS_SANDBOX : undefined}
               className="absolute inset-0 h-full w-full"
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
@@ -156,8 +144,8 @@ export function NekopoiPlayer({
                     </button>
                   </div>
                   <p className="mt-1.5 text-[11.5px] leading-relaxed text-zinc-400">
-                    {externalUrl
-                      ? 'Kalau verifikasi gagal, pilih Buka server di tab baru di bawah pemutar. Kamu juga bisa memuat ulang atau pilih server lain.'
+                    {reduceAds
+                      ? 'Kalau verifikasi gagal, matikan Kurangi iklan di bawah pemutar.'
                       : 'Kalau verifikasi gagal atau layar tetap kosong, coba muat ulang atau pilih server lain.'}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
@@ -258,9 +246,23 @@ export function NekopoiPlayer({
       </div>
 
       {active?.url ? (
-        <div className="flex items-center justify-between gap-3 border-t border-[#241d1d] bg-surface px-3 py-2">
-          <p className="text-[11px] leading-snug text-zinc-500">
-            Pengalihan tab utama dari pemutar diblokir.{' '}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[#241d1d] bg-surface px-3 py-2">
+          <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-[12px] font-semibold text-zinc-200">
+            <input
+              type="checkbox"
+              checked={reduceAds}
+              onChange={(event) => {
+                setReduceAds(event.target.checked);
+                setLoaded(false);
+                setStuck(false);
+                setHelpOpen(false);
+              }}
+              className="size-4 shrink-0 accent-white"
+            />
+            Kurangi iklan
+          </label>
+          <p className="min-w-[9rem] flex-1 text-[11px] leading-snug text-zinc-500">
+            {reduceAds ? 'Pop-up dan pengalihan tab diblokir.' : 'Server video bisa membuka iklan.'}{' '}
             <button
               type="button"
               onClick={() => setHelpOpen(true)}
