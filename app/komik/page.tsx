@@ -67,12 +67,18 @@ export default async function KomikPage({ searchParams }: KomikPageProps) {
       ) : (
         <div className="rounded-[4px] border border-line px-4 py-10 text-center">
           <p className="text-[14px] font-medium text-white">
-            {feed.offline ? 'Sumber komik sedang tidak bisa dihubungi' : 'Tidak ada komik yang cocok'}
+            {feed.offline
+              ? 'Sumber komik sedang tidak bisa dihubungi'
+              : query
+                ? 'Judul tidak ditemukan'
+                : 'Belum ada komik'}
           </p>
           <p className="mx-auto mt-1.5 max-w-[52ch] text-[12.5px] leading-relaxed text-zinc-400">
             {feed.offline
               ? 'komiku.org menolak permintaan dari server Aznime saat ini. Coba lagi beberapa saat lagi.'
-              : `Tidak ada hasil untuk “${query}”. Coba kata kunci lain atau lihat daftar terbaru.`}
+              : query
+                ? `Tidak ada hasil untuk “${query}”. Coba kata kunci lain atau lihat daftar terbaru.`
+                : 'Daftar komik belum bisa dimuat. Coba muat ulang halaman ini.'}
           </p>
           {query ? (
             <Link
