@@ -317,6 +317,7 @@ export function cleanAnimeTitle(raw: string): string {
   let text = raw.replace(/\s+/g, ' ').trim();
   text = text.replace(/^(?:batch|full\s+batch|batch\s+anime)\s+/i, '');
   text = text.replace(/\s*[-–—]\s*batch$/i, '');
+  text = text.replace(/\s*[-–—|]?\s*(?:subtitle\s+indonesia|sub\s+indo)\s*$/i, '');
   return text.replace(/\s+/g, ' ').trim();
 }
 

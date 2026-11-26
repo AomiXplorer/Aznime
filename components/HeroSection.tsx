@@ -235,13 +235,9 @@ export function HeroSection({ items }: HeroSectionProps) {
               {current.genres.length > 0 ? <span>{current.genres.slice(0, 3).join(', ')}</span> : null}
             </div>
 
-            <h1 className="line-clamp-3 font-display text-[30px] font-semibold leading-[1.05] tracking-[-0.035em] text-white [text-wrap:balance] sm:text-[38px] lg:text-[46px]">
+            <h1 className="line-clamp-4 font-display text-[28px] font-semibold leading-[1.15] tracking-[-0.03em] text-white [text-wrap:balance] sm:text-[36px] lg:text-[44px]">
               {current.title}
             </h1>
-
-            {current.synopsis ? (
-              <p className="line-clamp-3 max-w-prose text-sm leading-relaxed text-zinc-300">{current.synopsis}</p>
-            ) : null}
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
               <Link

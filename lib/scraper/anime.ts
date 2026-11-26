@@ -19,6 +19,7 @@ import type {
 } from './types';
 import {
   BASE_URL,
+  cleanAnimeTitle,
   extractSlug,
   fetchHtml,
   inferLinkKind,
@@ -49,6 +50,7 @@ export async function getHome(page = 1): Promise<HomeData> {
     )
       .replace(/\s+/g, ' ')
       .trim();
+    const displayTitle = cleanAnimeTitle(title);
     const releaseYear = $(el).find('.release-year').text().trim() || null;
     const genres = $(el)
       .find('.extra-category a')
@@ -63,7 +65,7 @@ export async function getHome(page = 1): Promise<HomeData> {
 
     if (title && itemUrl) {
       featured.push({
-        title,
+        title: displayTitle,
         slug: extractSlug(itemUrl),
         url: itemUrl,
         poster,
