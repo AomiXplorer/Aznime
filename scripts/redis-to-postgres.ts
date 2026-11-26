@@ -1,7 +1,7 @@
 import { mkdir, open, readFile } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { hashGet, hashGetAll, isRedisConfigured, kvGet, redisCommand } from '../lib/auth/redis';
+import { RedisError, hashGet, hashGetAll, isRedisConfigured, kvGet, redisCommand } from '../lib/auth/redis';
 import { database } from '../lib/db/supabase';
 import { accountRow } from '../lib/db/accounts';
 import { maintenanceRow } from '../lib/db/maintenance';
@@ -36,12 +36,25 @@ function digest(snapshot: Snapshot) {
   return createHash('sha256').update(canonical(snapshot)).digest('hex');
 }
 
+async function retryRead<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (!(error instanceof RedisError) || ![429, 502, 503, 504].includes(error.status) || attempt === 2) throw error;
+      await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
+}
+
 async function exportSnapshot(historyOnly: boolean): Promise<Snapshot> {
   if (!isRedisConfigured()) throw new Error('Configure the Upstash REST credentials.');
   let cursor = '0';
   const keys = new Set<string>();
   do {
-    const [next, values] = await redisCommand<[string | number, string[]]>('SCAN', cursor, 'COUNT', 500);
+    const [next, values] = await retryRead(() => redisCommand<[string | number, string[]]>(
+      'SCAN', cursor, ...(historyOnly ? ['MATCH', 'user:*:history*'] : []), 'COUNT', 4000,
+    ));
     cursor = String(next);
     for (const key of values) {
       if (historyOnly) {
@@ -61,13 +74,13 @@ async function exportSnapshot(historyOnly: boolean): Promise<Snapshot> {
   for (let offset = 0; offset < names.length; offset += 16) {
     await Promise.all(names.slice(offset, offset + 16).map(async key => {
       const match = accounts.exec(key);
-      output.keys[key] = match
+      output.keys[key] = await retryRead(async () => match
         ? match[2] && !match[3]
           ? await redisCommand<(string | number)[]>('ZREVRANGE', key, 0, -1, 'WITHSCORES')
           : historyOnly && !match[2]
             ? { id: (await hashGet(key, 'id')) ?? '' }
             : await hashGetAll(key)
-        : await kvGet(key);
+        : await kvGet(key));
     }));
   }
   return output;
