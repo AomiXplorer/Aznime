@@ -7,7 +7,7 @@ import { CONTRIBUTORS, PRIMARY_WHATSAPP_URL, PROMOTORS, type Contributor } from 
 import { socialMeta } from '@/lib/seo';
 import styles from './credit.module.css';
 
-const description = 'Kenali tim pengembang, kontributor, dan promotor yang ikut merawat Aznime.';
+const description = 'Kenali tim pengembang, kontributor, dan promoter yang ikut merawat Aznime.';
 
 export const metadata: Metadata = {
   ...socialMeta('Credits', description),
@@ -38,7 +38,7 @@ function Profile({ person, initial }: { person: Contributor; initial: boolean })
 
   return (
     <article id={`profile-${id}`} className={styles.profile} aria-labelledby={`name-${id}`}>
-      <div className={styles.portraitFrame}>
+      <div className={role === 'Developer' ? `${styles.portraitFrame} ${styles.developerFrame}` : styles.portraitFrame}>
         {avatar.kind === 'image' && (
           <Image
             src={avatar.src}
@@ -81,7 +81,7 @@ export default function CreditPage() {
               <ArrowLeft size={17} aria-hidden="true" /> Beranda
             </Link>
             <a href="#credit-promotors" className={styles.navLink}>
-              Promotor <ArrowDown size={17} aria-hidden="true" />
+              Promoter <ArrowDown size={17} aria-hidden="true" />
             </a>
           </div>
           <header className={styles.intro}>
@@ -126,7 +126,7 @@ export default function CreditPage() {
       <section className={styles.community} aria-labelledby="credit-promotors">
         <div className={`${styles.shell} ${styles.communityLayout}`}>
           <div className={styles.communityIntro}>
-            <h2 id="credit-promotors">Promotor</h2>
+            <h2 id="credit-promotors">Promoter</h2>
             <p>Kreator dan kanal komunitas yang ikut memperkenalkan Aznime.</p>
           </div>
           <ul className={styles.promotors}>
