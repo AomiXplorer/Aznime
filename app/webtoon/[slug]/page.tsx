@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: WebtoonDetailProps): Promise<
   };
 }
 
-export const revalidate = 900;
+/* Tanpa ISR: kegagalan sumber yang sesaat tidak boleh ikut di-cache. */
+export const dynamic = 'force-dynamic';
 
 export default async function WebtoonDetailPage({ params }: WebtoonDetailProps) {
   const { slug } = await params;
@@ -36,7 +37,25 @@ export default async function WebtoonDetailPage({ params }: WebtoonDetailProps) 
   if (!parsed) notFound();
 
   const detail = await getWebtoonDetail(parsed.titleNo, parsed.slug);
-  if (!detail) notFound();
+  if (!detail) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <h1 className="font-display text-[22px] font-semibold text-white">
+          Webtoon belum bisa dimuat
+        </h1>
+        <p className="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-zinc-400">
+          Sumber WEBTOON tidak menjawab permintaan ini. Halaman tidak dianggap hilang, jadi
+          coba muat ulang beberapa saat lagi.
+        </p>
+        <Link
+          href="/webtoon"
+          className="mt-5 inline-flex h-10 items-center rounded-[4px] border border-white/15 px-4 text-[12.5px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.05]"
+        >
+          Kembali ke katalog webtoon
+        </Link>
+      </div>
+    );
+  }
 
   const info = [detail.genre, detail.status, detail.author].filter(Boolean).join(' · ');
   const firstEpisode = detail.episodes[detail.episodes.length - 1];

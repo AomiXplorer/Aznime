@@ -26,7 +26,8 @@ export async function generateMetadata({ params }: KomikDetailProps): Promise<Me
   };
 }
 
-export const revalidate = 900;
+/* Tanpa ISR: komiku.org bisa menolak sementara, hasilnya tidak di-cache. */
+export const dynamic = 'force-dynamic';
 
 export default async function KomikDetailPage({ params }: KomikDetailProps) {
   const { slug } = await params;

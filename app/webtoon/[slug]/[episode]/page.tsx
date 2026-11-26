@@ -32,7 +32,8 @@ export async function generateMetadata({ params }: WebtoonEpisodeProps): Promise
   };
 }
 
-export const revalidate = 3600;
+/* Tanpa ISR: 404 palsu akibat gangguan sesaat tidak boleh tersimpan. */
+export const dynamic = 'force-dynamic';
 
 export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps) {
   const { slug, episode } = await params;
@@ -41,7 +42,30 @@ export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps
   if (!parsed || !Number.isFinite(episodeNo)) notFound();
 
   const view = await getWebtoonEpisode(parsed.titleNo, parsed.slug, episodeNo);
-  if (!view) notFound();
+  if (!view) {
+    /* Episode yang memang tidak ada tetap 404; gambar yang gagal dimuat
+       ditampilkan sebagai keadaan error supaya tidak tersimpan sebagai 404. */
+    const detail = await getWebtoonDetail(parsed.titleNo, parsed.slug);
+    const exists = detail?.episodes.some((episode) => episode.episodeNo === episodeNo);
+    if (!exists) notFound();
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <h1 className="font-display text-[22px] font-semibold text-white">
+          Gambar episode belum bisa dimuat
+        </h1>
+        <p className="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-zinc-400">
+          Episode ini ada di WEBTOON, tetapi server gambarnya tidak menjawab permintaan Aznime.
+          Coba muat ulang beberapa saat lagi.
+        </p>
+        <Link
+          href={`/webtoon/${parsed.titleNo}-${encodeURIComponent(parsed.slug)}`}
+          className="mt-5 inline-flex h-10 items-center rounded-[4px] border border-white/15 px-4 text-[12.5px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.05]"
+        >
+          Kembali ke daftar episode
+        </Link>
+      </div>
+    );
+  }
 
   const base = `/webtoon/${parsed.titleNo}-${encodeURIComponent(parsed.slug)}`;
   const navButton = (target: number | null, label: string, icon: 'prev' | 'next') => {

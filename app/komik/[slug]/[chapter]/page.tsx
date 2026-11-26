@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: KomikChapterProps): Promise<M
   };
 }
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function KomikChapterPage({ params }: KomikChapterProps) {
   const { slug, chapter } = await params;

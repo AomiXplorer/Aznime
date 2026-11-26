@@ -41,6 +41,18 @@ async function cached<T>(key: string, load: () => Promise<T>, ttl = TTL_MS): Pro
   return value;
 }
 
+/**
+ * Batas waktu keras untuk satu panggilan sumber luar. Scraper memakai 25 detik
+ * per permintaan; dua permintaan berurutan sudah cukup membuat halaman
+ * menggantung hampir satu menit, jadi di sini dipotong.
+ */
+function withTimeout<T>(promise: Promise<T>, ms = 9000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
 function trim(value: string | null | undefined): string | null {
   const text = (value || '').replace(/\s+/g, ' ').trim();
   return text || null;
@@ -81,7 +93,7 @@ function komikCard(item: {
 export function getKomikFeed(limit = 16): Promise<ComicFeed> {
   return cached(`komik:home:${limit}`, async () => {
     try {
-      const cards = await komiku.getHome();
+      const cards = await withTimeout(komiku.getHome());
       const items = cards.map(komikCard).filter((item): item is ComicCard => item !== null);
       return { items: items.slice(0, limit), offline: items.length === 0 };
     } catch {
@@ -94,7 +106,7 @@ export function getKomikCatalog(query = '', limit = 40): Promise<ComicFeed> {
   const q = query.trim();
   return cached(`komik:list:${q}:${limit}`, async () => {
     try {
-      const cards = q ? await komiku.search(q) : await komiku.getHome();
+      const cards = q ? await withTimeout(komiku.search(q)) : await withTimeout(komiku.getHome());
       const items = cards.map(komikCard).filter((item): item is ComicCard => item !== null);
       return { items: items.slice(0, limit), offline: items.length === 0 };
     } catch {
@@ -120,7 +132,7 @@ export interface KomikDetail {
 export async function getKomikDetail(slug: string): Promise<KomikDetail | null> {
   try {
     return await cached(`komik:detail:${slug}`, async () => {
-      const manga = await komiku.getManga(slug);
+      const manga = await withTimeout(komiku.getManga(slug));
       return {
         slug: manga.slug || slug,
         title: trim(manga.title) || slug.replaceAll('-', ' '),
@@ -161,7 +173,7 @@ export async function getKomikChapter(
   chapterSlug: string
 ): Promise<KomikChapterView | null> {
   try {
-    const chapter = await cached(`komik:chapter:${chapterSlug}`, () => komiku.getChapter(chapterSlug));
+    const chapter = await cached(`komik:chapter:${chapterSlug}`, () => withTimeout(komiku.getChapter(chapterSlug)));
     if (!chapter.images?.length) return null;
     return {
       seriesSlug: chapter.seriesSlug || seriesSlug,
@@ -197,7 +209,7 @@ export function parseWebtoonSlug(value: string): { titleNo: number; slug: string
 export function getWebtoonFeed(limit = 16): Promise<ComicFeed> {
   return cached(`webtoon:home:${limit}`, async () => {
     try {
-      const cards = await webtoons.getHome({ lang: 'id' });
+      const cards = await withTimeout(webtoons.getHome({ lang: 'id' }));
       const items: ComicCard[] = [];
       for (const card of cards) {
         const title = trim(card.title);
@@ -227,7 +239,7 @@ export function getWebtoonCatalog(query = '', limit = 40): Promise<ComicFeed> {
     try {
       const items: ComicCard[] = [];
       if (q) {
-        const result = await webtoons.search(q, { lang: 'id' });
+        const result = await withTimeout(webtoons.search(q, { lang: 'id' }));
         for (const item of result.results) {
           const title = trim(item.title);
           if (!title) continue;
@@ -242,7 +254,7 @@ export function getWebtoonCatalog(query = '', limit = 40): Promise<ComicFeed> {
           });
         }
       } else {
-        const trending = await webtoons.trending({ lang: 'id' });
+        const trending = await withTimeout(webtoons.trending({ lang: 'id' }));
         for (const item of trending) {
           const title = trim(item.title);
           if (!title) continue;
@@ -287,8 +299,8 @@ export async function getWebtoonDetail(
     return await cached(`webtoon:detail:${titleNo}`, async () => {
       const listUrl = `https://m.webtoons.com/id/${slug}/list?title_no=${titleNo}`;
       const [title, episodes] = await Promise.all([
-        webtoons.getTitle(listUrl, { lang: 'id', titleNo }),
-        webtoons.getEpisodes(titleNo, { lang: 'id', pageSize: 60 }).catch(() => []),
+        withTimeout(webtoons.getTitle(listUrl, { lang: 'id', titleNo })),
+        withTimeout(webtoons.getEpisodes(titleNo, { lang: 'id', pageSize: 60 })).catch(() => []),
       ]);
       return {
         titleNo,
@@ -341,12 +353,29 @@ export async function getWebtoonEpisode(
   try {
     const detail = await getWebtoonDetail(titleNo, slug);
     const episode = detail?.episodes.find((item) => item.episodeNo === episodeNo);
-    const genre = detail ? await webtoons.getTitle(`https://m.webtoons.com/id/${slug}/list?title_no=${titleNo}`, { lang: 'id', titleNo }).then((t) => t.genreSlug).catch(() => null) : null;
+    /* Genre dipakai untuk menyusun URL viewer; kalau gagal, 'action' tetap
+       diarahkan ulang oleh WEBTOON ke genre yang benar. */
+    const genre = await withTimeout(
+      webtoons.getTitle(`https://m.webtoons.com/id/${slug}/list?title_no=${titleNo}`, {
+        lang: 'id',
+        titleNo,
+      })
+    )
+      .then((title) => title.genreSlug)
+      .catch(() => null);
     const viewerUrl =
       `https://m.webtoons.com/id/${genre || 'action'}/${slug}/episode-${episodeNo}/viewer` +
       `?title_no=${titleNo}&episode_no=${episodeNo}`;
     const viewer = await cached(`webtoon:viewer:${titleNo}:${episodeNo}`, () =>
-      webtoons.getViewer(viewerUrl, { lang: 'id', titleNo, episodeNo, genre: genre || undefined, slug })
+      withTimeout(
+        webtoons.getViewer(viewerUrl, {
+          lang: 'id',
+          titleNo,
+          episodeNo,
+          genre: genre || undefined,
+          slug,
+        })
+      )
     );
     const images = (viewer.images || [])
       .map((image) => ({ url: image.url, width: image.width, height: image.height }))
