@@ -129,7 +129,11 @@ export function Navbar() {
             <Wordmark />
           </Link>
 
-          <nav aria-label="Navigasi utama" className="hidden flex-1 items-center gap-5 md:flex lg:gap-6">
+          {/* Tautan utama baru muat mulai 1024 px. Di 768 px logo, enam tautan,
+              tombol masuk, pencarian, dan menu berjumlah 867 px, sehingga
+              halaman melebar 99 px ke samping; panel menu yang sudah ada
+              menggantikannya di tablet. */}
+          <nav aria-label="Navigasi utama" className="hidden flex-1 items-center gap-5 lg:flex lg:gap-6">
             {user
               ? [
                   { href: '/history', label: 'Riwayat' },
@@ -222,7 +226,7 @@ export function Navbar() {
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-panel"
               aria-label={mobileOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
-              className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 px-2.5 text-zinc-200 sm:h-9 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-[4px] border border-white/10 px-2.5 text-zinc-200 sm:h-9 lg:hidden transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               {mobileOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
               <span className="hidden text-[12.5px] font-medium sm:inline">Menu</span>

@@ -224,7 +224,7 @@ export function HeroSection({ items }: HeroSectionProps) {
       <div className="relative mx-auto flex min-h-[68vh] max-w-7xl items-end gap-10 px-4 pb-20 pt-32 sm:px-6 lg:min-h-[78vh] lg:px-8">
         <div
           key={`txt-${index}`}
-          className={`max-w-xl flex-1 space-y-3.5${reduce ? '' : ' hero-copy-enter'}`}
+          className={`max-w-xl flex-1 lg:max-w-2xl${reduce ? '' : ' hero-copy-enter'}`}
         >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-zinc-300">
               {current.status ? (
@@ -235,11 +235,18 @@ export function HeroSection({ items }: HeroSectionProps) {
               {current.genres.length > 0 ? <span>{current.genres.slice(0, 3).join(', ')}</span> : null}
             </div>
 
-            <h1 className="line-clamp-4 font-display text-[28px] font-semibold leading-[1.15] tracking-[-0.03em] text-white [text-wrap:balance] sm:text-[36px] lg:text-[44px]">
+            {/* Tiga baris sudah cukup untuk judul terpanjang dari Malz. Teks
+                penuhnya tetap ada di DOM untuk mesin pencari dan pembaca layar;
+                yang dipotong hanya tampilannya, dan judul asli muncul saat
+                kursor berhenti di atasnya. */}
+            <h1
+              title={current.title}
+              className="hero-title mt-2.5 line-clamp-3 break-words font-display font-semibold text-white sm:mt-3"
+            >
               {current.title}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
+            <div className="mt-4 flex flex-wrap items-center gap-2.5 sm:mt-5">
               <Link
                 href={detailHref}
                 className="inline-flex h-11 items-center gap-2 rounded-[4px] bg-white px-5 text-[13px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"

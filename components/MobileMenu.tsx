@@ -133,8 +133,11 @@ export function MobileMenu({
 
   if (!open) return null;
 
+  /* Panel ini harus tampil di semua lebar tempat tautan utama disembunyikan,
+     yaitu di bawah 1024 px. Kalau tetap md:hidden, tombol Menu di tablet
+     tidak membuka apa pun. */
   return (
-    <div className="fixed inset-0 z-50 md:hidden">
+    <div className="fixed inset-0 z-50 lg:hidden">
       <button
         type="button"
         aria-label="Tutup menu"
