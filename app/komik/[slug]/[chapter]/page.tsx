@@ -38,15 +38,12 @@ export default async function KomikChapterPage({ params }: KomikChapterProps) {
   const seriesSlug = decodeURIComponent(slug);
   const chapterSlug = decodeURIComponent(chapter);
 
-  const [view, detail] = await Promise.all([
-    getKomikChapter(seriesSlug, chapterSlug),
-    getKomikDetail(seriesSlug).catch(() => null),
-  ]);
+  const view = await getKomikChapter(seriesSlug, chapterSlug);
   if (!view) notFound();
 
   const prevSlug = slugFromPath(view.prev);
   const nextSlug = slugFromPath(view.next);
-  const seriesTitle = view.seriesTitle || detail?.title || seriesSlug.replaceAll('-', ' ');
+  const seriesTitle = view.seriesTitle || (await getKomikDetail(seriesSlug))?.title || seriesSlug.replaceAll('-', ' ');
 
   const navButton = (target: string | null, label: string, icon: 'prev' | 'next') => {
     const Icon = icon === 'prev' ? ChevronLeft : ChevronRight;

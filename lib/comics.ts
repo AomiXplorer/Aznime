@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import komiku from '@/lib/scrapers/komiku.js';
 import webtoons from '@/lib/scrapers/webtoons.js';
 
@@ -41,16 +42,22 @@ const store = new Map<string, { at: number; value: unknown }>();
  */
 const inflight = new Map<string, Promise<unknown>>();
 
-async function cached<T>(key: string, load: () => Promise<T>, ttl = TTL_MS): Promise<T> {
+async function cached<T>(
+  key: string,
+  load: () => Promise<T>,
+  ttl: (value: T) => number = () => TTL_MS
+): Promise<T> {
   const hit = store.get(key);
-  if (hit && Date.now() - hit.at < ttl) return hit.value as T;
+  if (hit && Date.now() - hit.at < ttl(hit.value as T)) return hit.value as T;
 
   const running = inflight.get(key);
   if (running) return running as Promise<T>;
 
   const task = load()
     .then((value) => {
-      if (store.size > 80) store.clear();
+      store.delete(key);
+      const oldest = store.keys().next();
+      if (store.size >= 80 && !oldest.done) store.delete(oldest.value);
       store.set(key, { at: Date.now(), value });
       return value;
     })
@@ -411,11 +418,11 @@ export interface WebtoonDetail {
   poster: string | null;
   author: string | null;
   genre: string | null;
+  genreSlug: string | null;
   status: string | null;
   rating: string | null;
   mature: boolean;
   tags: string[];
-  episodes: { episodeNo: number; title: string; thumb: string | null; date: string | null }[];
 }
 
 export async function getWebtoonDetail(
@@ -423,17 +430,13 @@ export async function getWebtoonDetail(
   slug: string
 ): Promise<WebtoonDetail | null> {
   try {
-    const detail = await cached(`webtoon:detail:${titleNo}`, async () => {
-      /* Segmen genre wajib ada di jalur. Tanpa itu WEBTOON menjawab 404 dari
-         sebagian alamat IP, jadi 'action' dipakai sebagai pintu masuk dan
-         situs mengalihkan sendiri ke genre yang benar. */
-      const listUrl = `https://m.webtoons.com/id/action/${slug}/list?title_no=${titleNo}`;
-      const [title, episodes] = await Promise.all([
-        withTimeout(webtoons.getTitle(listUrl, { lang: 'id', titleNo })),
-        withTimeout(webtoons.getEpisodes(titleNo, { lang: 'id', pageSize: 60 }), 12000)
-          .catch(() => withTimeout(webtoons.getEpisodes(titleNo, { lang: 'id', pageSize: 30 }), 12000))
-          .catch(() => []),
-      ]);
+    return await cached(`webtoon:detail:${titleNo}`, async () => {
+      const listUrl = `https://m.webtoons.com/id/action/${encodeURIComponent(slug)}/list?title_no=${titleNo}`;
+      const title = await webtoons.getTitle(listUrl, {
+        lang: 'id',
+        titleNo,
+        signal: AbortSignal.timeout(15000),
+      });
       return {
         titleNo,
         slug: trim(title.slug) || slug,
@@ -442,24 +445,44 @@ export async function getWebtoonDetail(
         poster: trim(title.thumbnailVertical) || trim(title.thumbnail),
         author: trim(title.author),
         genre: trim(title.genre),
+        genreSlug: title.genreSlug,
         status: trim(title.status),
         rating: trim(title.rating),
         mature: Boolean(title.mature),
         tags: title.tags || [],
-        episodes: episodes.map((episode) => ({
-          episodeNo: episode.episodeNo,
-          title: trim(episode.title) || `Episode ${episode.episodeNo}`,
-          thumb: trim(episode.thumb),
-          date: episode.date,
-        })),
       };
     });
-    /* Hasil tanpa episode biasanya berarti panggilan episode gagal sesaat.
-       Simpan sebentar saja supaya percobaan berikutnya masih bisa berhasil. */
-    if (detail.episodes.length === 0) {
-      store.set(`webtoon:detail:${titleNo}`, { at: Date.now() - TTL_MS + 60_000, value: detail });
-    }
-    return detail;
+  } catch {
+    return null;
+  }
+}
+
+export interface WebtoonEpisodeSummary {
+  episodeNo: number;
+  title: string;
+  date: string | null;
+}
+
+export async function getWebtoonEpisodes(titleNo: number): Promise<WebtoonEpisodeSummary[] | null> {
+  try {
+    return await cached(
+      `webtoon:episodes:${titleNo}`,
+      async () => {
+        const fetchEpisodes = (pageSize: number) =>
+          webtoons.getEpisodes(titleNo, {
+            lang: 'id',
+            pageSize,
+            signal: AbortSignal.timeout(12000),
+          });
+        const episodes = await fetchEpisodes(60).catch(() => fetchEpisodes(30));
+        return episodes.map((episode) => ({
+          episodeNo: episode.episodeNo,
+          title: trim(episode.title) || `Episode ${episode.episodeNo}`,
+          date: episode.date,
+        }));
+      },
+      (episodes) => (episodes.length ? TTL_MS : 60_000)
+    );
   } catch {
     return null;
   }
@@ -468,6 +491,7 @@ export async function getWebtoonDetail(
 export interface WebtoonEpisodeView {
   titleNo: number;
   episodeNo: number;
+  seriesTitle: string | null;
   title: string | null;
   images: { url: string; width: number | null; height: number | null }[];
   prev: number | null;
@@ -483,54 +507,41 @@ function episodeNumberFromUrl(value: string | null): number | null {
   return path ? Number(path[1]) : null;
 }
 
-export async function getWebtoonEpisode(
+export const getWebtoonEpisode = cache(async (
   titleNo: number,
   slug: string,
   episodeNo: number
-): Promise<WebtoonEpisodeView | null> {
+): Promise<WebtoonEpisodeView | null> => {
   try {
-    const detail = await getWebtoonDetail(titleNo, slug);
-    const episode = detail?.episodes.find((item) => item.episodeNo === episodeNo);
-    /* Genre dipakai untuk menyusun URL viewer; kalau gagal, 'action' tetap
-       diarahkan ulang oleh WEBTOON ke genre yang benar. */
-    const genre = await withTimeout(
-      webtoons.getTitle(`https://m.webtoons.com/id/action/${slug}/list?title_no=${titleNo}`, {
+    return await cached(`webtoon:viewer:${titleNo}:${episodeNo}`, async () => {
+      const detail = await getWebtoonDetail(titleNo, slug);
+      const viewer = await webtoons.getViewer(titleNo, {
         lang: 'id',
         titleNo,
-      })
-    )
-      .then((title) => title.genreSlug)
-      .catch(() => null);
-    const viewerUrl =
-      `https://m.webtoons.com/id/${genre || 'action'}/${slug}/episode-${episodeNo}/viewer` +
-      `?title_no=${titleNo}&episode_no=${episodeNo}`;
-    const viewer = await cached(`webtoon:viewer:${titleNo}:${episodeNo}`, () =>
-      withTimeout(
-        webtoons.getViewer(viewerUrl, {
-          lang: 'id',
-          titleNo,
-          episodeNo,
-          genre: genre || undefined,
-          slug,
-        })
-      )
-    );
-    const images = (viewer.images || [])
-      .map((image) => ({ url: image.url, width: image.width, height: image.height }))
-      .filter((image) => Boolean(image.url));
-    if (!images.length) return null;
-    return {
-      titleNo,
-      episodeNo,
-      title: trim(episode?.title) || trim(viewer.title),
-      images,
-      prev: episodeNumberFromUrl(viewer.prev),
-      next: episodeNumberFromUrl(viewer.next),
-    };
+        episodeNo,
+        genre: detail?.genreSlug || 'action',
+        slug: encodeURIComponent(slug),
+        signal: AbortSignal.timeout(15000),
+      });
+      const images = viewer.images
+        .filter((image) => Boolean(image.url))
+        .map(({ url, width, height }) => ({ url, width, height }));
+      if (!images.length) throw new Error('Gambar episode tidak ditemukan');
+
+      return {
+        titleNo,
+        episodeNo,
+        seriesTitle: detail?.title ?? null,
+        title: trim(viewer.title),
+        images,
+        prev: episodeNumberFromUrl(viewer.prev),
+        next: episodeNumberFromUrl(viewer.next),
+      };
+    });
   } catch {
     return null;
   }
-}
+});
 
 /* ---------------------------------------------------------------- pencarian */
 

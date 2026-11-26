@@ -109,15 +109,15 @@ export function searchTitles(
 ): Promise<WebtoonSearchItem[]>;
 export function getTitle(
   slugOrUrl: string,
-  opts?: { lang?: string; titleNo?: number }
+  opts?: { lang?: string; titleNo?: number; signal?: AbortSignal }
 ): Promise<WebtoonTitle>;
 export function getEpisodes(
   titleNoOrUrl: string | number,
-  opts?: { lang?: string; type?: string; pageSize?: number; cursor?: number; maxPages?: number }
+  opts?: { lang?: string; type?: string; pageSize?: number; cursor?: number; maxPages?: number; signal?: AbortSignal }
 ): Promise<WebtoonEpisode[]>;
 export function getViewer(
   titleNoOrUrl: string | number,
-  opts?: { titleNo?: number; episodeNo?: number; genre?: string; slug?: string; lang?: string }
+  opts?: { titleNo?: number; episodeNo?: number; genre?: string; slug?: string; lang?: string; signal?: AbortSignal }
 ): Promise<WebtoonViewer>;
 export function getImages(titleNoOrUrl: string | number, opts?: object): Promise<WebtoonImage[]>;
 export function findTitle(query: string, opts?: object): Promise<WebtoonTitle | null>;

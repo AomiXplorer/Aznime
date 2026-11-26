@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ListOrdered } from 'lucide-react';
-import { getWebtoonDetail, parseWebtoonSlug } from '@/lib/comics';
+import { getWebtoonDetail, getWebtoonEpisodes, parseWebtoonSlug, webtoonHref } from '@/lib/comics';
+import type { WebtoonEpisodeSummary } from '@/lib/comics';
+import { Skeleton } from '@/components/Skeleton';
 import { socialMeta } from '@/lib/seo';
 
 interface WebtoonDetailProps {
@@ -36,6 +39,7 @@ export default async function WebtoonDetailPage({ params }: WebtoonDetailProps) 
   const parsed = parseWebtoonSlug(decodeURIComponent(slug));
   if (!parsed) notFound();
 
+  const episodes = getWebtoonEpisodes(parsed.titleNo);
   const detail = await getWebtoonDetail(parsed.titleNo, parsed.slug);
   if (!detail) {
     return (
@@ -58,7 +62,7 @@ export default async function WebtoonDetailPage({ params }: WebtoonDetailProps) 
   }
 
   const info = [detail.genre, detail.status, detail.author].filter(Boolean).join(' · ');
-  const firstEpisode = detail.episodes[detail.episodes.length - 1];
+  const base = webtoonHref(detail.titleNo, detail.slug);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -117,62 +121,92 @@ export default async function WebtoonDetailPage({ params }: WebtoonDetailProps) 
             </p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            {firstEpisode ? (
-              <Link
-                href={`/webtoon/${detail.titleNo}-${encodeURIComponent(detail.slug)}/${firstEpisode.episodeNo}`}
-                className="inline-flex h-10 items-center gap-2 rounded-[4px] bg-white px-5 text-[13px] font-semibold text-black transition-colors hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-              >
-                Baca episode pertama
-              </Link>
-            ) : null}
-            {detail.episodes.length > 0 ? (
-              <a
-                href="#daftar-episode"
-                className="inline-flex h-10 items-center gap-2 rounded-[4px] border border-white/15 px-4 text-[13px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.05]"
-              >
-                <ListOrdered className="h-4 w-4" aria-hidden="true" />
-                {detail.episodes.length} episode
-              </a>
-            ) : null}
-          </div>
+          <Suspense fallback={<Skeleton className="mt-6 h-10 w-44" />}>
+            <EpisodeActions base={base} episodes={episodes} />
+          </Suspense>
         </div>
       </div>
 
       <section id="daftar-episode" className="mt-10 scroll-mt-20">
-        <div className="mb-3 flex items-end justify-between gap-4 border-b border-[#2b2222] pb-2">
-          <h2 className="font-display text-[17px] font-semibold tracking-[-0.02em] text-white">
-            Daftar episode
-          </h2>
-          <p className="text-[11.5px] text-zinc-500">{detail.episodes.length} episode</p>
-        </div>
-
-        {detail.episodes.length === 0 ? (
-          <p className="py-6 text-[13px] text-zinc-400">Belum ada episode yang bisa dibaca.</p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
-            {detail.episodes.map((episode) => (
-              <li key={episode.episodeNo}>
-                <Link
-                  href={`/webtoon/${detail.titleNo}-${encodeURIComponent(detail.slug)}/${episode.episodeNo}`}
-                  className="flex h-11 items-center justify-between gap-3 border-b border-line-soft/60 text-[13px] text-zinc-300 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                >
-                  <span className="truncate">{episode.title}</span>
-                  {episode.date ? (
-                    <span className="shrink-0 text-[11.5px] text-zinc-500">
-                      {new Date(episode.date).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  ) : null}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <h2 className="mb-3 border-b border-line-soft pb-2 font-display text-[17px] font-semibold tracking-[-0.02em] text-white">
+          Daftar episode
+        </h2>
+        <Suspense fallback={
+          <div role="status">
+            <span className="sr-only">Memuat daftar episode</span>
+            <Skeleton className="h-24 w-full" />
+          </div>
+        }>
+          <EpisodeList base={base} episodes={episodes} />
+        </Suspense>
       </section>
     </div>
+  );
+}
+
+interface EpisodeLinksProps {
+  base: string;
+  episodes: Promise<WebtoonEpisodeSummary[] | null>;
+}
+
+async function EpisodeActions({ base, episodes }: EpisodeLinksProps) {
+  const list = await episodes;
+  if (!list?.length) return null;
+
+  const firstEpisode = list.reduce((first, episode) =>
+    episode.episodeNo < first.episodeNo ? episode : first
+  );
+
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-2">
+      <Link
+        href={`${base}/${firstEpisode.episodeNo}`}
+        className="inline-flex h-10 items-center gap-2 rounded-[4px] bg-white px-5 text-[13px] font-semibold text-black transition-colors hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+      >
+        Baca episode pertama
+      </Link>
+      <a
+        href="#daftar-episode"
+        className="inline-flex h-10 items-center gap-2 rounded-[4px] border border-white/15 px-4 text-[13px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.05]"
+      >
+        <ListOrdered className="h-4 w-4" aria-hidden="true" />
+        {list.length} episode
+      </a>
+    </div>
+  );
+}
+
+async function EpisodeList({ base, episodes }: EpisodeLinksProps) {
+  const list = await episodes;
+  if (!list?.length) {
+    return (
+      <p className="py-6 text-[13px] text-zinc-400">
+        {list ? 'Belum ada episode yang bisa dibaca.' : 'Daftar episode belum bisa dimuat. Coba muat ulang.'}
+      </p>
+    );
+  }
+
+  return (
+    <ul className="grid grid-cols-1 gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
+      {list.map((episode) => (
+        <li key={episode.episodeNo}>
+          <Link
+            href={`${base}/${episode.episodeNo}`}
+            className="flex h-11 items-center justify-between gap-3 border-b border-line-soft/60 text-[13px] text-zinc-300 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            <span className="truncate">{episode.title}</span>
+            {episode.date ? (
+              <span className="shrink-0 text-[11.5px] text-zinc-500">
+                {new Date(episode.date).toLocaleDateString('id-ID', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </span>
+            ) : null}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

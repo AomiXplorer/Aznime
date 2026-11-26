@@ -66,7 +66,6 @@ export function ComicCard({
     <article className={cn('group relative cv-item', className)}>
       <Link
         href={item.href}
-        prefetch={false}
         className="block rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
         <div

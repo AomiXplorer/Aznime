@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getWebtoonDetail, getWebtoonEpisode } from '@/lib/comics';
+import { getWebtoonDetail, getWebtoonEpisode, getWebtoonEpisodes } from '@/lib/comics';
 
 /**
  * Diagnosa sumber komik/webtoon dari sisi server produksi.
@@ -126,12 +126,15 @@ export async function GET() {
   const adapter: Record<string, unknown> = {};
   try {
     const t0 = Date.now();
-    const detail = await getWebtoonDetail(2034, 'eleceed');
+    const [detail, episodes] = await Promise.all([
+      getWebtoonDetail(2034, 'eleceed'),
+      getWebtoonEpisodes(2034),
+    ]);
     adapter.detail = {
       ms: Date.now() - t0,
       found: Boolean(detail),
       title: detail?.title ?? null,
-      episodes: detail?.episodes?.length ?? 0,
+      episodes: episodes?.length ?? 0,
     };
   } catch (err) {
     adapter.detail = { error: err instanceof Error ? err.message : String(err) };

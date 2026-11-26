@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ListOrdered } from 'lucide-react';
-import { getWebtoonDetail, getWebtoonEpisode, parseWebtoonSlug } from '@/lib/comics';
+import { getWebtoonEpisode, getWebtoonEpisodes, parseWebtoonSlug, webtoonHref } from '@/lib/comics';
 
 interface WebtoonEpisodeProps {
   params: Promise<{ slug: string; episode: string }>;
@@ -12,15 +12,11 @@ export async function generateMetadata({ params }: WebtoonEpisodeProps): Promise
   const { slug, episode } = await params;
   const parsed = parseWebtoonSlug(decodeURIComponent(slug));
   const episodeNo = Number(episode);
-  if (!parsed || !Number.isFinite(episodeNo)) {
+  if (!parsed || !Number.isSafeInteger(episodeNo) || episodeNo <= 0) {
     return { title: 'Baca webtoon', robots: { index: false, follow: true } };
   }
   const view = await getWebtoonEpisode(parsed.titleNo, parsed.slug, episodeNo);
-  /* view.title adalah judul episode ("EP.01"); nama seri diambil dari detail
-     supaya judul halaman unik dan tidak sekadar mengulang nomor episode. */
-  const series =
-    (await getWebtoonDetail(parsed.titleNo, parsed.slug).then((d) => d?.title).catch(() => null)) ||
-    parsed.slug.replaceAll('-', ' ');
+  const series = view?.seriesTitle || parsed.slug.replaceAll('-', ' ');
   const title = view ? `${series} Episode ${episodeNo}` : 'Baca webtoon';
   return {
     title,
@@ -39,29 +35,24 @@ export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps
   const { slug, episode } = await params;
   const parsed = parseWebtoonSlug(decodeURIComponent(slug));
   const episodeNo = Number(episode);
-  if (!parsed || !Number.isFinite(episodeNo)) notFound();
+  if (!parsed || !Number.isSafeInteger(episodeNo) || episodeNo <= 0) notFound();
 
+  const base = webtoonHref(parsed.titleNo, parsed.slug);
   const view = await getWebtoonEpisode(parsed.titleNo, parsed.slug, episodeNo);
   if (!view) {
-    /* Episode yang memang tidak ada tetap 404; gambar yang gagal dimuat
-       ditampilkan sebagai keadaan error supaya tidak tersimpan sebagai 404. */
-    const detail = await getWebtoonDetail(parsed.titleNo, parsed.slug);
-    const exists = detail?.episodes.some((episode) => episode.episodeNo === episodeNo);
-    /* 404 hanya kalau daftar episode benar-benar terbaca dan nomornya tidak
-       ada di sana. Daftar kosong berarti sumbernya yang gagal, bukan episode
-       yang hilang, jadi jangan dicap 404. */
-    if (detail && detail.episodes.length > 0 && !exists) notFound();
+    const episodes = await getWebtoonEpisodes(parsed.titleNo);
+    if (episodes?.length && !episodes.some((entry) => entry.episodeNo === episodeNo)) notFound();
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <h1 className="font-display text-[22px] font-semibold text-white">
           Gambar episode belum bisa dimuat
         </h1>
         <p className="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-zinc-400">
-          Episode ini ada di WEBTOON, tetapi server gambarnya tidak menjawab permintaan Aznime.
+          Gambar dari WEBTOON belum tersedia untuk episode ini.
           Coba muat ulang beberapa saat lagi.
         </p>
         <Link
-          href={`/webtoon/${parsed.titleNo}-${encodeURIComponent(parsed.slug)}`}
+          href={base}
           className="mt-5 inline-flex h-10 items-center rounded-[4px] border border-white/15 px-4 text-[12.5px] font-semibold text-white transition-colors hover:border-white/40 hover:bg-white/[0.05]"
         >
           Kembali ke daftar episode
@@ -70,7 +61,6 @@ export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps
     );
   }
 
-  const base = `/webtoon/${parsed.titleNo}-${encodeURIComponent(parsed.slug)}`;
   const navButton = (target: number | null, label: string, icon: 'prev' | 'next') => {
     const Icon = icon === 'prev' ? ChevronLeft : ChevronRight;
     const content = (
@@ -108,7 +98,7 @@ export default async function WebtoonEpisodePage({ params }: WebtoonEpisodeProps
             className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-white"
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            {view.title || parsed.slug.replaceAll('-', ' ')}
+            {view.seriesTitle || view.title || parsed.slug.replaceAll('-', ' ')}
           </Link>
           <h1 className="mt-1 truncate font-display text-[19px] font-semibold tracking-[-0.02em] text-white">
             Episode {episodeNo}
