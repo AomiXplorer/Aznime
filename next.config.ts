@@ -53,6 +53,8 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
 
   reactStrictMode: true,
+  // Dipakai scraper RumahFilm untuk proxy keluar; jangan di-bundle.
+  serverExternalPackages: ['undici'],
   poweredByHeader: false,
   compress: true,
 

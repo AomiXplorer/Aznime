@@ -1,7 +1,8 @@
-import { DEFAULT_UA, looksLikeChallengePage } from '@/lib/scraper/utils';
+import { looksLikeChallengePage } from '@/lib/scraper/utils';
 import type { AnimeCardItem, PaginationInfo } from '@/lib/scraper/types';
 import type { ComicCard, ComicFeed } from '@/lib/comics';
 import { isRestrictedText, isRestrictedUrl } from './filter';
+import { fetchWithBypass } from './http';
 import { dedupeMovies, parseRumahFilmDetail, parseRumahFilmListing } from './parser';
 import type {
   RumahFilmCatalogResult,
@@ -99,35 +100,31 @@ class FetchNotFoundError extends Error {
 
 async function fetchRumahFilmHtml(urlOrPath: string): Promise<{ html: string; url: string }> {
   const targetUrl = validateTargetUrl(urlOrPath);
-  const res = await fetch(targetUrl, {
-    headers: {
-      'User-Agent': DEFAULT_UA,
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-      Referer: `${RUMAHFILM_BASE_URL}/`,
-    },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(15000),
+  const out = await fetchWithBypass(targetUrl, {
+    baseUrl: RUMAHFILM_BASE_URL,
+    isChallenge: looksLikeChallengePage,
   });
 
-  if (res.status === 404 || res.status === 410) {
-    await res.body?.cancel();
+  if (out.kind === 'notfound') {
     throw new FetchNotFoundError();
   }
 
-  const html = await res.text();
-  if (res.status === 403 || res.status === 429 || res.status >= 500 || looksLikeChallengePage(html)) {
+  if (out.kind === 'blocked') {
+    console.warn(`[rumahfilm] diblokir (HTTP ${out.status || 'verifikasi'}, via ${out.via}): ${targetUrl}`);
     throw new FetchBlockedError(
-      `Sumber RumahFilm menolak permintaan (${res.status || 'verifikasi'}).`,
-      res.status || 503
+      `Sumber RumahFilm menolak permintaan (${out.status || 'verifikasi'}).`,
+      out.status || 503
     );
   }
 
-  if (!res.ok) {
-    throw new FetchBlockedError(`Sumber RumahFilm mengembalikan HTTP ${res.status}.`, res.status);
+  if (out.kind === 'error') {
+    if (out.status) {
+      throw new FetchBlockedError(`Sumber RumahFilm mengembalikan HTTP ${out.status}.`, out.status);
+    }
+    throw new Error(out.error || 'Gagal menghubungi RumahFilm');
   }
 
-  return { html, url: res.url || targetUrl };
+  return { html: out.html, url: out.url };
 }
 
 function buildListingCandidates(page: number): string[] {

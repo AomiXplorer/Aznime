@@ -8,6 +8,9 @@ import {
 import { isRestrictedMovie } from './rumahfilm/filter';
 import { getRumahFilmCatalog, getRumahFilmDetail, getRumahFilmFeed, toAnimeCardItem, toComicCard } from './rumahfilm';
 
+// Jeda retry anti-blokir dimatikan di tes supaya cepat.
+process.env.RUMAHFILM_RETRY_DELAY_MS = '0';
+
 const BASE = 'https://rumahfilm.net';
 
 test('parseRumahFilmListing mengekstrak film umum dan membuang konten dewasa/non-film', () => {
