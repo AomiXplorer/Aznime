@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/ongoing`, lastModified: now, changeFrequency: 'hourly', priority: 0.9 },
     { url: `${SITE_URL}/completed`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/schedule`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${SITE_URL}/donghive`, lastModified: now, changeFrequency: 'hourly', priority: 0.8 },
     { url: `${SITE_URL}/credit`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
   ];
 
