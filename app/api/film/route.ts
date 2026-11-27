@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitGuard } from '@/lib/api-guard';
-import { getRumahFilmCatalog, toAnimeCardItem } from '@/lib/scrapers/rumahfilm';
+import { getMovies, toAnimeCardItem } from '@/lib/scrapers';
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitGuard(req, { name: 'film', limit: 120, windowSeconds: 60 });
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const pageRaw = Number(req.nextUrl.searchParams.get('page') || '1');
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.trunc(pageRaw) : 1;
 
-  const feed = await getRumahFilmCatalog(page);
+  const feed = await getMovies({ page });
   const results = feed.items.map(toAnimeCardItem);
 
   return NextResponse.json(

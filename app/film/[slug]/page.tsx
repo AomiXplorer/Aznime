@@ -2,18 +2,25 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ExternalLink, Play } from 'lucide-react';
-import { getRumahFilmDetail } from '@/lib/scrapers/rumahfilm';
+import { getMovieDetail } from '@/lib/scrapers';
 import { socialMeta } from '@/lib/seo';
 import { EmptyState } from '@/components/EmptyState';
 import { RevealImage } from '@/components/media/RevealImage';
 
 interface FilmDetailProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ src?: string | string[] }>;
 }
 
-export async function generateMetadata({ params }: FilmDetailProps): Promise<Metadata> {
+function pickSource(src: string | string[] | undefined): string | undefined {
+  const value = Array.isArray(src) ? src[0] : src;
+  return value && /^[a-z0-9-]{1,40}$/i.test(value) ? value : undefined;
+}
+
+export async function generateMetadata({ params, searchParams }: FilmDetailProps): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getRumahFilmDetail(decodeURIComponent(slug));
+  const { src } = await searchParams;
+  const result = await getMovieDetail(decodeURIComponent(slug), { sourceId: pickSource(src) });
   if (!result.detail) {
     return {
       title: result.offline ? 'Film sementara tidak tersedia' : 'Film tidak ditemukan',
@@ -35,9 +42,10 @@ export async function generateMetadata({ params }: FilmDetailProps): Promise<Met
 
 export const dynamic = 'force-dynamic';
 
-export default async function FilmDetailPage({ params }: FilmDetailProps) {
+export default async function FilmDetailPage({ params, searchParams }: FilmDetailProps) {
   const { slug } = await params;
-  const result = await getRumahFilmDetail(decodeURIComponent(slug));
+  const { src } = await searchParams;
+  const result = await getMovieDetail(decodeURIComponent(slug), { sourceId: pickSource(src) });
 
   if (result.notFound) {
     notFound();
@@ -55,7 +63,7 @@ export default async function FilmDetailPage({ params }: FilmDetailProps) {
         </Link>
         <EmptyState
           title="Detail film sementara tidak bisa dimuat"
-          description="rumahfilm.net menolak atau belum merespons permintaan dari server Aznime saat ini. Coba lagi beberapa saat lagi."
+          description="Sumber film menolak atau belum merespons permintaan dari server Aznime saat ini. Coba lagi beberapa saat lagi."
           actionLabel="Kembali ke katalog film"
           actionHref="/film"
         />
@@ -170,7 +178,7 @@ export default async function FilmDetailPage({ params }: FilmDetailProps) {
               }
             >
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              Buka di RumahFilm
+              {detail.source ? `Buka di ${detail.source.name}` : 'Buka di sumber'}
             </a>
           </div>
         </div>

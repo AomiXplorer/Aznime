@@ -17,7 +17,7 @@ import { AnimeRow } from '@/components/AnimeRow';
 import { AnimeGrid } from '@/components/AnimeGrid';
 import { ComicRow } from '@/components/comics/ComicRow';
 import { getKomikFeed, getWebtoonFeed } from '@/lib/comics';
-import { getRumahFilmFeed } from '@/lib/scrapers/rumahfilm';
+import { getFilmFeed } from '@/lib/scrapers';
 import { ErrorState } from '@/components/ErrorState';
 
 export const revalidate = 180;
@@ -67,7 +67,7 @@ export default async function HomePage() {
   const [komikFeed, webtoonFeed, filmFeed] = await Promise.all([
     getKomikFeed(14),
     getWebtoonFeed(14),
-    getRumahFilmFeed(14),
+    getFilmFeed(14),
   ]);
 
   const malzRanking = await getMalzPopularRanking(5).catch(() => null);

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { getRumahFilmCatalog, toAnimeCardItem } from '@/lib/scrapers/rumahfilm';
+import { getMovies, toAnimeCardItem } from '@/lib/scrapers';
 import { socialMeta } from '@/lib/seo';
 import { EmptyState } from '@/components/EmptyState';
 import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
@@ -9,7 +9,7 @@ import { AnimeGridSkeleton } from '@/components/Skeleton';
 
 const TITLE = 'Film';
 const DESCRIPTION =
-  'Katalog film pilihan dari RumahFilm. Jelajahi daftar movie beserta tahun rilis, rating, dan detail lengkapnya di Aznime.';
+  'Katalog film pilihan. Jelajahi daftar movie beserta tahun rilis, rating, dan detail lengkapnya di Aznime.';
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -25,7 +25,7 @@ export default function FilmPage() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Film"
-        description="Katalog film dari RumahFilm. Pilih judul untuk melihat detail, sinopsis, dan sumber tontonannya."
+        description="Katalog film pilihan. Pilih judul untuk melihat detail, sinopsis, dan sumber tontonannya."
       />
 
       <Suspense fallback={<AnimeGridSkeleton count={18} />}>
@@ -36,13 +36,13 @@ export default function FilmPage() {
 }
 
 async function FilmCatalogResults() {
-  const feed = await getRumahFilmCatalog(1);
+  const feed = await getMovies({ page: 1 });
 
   if (feed.offline && feed.items.length === 0) {
     return (
       <EmptyState
         title="Sumber film sedang tidak bisa dihubungi"
-        description="rumahfilm.net menolak atau belum merespons permintaan dari server Aznime saat ini. Coba lagi beberapa saat lagi."
+        description="Semua sumber film menolak atau belum merespons permintaan dari server Aznime saat ini. Coba lagi beberapa saat lagi."
       />
     );
   }
@@ -54,7 +54,7 @@ async function FilmCatalogResults() {
       apiPath="/api/film"
       queryParams={{}}
       emptyTitle="Belum ada film ditemukan"
-      emptyDescription="Daftar film belum tersedia dari RumahFilm saat ini."
+      emptyDescription="Daftar film belum tersedia saat ini."
       emptyActionLabel={null}
       emptyActionHref={null}
       endLabel="film"
