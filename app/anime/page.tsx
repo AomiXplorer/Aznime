@@ -17,6 +17,7 @@ import { InfiniteAnimeCatalog } from '@/components/InfiniteAnimeCatalog';
 import { ErrorState } from '@/components/ErrorState';
 import { PageHeader } from '@/components/PageHeader';
 import { AnimeGridSkeleton } from '@/components/Skeleton';
+import { readPreferences } from '@/lib/preferences-server';
 
 export const metadata: Metadata = {
   title: 'Katalog Anime',
@@ -96,6 +97,9 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
     .catch(() => ({ ok: false as const, value: {} as FilterOptionsMap }));
 
   const options = withoutHentaiGenre(filterRes.value);
+  /* Bagian 18+ hanya muncul di panel Tipe kalau filter konten dewasa
+     dinyalakan di Pengaturan; bawaannya mati. */
+  const prefs = await readPreferences();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -121,6 +125,7 @@ export default async function AnimeCatalogPage({ searchParams }: AnimeCatalogPag
           options={options}
           current={{ status, type, order, genres }}
           basePath="/anime"
+          showAdult={prefs.adult}
         />
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { X } from 'lucide-react';
+import { Settings, X } from 'lucide-react';
 import type { AuthUser } from './auth/AuthProvider';
 import { Wordmark } from './Wordmark';
 
@@ -202,43 +202,58 @@ export function MobileMenu({
           </nav>
         </div>
 
-        <div className="shrink-0 border-t border-line-soft p-4">
-          {authLoading ? (
-            <div aria-hidden="true" className="h-12 w-full animate-pulse rounded-[4px] bg-white/[0.04]" />
-          ) : user ? (
-            <Link
-              href="/profile"
-              prefetch={false}
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-[4px] px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-elevated text-[12px] font-semibold text-zinc-200">
-                {user.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={user.avatar} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  user.username.slice(0, 1).toUpperCase()
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[13.5px] font-semibold text-white">
-                  {user.username}
+        <div className="flex shrink-0 items-center gap-2 border-t border-line-soft p-4">
+          <div className="min-w-0 flex-1">
+            {authLoading ? (
+              <div aria-hidden="true" className="h-12 w-full animate-pulse rounded-[4px] bg-white/[0.04]" />
+            ) : user ? (
+              <Link
+                href="/profile"
+                prefetch={false}
+                onClick={onClose}
+                className="flex items-center gap-3 rounded-[4px] px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-elevated text-[12px] font-semibold text-zinc-200">
+                  {user.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    user.username.slice(0, 1).toUpperCase()
+                  )}
                 </span>
-                <span className="block truncate text-[12px] text-zinc-500">{user.email}</span>
-              </span>
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onLogin();
-              }}
-              className="h-12 w-full cursor-pointer rounded-[4px] bg-white text-[13.5px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-              Masuk atau daftar
-            </button>
-          )}
+                <span className="min-w-0">
+                  <span className="block truncate text-[13.5px] font-semibold text-white">
+                    {user.username}
+                  </span>
+                  <span className="block truncate text-[12px] text-zinc-500">{user.email}</span>
+                </span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onLogin();
+                }}
+                className="h-12 w-full cursor-pointer rounded-[4px] bg-white text-[13.5px] font-semibold text-black transition-colors duration-150 hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                Masuk atau daftar
+              </button>
+            )}
+          </div>
+
+          {/* Gerigi pengaturan berdampingan dengan akun, dan tetap ada walau
+              belum masuk karena filter konten berlaku untuk semua orang. */}
+          <Link
+            href="/settings"
+            prefetch={false}
+            onClick={onClose}
+            aria-label="Pengaturan"
+            title="Pengaturan"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] border border-line text-zinc-400 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            <Settings className="h-[18px] w-[18px]" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </div>

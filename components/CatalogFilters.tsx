@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, RotateCcw, Search, X } from 'lucide-react';
+import { Check, ChevronDown, RotateCcw, Search, Settings, X } from 'lucide-react';
 import type { FilterOptionItem, FilterOptionsMap } from '@/lib/scraper/types';
 import { cn } from '@/lib/cn';
 import { AdultWarning } from './AdultWarning';
@@ -19,6 +20,8 @@ interface CatalogFiltersProps {
   options: FilterOptionsMap;
   current: CatalogFilterState;
   basePath?: string;
+  /** Filter konten dewasa dari Pengaturan. Bawaannya mati. */
+  showAdult?: boolean;
 }
 
 type PanelKey = 'status' | 'type' | 'genre' | 'order';
@@ -120,7 +123,12 @@ function prepare(
   return result;
 }
 
-export function CatalogFilters({ options, current, basePath = '/anime' }: CatalogFiltersProps) {
+export function CatalogFilters({
+  options,
+  current,
+  basePath = '/anime',
+  showAdult = false,
+}: CatalogFiltersProps) {
   const router = useRouter();
   const [openKey, setOpenKey] = useState<PanelKey | null>(null);
   const [draftGenres, setDraftGenres] = useState<string[]>(current.genres);
@@ -142,8 +150,12 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
   /* Tipe konten tidak lagi diambil dari sumber: daftarnya tetap dan setiap
      pilihan berpindah bagian, jadi tidak ada tipe kosong yang bisa dipilih. */
   const typeItems = useMemo(
-    () => CONTENT_TYPES.map((item) => ({ label: item.label, value: item.value })),
-    []
+    () =>
+      CONTENT_TYPES.filter((item) => showAdult || !item.adult).map((item) => ({
+        label: item.label,
+        value: item.value,
+      })),
+    [showAdult]
   );
 
   /* Halaman ini adalah katalog anime; ?type=movie adalah satu-satunya
@@ -411,25 +423,43 @@ export function CatalogFilters({ options, current, basePath = '/anime' }: Catalo
       openKey === 'status' ? statusItems : openKey === 'type' ? typeItems : orderItems;
 
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3" role="listbox" aria-label={PANEL_COPY[openKey!].title}>
-        {items.map((item) => {
-          const selected =
-            openKey === 'type' ? selectedType === item.value : currentSingle === item.value;
-          return (
-            <button
-              key={item.value || 'all'}
-              type="button"
-              role="option"
-              aria-selected={selected}
-              onClick={() => chooseSingle(openKey as 'status' | 'type' | 'order', item.value)}
-              className={optionRowClass(selected)}
+      <>
+        <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3" role="listbox" aria-label={PANEL_COPY[openKey!].title}>
+          {items.map((item) => {
+            const selected =
+              openKey === 'type' ? selectedType === item.value : currentSingle === item.value;
+            return (
+              <button
+                key={item.value || 'all'}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => chooseSingle(openKey as 'status' | 'type' | 'order', item.value)}
+                className={optionRowClass(selected)}
+              >
+                <span>{item.label}</span>
+                {selected ? <Check className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" /> : null}
+              </button>
+            );
+          })}
+        </div>
+
+        {openKey === 'type' && !showAdult ? (
+          <div className="flex items-center justify-between gap-3 border-t border-[#241d1d] px-4 py-3">
+            <p className="text-[11.5px] leading-snug text-zinc-500">
+              Hentai dan Manhwa 18+ disembunyikan.
+            </p>
+            <Link
+              href="/settings"
+              onClick={close}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[4px] text-[12px] font-semibold text-accent-soft transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              <span>{item.label}</span>
-              {selected ? <Check className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" /> : null}
-            </button>
-          );
-        })}
-      </div>
+              <Settings className="h-3.5 w-3.5" aria-hidden="true" />
+              Atur
+            </Link>
+          </div>
+        ) : null}
+      </>
     );
   };
 

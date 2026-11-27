@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { AgeGate } from '@/components/AgeGate';
+import { AdultDisabled } from '@/components/settings/AdultDisabled';
+import { readPreferences } from '@/lib/preferences-server';
 import { SITE_NAME } from '@/lib/site';
 
 /**
@@ -22,7 +24,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ManhwaLayout({ children }: { children: React.ReactNode }) {
+export default async function ManhwaLayout({ children }: { children: React.ReactNode }) {
+  const prefs = await readPreferences();
+  if (!prefs.adult) return <AdultDisabled section="manhwa18" />;
+
   return (
     <AgeGate
       description="Semua judul di halaman ini adalah manhwa 18+ terjemahan Indonesia. Dengan masuk, kamu menyatakan sudah berusia 18 tahun atau lebih."

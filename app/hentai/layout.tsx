@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { AgeGate } from '@/components/AgeGate';
+import { AdultDisabled } from '@/components/settings/AdultDisabled';
+import { readPreferences } from '@/lib/preferences-server';
 import { SITE_NAME } from '@/lib/site';
 
 /**
@@ -22,6 +24,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HentaiLayout({ children }: { children: React.ReactNode }) {
+export default async function HentaiLayout({ children }: { children: React.ReactNode }) {
+  const prefs = await readPreferences();
+  if (!prefs.adult) return <AdultDisabled section="hentai" />;
   return <AgeGate>{children}</AgeGate>;
 }

@@ -5,6 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MaintenanceBypassBanner } from '@/components/MaintenanceBypassBanner';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { PreferencesEffect } from '@/components/settings/PreferencesEffect';
 import { serializeJsonLd } from '@/lib/json-ld';
 import { siteJsonLd } from '@/lib/seo';
 import {
@@ -122,6 +123,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Langsung ke konten utama
         </a>
         <AuthProvider>
+          <PreferencesEffect />
           <Navbar />
           <main id="main-content" className="flex-1">
             {children}

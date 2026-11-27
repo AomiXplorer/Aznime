@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Menu, Search, X } from 'lucide-react';
+import { Menu, Search, Settings, X } from 'lucide-react';
 import { MobileMenu } from './MobileMenu';
 import { Wordmark } from './Wordmark';
 import { useAuth } from './auth/AuthProvider';
@@ -215,6 +215,18 @@ export function Navbar() {
                 Masuk
               </button>
             )}
+
+            {/* Di layar lebar panel menu tidak ada, jadi gerigi pengaturan
+                ikut berdiri di sebelah akun seperti di dalam laci menu. */}
+            <Link
+              href="/settings"
+              prefetch={false}
+              aria-label="Pengaturan"
+              title="Pengaturan"
+              className="hidden h-9 w-9 items-center justify-center rounded-[4px] border border-white/10 bg-white/[0.03] text-zinc-300 transition-colors duration-150 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:inline-flex"
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+            </Link>
 
             <button
               type="button"

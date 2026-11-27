@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { recordGuestHistory } from '@/lib/guest-history';
+import { loadPreferences } from '@/lib/preferences';
 import type { HistoryItem } from '@/lib/auth/history';
 
 export interface WatchRecorderProps {
@@ -25,6 +26,9 @@ export function WatchRecorder(props: WatchRecorderProps) {
 
   useEffect(() => {
     if (loading || !animeId || !title) return;
+    /* "Simpan riwayat otomatis" dimatikan di Pengaturan: tidak ada tulisan
+       ke akun maupun localStorage. */
+    if (!loadPreferences().saveHistory) return;
     const item: HistoryItem = {
       animeId,
       title,

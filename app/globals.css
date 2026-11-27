@@ -506,3 +506,15 @@ body:has([data-maintenance-screen]) > footer {
     transform: none;
   }
 }
+
+/* Pilihan "kurangi animasi" di Pengaturan. Disimpan di cookie dan dipasang ke
+   <html> oleh PreferencesEffect, jadi berlaku di semua halaman tanpa perlu
+   menyalin kelas ke tiap komponen. */
+[data-reduce-motion='true'] *,
+[data-reduce-motion='true'] *::before,
+[data-reduce-motion='true'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
