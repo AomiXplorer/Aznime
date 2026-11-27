@@ -44,7 +44,7 @@ const SOURCE_BADGE: Record<ComicSource, string> = {
   komiku: 'Komik',
   webtoon: 'Webtoon',
   mangasusuku: 'Manhwa 18+',
-  donghive: 'DongHive',
+  donghive: 'Donghua',
 };
 
 interface ComicCardProps {

@@ -131,7 +131,7 @@ export default async function HomePage() {
 
         <ComicRow title="Komik" items={komikFeed.items} viewAllHref="/komik" />
         <ComicRow
-          title="DongHive"
+          title="Donghua"
           items={donghiveFeed}
           viewAllHref="/donghive"
           note="Donghua · subtitle Indonesia"

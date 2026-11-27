@@ -8,8 +8,8 @@ import { getDonghiveList } from '@/lib/donghive';
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: 'DongHive · Donghua Subtitle Indonesia',
-  description: 'Daftar Donghua terbaru dari DongHive dengan subtitle Indonesia.',
+  title: 'Donghua · Subtitle Indonesia',
+  description: 'Daftar Donghua terbaru dengan subtitle Indonesia.',
 };
 
 interface DonghivePageProps {
@@ -34,7 +34,7 @@ export default async function DonghiveIndexPage({ searchParams }: DonghivePagePr
     const result = await getDonghiveList(page, query);
     return (
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-7 sm:px-6 lg:px-8">
-        <PageHeader title="DongHive" description="Daftar Donghua dan episode terbaru dari DongHive.">
+        <PageHeader title="Donghua" description="Daftar Donghua dan episode terbaru.">
           <form action="/donghive" method="get" className="flex w-full gap-2 sm:w-auto">
             <label htmlFor="donghive-search" className="sr-only">Cari Donghua</label>
             <input
@@ -57,7 +57,7 @@ export default async function DonghiveIndexPage({ searchParams }: DonghivePagePr
         {result.items.length ? (
           <>
             <ComicGrid items={result.items} />
-            <nav aria-label="Halaman katalog DongHive" className="mt-10 flex items-center justify-center gap-3">
+            <nav aria-label="Halaman katalog Donghua" className="mt-10 flex items-center justify-center gap-3">
               {page > 1 ? (
                 <Link
                   href={pageHref(page - 1, query)}
@@ -82,23 +82,23 @@ export default async function DonghiveIndexPage({ searchParams }: DonghivePagePr
         ) : (
           <EmptyState
             title={query ? 'Judul tidak ditemukan' : 'Daftar belum tersedia'}
-            description={query ? `Tidak ada hasil untuk “${query}”.` : 'Sumber DongHive sedang tidak mengirimkan daftar.'}
+            description={query ? `Tidak ada hasil untuk “${query}”.` : 'API Donghua sedang tidak mengirimkan daftar.'}
             actionLabel={query ? 'Lihat semua Donghua' : undefined}
             actionHref={query ? '/donghive' : undefined}
           />
         )}
         <p className="mt-12 border-t border-[#2b2222] pt-4 text-[11px] leading-relaxed text-zinc-600">
-          Data katalog dan episode dimuat dari DongHive.
+          Data katalog dan episode dimuat dari API Sanka Vollerei (sumber Anichin).
         </p>
       </div>
     );
   } catch (error) {
     return (
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-7 sm:px-6 lg:px-8">
-        <PageHeader title="DongHive" description="Daftar Donghua dan episode terbaru dari DongHive." />
+        <PageHeader title="Donghua" description="Daftar Donghua dan episode terbaru." />
         <EmptyState
           title="Gagal memuat katalog"
-          description={error instanceof Error ? error.message : 'DongHive tidak merespons.'}
+          description={error instanceof Error ? error.message : 'API Donghua tidak merespons.'}
           actionLabel="Coba lagi"
           actionHref={pageHref(page, query)}
         />

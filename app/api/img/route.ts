@@ -27,7 +27,7 @@ const ANIMEIN_HOSTS = new Set([
 ]);
 
 const NEKOPOI_HOSTS = new Set(['nekopoi.care', 'www.nekopoi.care']);
-const DONGHIVE_HOSTS = new Set(['donghive.vip', 'www.donghive.vip']);
+const DONGHIVE_HOSTS = new Set(['anichin.moe', 'www.anichin.moe']);
 /* Poster dan halaman chapter komik: host utama plus dua mirror resminya.
    thumbnail.komiku.org adalah host sampul yang dipakai daftar dan peringkat. */
 const KOMIKU_HOSTS = new Set([
@@ -108,7 +108,7 @@ function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | n
 
 function refererFor(upstream: Upstream): string | undefined {
   if (upstream === 'animein') return 'https://animein.net/';
-  if (upstream === 'donghive') return 'https://donghive.vip/';
+  if (upstream === 'donghive') return 'https://anichin.moe/';
   if (upstream === 'hidori') return 'https://v10.hidoristream.online/';
   if (upstream === 'komiku') return 'https://komiku.org/';
   if (upstream === 'webtoon') return 'https://m.webtoons.com/';

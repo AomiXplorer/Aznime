@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: DonghiveWatchPageProps): Prom
       alternates: { canonical: `/donghive/watch/${encodeURIComponent(episode.slug)}` },
     };
   } catch {
-    return { title: 'DongHive' };
+    return { title: 'Donghua' };
   }
 }
 
@@ -60,8 +60,8 @@ export default async function DonghiveWatchPage({ params }: DonghiveWatchPagePro
     return (
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <ErrorState
-          title="Gagal memuat episode DongHive"
-          message={error instanceof Error ? error.message : 'DongHive tidak merespons.'}
+          title="Gagal memuat episode Donghua"
+          message={error instanceof Error ? error.message : 'API Donghua tidak merespons.'}
         />
       </div>
     );

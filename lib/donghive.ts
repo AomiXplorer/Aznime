@@ -1,8 +1,12 @@
-import * as cheerio from 'cheerio';
 import { UpstreamError } from '@/lib/scraper/utils';
 import type { ComicCard } from '@/lib/comics';
 
-export const DONGHIVE_BASE_URL = 'https://donghive.vip';
+/**
+ * Sanka Vollerei API adapter for its Anichin-backed donghua catalog.
+ * Keep the existing module name and app routes so current Aznime links remain
+ * valid while the upstream source is replaced.
+ */
+export const SANKA_DONGHUA_API_URL = 'https://www.sankavollerei.web.id';
 
 export interface DonghiveEpisodeRef {
   episode: string | null;
@@ -47,255 +51,241 @@ export interface DonghiveListResult {
   page: number;
 }
 
-const HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-  Referer: `${DONGHIVE_BASE_URL}/`,
-};
+type ApiObject = Record<string, unknown>;
 
-function cleanText(value: string | null | undefined): string {
-  return (value || '').replace(/\s+/g, ' ').trim();
+function asObject(value: unknown): ApiObject {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as ApiObject) : {};
 }
 
-function resolveUrl(value: string | null | undefined): string {
-  if (!value) return '';
+function asArray(value: unknown): ApiObject[] {
+  return Array.isArray(value) ? value.map(asObject) : [];
+}
+
+function text(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
+}
+
+function safeSlug(value: unknown): string {
+  return text(value).replace(/^\/+|\/+$/g, '').split('/').filter(Boolean).pop() || '';
+}
+
+function absoluteUrl(value: unknown): string | null {
+  const raw = text(value);
+  if (!raw) return null;
   try {
-    const resolved = new URL(value, DONGHIVE_BASE_URL);
-    return resolved.protocol === 'http:' || resolved.protocol === 'https:' ? resolved.toString() : '';
+    const url = new URL(raw, SANKA_DONGHUA_API_URL);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
   } catch {
-    return '';
+    return null;
   }
 }
 
-function slugFromUrl(value: string): string {
+function slugFromUrl(value: string | null): string | null {
+  if (!value) return null;
   try {
-    const path = new URL(value).pathname.replace(/\/+$/, '');
-    return decodeURIComponent(path.split('/').pop() || '');
+    return safeSlug(decodeURIComponent(new URL(value).pathname));
   } catch {
-    return '';
+    return null;
   }
 }
 
-function imageFrom($: cheerio.CheerioAPI, root: cheerio.Cheerio<any>): string | null {
-  const image = root.find('img').first();
-  const raw =
-    image.attr('data-src') ||
-    image.attr('data-lazy-src') ||
-    image.attr('data-original') ||
-    image.attr('src');
-  return resolveUrl(raw) || null;
+function pageNumber(page: number): number {
+  return Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1;
 }
 
-function cardFrom($: cheerio.CheerioAPI, root: cheerio.Cheerio<any>): ComicCard | null {
-  const link = root.find('a[href]').first();
-  const url = resolveUrl(link.attr('href'));
-  const slug = slugFromUrl(url);
-  const title =
-    cleanText(link.attr('title')) ||
-    cleanText(root.find('.tt h2, h2, h3').first().text()) ||
-    cleanText(root.find('img').first().attr('alt'));
-  if (!url || !slug || !title) return null;
-
-  const episode = cleanText(root.find('.epx').first().text());
-  const type = cleanText(root.find('.typez').first().text());
-  const subtitle = cleanText(root.find('.sb').first().text());
-  const episodePost = /-episode-\d+(?:\.\d+)?/i.test(slug) || /^movie$/i.test(episode);
-  return {
-    id: `donghive:${slug}`,
-    source: 'donghive',
-    title,
-    poster: imageFrom($, root),
-    meta: [type, subtitle].filter(Boolean).join(' · ') || null,
-    latest: episode || null,
-    href: episodePost
-      ? `/donghive/watch/${encodeURIComponent(slug)}`
-      : `/donghive/${encodeURIComponent(slug)}`,
-  };
+function apiPath(...parts: string[]): string {
+  return `/anime/donghua/${parts.map((part) => encodeURIComponent(part)).join('/')}`;
 }
 
-async function getHtml(path: string, revalidate: number): Promise<cheerio.CheerioAPI> {
+async function getJson(path: string, revalidate: number): Promise<ApiObject> {
+  const url = new URL(path, SANKA_DONGHUA_API_URL).toString();
   let response: Response;
   try {
-    response = await fetch(resolveUrl(path), {
-      headers: HEADERS,
-      signal: AbortSignal.timeout(14000),
+    response = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'Aznime/1.1 (+https://aznime.com)' },
+      signal: AbortSignal.timeout(12000),
       next: { revalidate },
     });
   } catch (error) {
     throw new UpstreamError(
-      `DongHive tidak merespons${error instanceof Error ? ` (${error.message})` : ''}.`,
-      { status: 503, url: resolveUrl(path) }
+      `API donghua tidak merespons${error instanceof Error ? ` (${error.message})` : ''}.`,
+      { status: 503, url }
     );
   }
 
   if (!response.ok) {
-    throw new UpstreamError(`DongHive merespons HTTP ${response.status}.`, {
+    throw new UpstreamError(`API donghua merespons HTTP ${response.status}.`, {
       status: response.status,
       url: response.url,
     });
   }
 
-  const html = await response.text();
-  const sample = html.slice(0, 4096).toLowerCase();
-  if (
-    !html.trim() ||
-    sample.includes('<title>just a moment...</title>') ||
-    sample.includes('cf-browser-verification') ||
-    sample.includes('attention required! | cloudflare')
-  ) {
-    throw new UpstreamError('DongHive mengembalikan halaman verifikasi sementara.', {
-      status: 503,
-      url: response.url,
-    });
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new UpstreamError('API donghua mengirim respons yang bukan JSON.', { status: 502, url });
   }
-  return cheerio.load(html);
+  const result = asObject(payload);
+  if (text(result.status).toLowerCase() === 'error' || text(result.status).toLowerCase() === 'failed') {
+    throw new UpstreamError(text(result.message) || 'API donghua gagal memuat data.', { status: 502, url });
+  }
+  return result;
 }
 
-function latestPath(page: number): string {
-  const safePage = Math.max(1, Math.trunc(page));
-  return safePage > 1 ? `/page/${safePage}/` : '/';
+function listingFrom(payload: ApiObject): ApiObject[] {
+  for (const key of ['latest_donghua', 'search_results', 'results', 'data', 'donghua']) {
+    const items = asArray(payload[key]);
+    if (items.length > 0) return items;
+  }
+  return [];
 }
 
-function animeListPath(page: number): string {
-  const safePage = Math.max(1, Math.trunc(page));
-  return safePage > 1 ? `/anime/page/${safePage}/` : '/anime/';
+function episodeRefFrom(item: ApiObject, fallbackTitle = ''): DonghiveEpisodeRef | null {
+  const slug = safeSlug(item.slug) || slugFromUrl(absoluteUrl(item.href));
+  const title = text(item.episode) || text(item.title) || fallbackTitle;
+  if (!slug || !title) return null;
+  return {
+    episode: text(item.episode_number) || null,
+    title,
+    date: text(item.release_date) || null,
+    slug,
+    url: absoluteUrl(item.anichinUrl) || absoluteUrl(item.href) || new URL(`/donghua/episode/${encodeURIComponent(slug)}`, SANKA_DONGHUA_API_URL).toString(),
+  };
 }
 
-function paginationHasNext($: cheerio.CheerioAPI): boolean {
-  return Boolean($('.pagination a.next, .hpage a.r, .hpage a.next, a.next.page-numbers').length);
-}
-
-function parseCards($: cheerio.CheerioAPI): ComicCard[] {
-  const items: ComicCard[] = [];
-  $('.listupd.normal .bs, .listupd.normal article, .listupd .bs, .listupd article').each((_, el) => {
-    const item = cardFrom($, $(el));
-    if (item && !items.some((existing) => existing.id === item.id)) items.push(item);
-  });
-  return items;
+function cardFrom(item: ApiObject): ComicCard | null {
+  const slug = safeSlug(item.slug) || slugFromUrl(absoluteUrl(item.href));
+  const title = text(item.title);
+  if (!slug || !title) return null;
+  const poster = absoluteUrl(item.poster);
+  return {
+    id: `donghive:${slug}`,
+    source: 'donghive',
+    title,
+    poster,
+    meta: [text(item.type) || 'Donghua', text(item.status), text(item.sub)].filter(Boolean).join(' · '),
+    latest: text(item.latest_episode) || null,
+    href: `/donghive/${encodeURIComponent(slug)}`,
+  };
 }
 
 export async function getDonghiveHome(limit = 10): Promise<ComicCard[]> {
-  const $ = await getHtml('/', 600);
-  return parseCards($).slice(0, Math.max(0, limit));
+  const payload = await getJson(apiPath('latest', '1'), 600);
+  return listingFrom(payload)
+    .map(cardFrom)
+    .filter((item): item is ComicCard => item !== null)
+    .slice(0, Math.max(0, limit));
 }
 
 export async function getDonghiveList(page = 1, query = ''): Promise<DonghiveListResult> {
-  const path = query.trim() ? latestPath(page) : animeListPath(page);
-  const url = new URL(path, DONGHIVE_BASE_URL);
-  if (query.trim()) url.searchParams.set('s', query.trim().slice(0, 100));
-  const $ = await getHtml(`${url.pathname}${url.search}`, 600);
-  return { items: parseCards($), hasNextPage: paginationHasNext($), page: Math.max(1, Math.trunc(page)) };
+  const currentPage = pageNumber(page);
+  const search = query.trim().slice(0, 100);
+  const payload = await getJson(
+    search ? apiPath('search', search) : apiPath('latest', String(currentPage)),
+    600
+  );
+  const rawItems = listingFrom(payload);
+  const items = rawItems.map(cardFrom).filter((item): item is ComicCard => item !== null);
+  const totalPages = Number(payload.total_pages || payload.totalPages || 0);
+  const hasNextPage = typeof payload.has_next === 'boolean'
+    ? payload.has_next
+    : typeof payload.hasNextPage === 'boolean'
+      ? payload.hasNextPage
+      : totalPages > 0
+        ? currentPage < totalPages
+        : rawItems.length >= 30;
+  return { items, hasNextPage, page: currentPage };
 }
 
 export async function getDonghiveDetail(slug: string): Promise<DonghiveDetail> {
-  const safeSlug = slug.trim().replace(/^\/+|\/+$/g, '');
-  if (!safeSlug || safeSlug.includes('..')) throw new UpstreamError('Slug DongHive tidak valid.', { status: 404 });
-  const fullUrl = resolveUrl(`/${encodeURIComponent(safeSlug)}/`);
-  const $ = await getHtml(fullUrl, 1800);
+  const safe = safeSlug(slug);
+  if (!safe || safe.includes('..')) throw new UpstreamError('Slug donghua tidak valid.', { status: 404 });
+  const payload = await getJson(apiPath('detail', safe), 1800);
+  const title = text(payload.title);
+  if (!title) throw new UpstreamError('Judul donghua tidak ditemukan.', { status: 404 });
 
-  const title = cleanText($('.infox h1.entry-title, h1.entry-title').first().text());
-  if (!title) throw new UpstreamError('Judul tidak ditemukan di DongHive.', { status: 404, url: fullUrl });
-
-  const rawPoster =
-    $('.thumbook .thumb img').attr('data-src') ||
-    $('.thumbook .thumb img').attr('data-lazy-src') ||
-    $('.thumbook .thumb img').attr('src');
+  const genres = asArray(payload.genres).map((genre) => text(genre.name || genre.title)).filter(Boolean);
+  const episodes = asArray(payload.episodes_list)
+    .map((item) => episodeRefFrom(item, title))
+    .filter((item): item is DonghiveEpisodeRef => item !== null);
   const metadata: Record<string, string> = {};
-  $('.spe span').each((_, el) => {
-    const text = cleanText($(el).text());
-    const colon = text.indexOf(':');
-    if (colon > 0) metadata[text.slice(0, colon).trim()] = text.slice(colon + 1).trim();
-  });
-
-  const genres: string[] = [];
-  $('.genxed a').each((_, el) => {
-    const value = cleanText($(el).text());
-    if (value) genres.push(value);
-  });
-
-  const episodes: DonghiveEpisodeRef[] = [];
-  $('.eplister ul li').each((_, el) => {
-    const row = $(el);
-    const url = resolveUrl(row.find('a').first().attr('href'));
-    const episode = cleanText(row.find('.epl-num').text()) || null;
-    const episodeTitle = cleanText(row.find('.epl-title').text()) || title;
-    const date = cleanText(row.find('.epl-date').text()) || null;
-    const slugValue = slugFromUrl(url);
-    if (url && slugValue) episodes.push({ episode, title: episodeTitle, date, slug: slugValue, url });
-  });
+  for (const [key, label] of [
+    ['status', 'Status'],
+    ['type', 'Tipe'],
+    ['episodes_count', 'Jumlah episode'],
+    ['studio', 'Studio'],
+    ['network', 'Network'],
+    ['released', 'Rilis'],
+    ['duration', 'Durasi'],
+    ['country', 'Negara'],
+    ['subber', 'Penerjemah'],
+    ['author', 'Uploader'],
+  ] as const) {
+    const value = text(payload[key]);
+    if (value) metadata[label] = value;
+  }
 
   return {
     title,
-    slug: safeSlug,
-    url: fullUrl,
-    poster: resolveUrl(rawPoster) || null,
-    rating: cleanText($('.rating strong').first().text()).replace(/^Rating\s*/i, '') || null,
-    synopsis: cleanText($('.desc').text()) || cleanText($('.mindesc').text()) || cleanText($('.entry-content').first().text()) || null,
+    slug: safeSlug(payload.slug) || safe,
+    url: absoluteUrl(payload.anichinUrl) || new URL(`/donghua/${encodeURIComponent(safe)}/`, SANKA_DONGHUA_API_URL).toString(),
+    poster: absoluteUrl(payload.poster),
+    rating: text(payload.rating) || null,
+    synopsis: text(payload.synopsis) || null,
     metadata,
     genres: [...new Set(genres)],
     episodes,
   };
 }
 
-function decodeServer(value: string): string {
-  try {
-    const decoded = Buffer.from(value, 'base64').toString('utf8');
-    const $ = cheerio.load(decoded);
-    return resolveUrl($('iframe').first().attr('src')) || '';
-  } catch {
-    return '';
-  }
-}
-
 export async function getDonghiveEpisode(slug: string): Promise<DonghiveEpisode> {
-  const safeSlug = slug.trim().replace(/^\/+|\/+$/g, '');
-  if (!safeSlug || safeSlug.includes('..')) throw new UpstreamError('Slug episode DongHive tidak valid.', { status: 404 });
-  const fullUrl = resolveUrl(`/${encodeURIComponent(safeSlug)}/`);
-  const $ = await getHtml(fullUrl, 300);
+  const safe = safeSlug(slug);
+  if (!safe || safe.includes('..')) throw new UpstreamError('Slug episode tidak valid.', { status: 404 });
+  const payload = await getJson(apiPath('episode', safe), 300);
+  const title = text(payload.episode);
+  if (!title) throw new UpstreamError('Episode donghua tidak ditemukan.', { status: 404 });
 
-  const title = cleanText($('.title-section h1.entry-title, h1.entry-title').first().text());
-  if (!title) throw new UpstreamError('Episode tidak ditemukan di DongHive.', { status: 404, url: fullUrl });
-  const seriesLink = $('.year a, .naveps .nvsc a').first();
-  const seriesUrl = resolveUrl(seriesLink.attr('href')) || null;
-  const serverMap = new Map<string, DonghiveServer>();
-  $('select.mirror option').each((_, el) => {
-    const option = $(el);
-    const name = cleanText(option.text());
-    const url = decodeServer(option.attr('value') || '');
-    if (name && url) serverMap.set(url, { name, url });
-  });
+  const streaming = asObject(payload.streaming);
+  const rawServers = asArray(streaming.servers);
+  const mainServer = asObject(streaming.main_url);
+  if (Object.keys(mainServer).length > 0) rawServers.unshift(mainServer);
+  const seen = new Set<string>();
+  const servers = rawServers
+    .map((server) => ({ name: text(server.name), url: absoluteUrl(server.url) }))
+    .filter((server): server is DonghiveServer => {
+      if (!server.name || !server.url || seen.has(server.url)) return false;
+      seen.add(server.url);
+      return true;
+    });
 
-  const defaultEmbed = resolveUrl($('#pembed iframe').first().attr('src'));
-  if (defaultEmbed && ![...serverMap.values()].some((server) => server.url === defaultEmbed)) {
-    serverMap.set(defaultEmbed, { name: 'Server utama', url: defaultEmbed });
-  }
+  const series = asObject(payload.donghua_details);
+  const navigation = asObject(payload.navigation);
+  const previous = asObject(navigation.previous_episode);
+  const next = asObject(navigation.next_episode);
+  const allEpisodes = asObject(navigation.all_episodes);
+  const seriesSlug = safeSlug(series.slug) || safeSlug(allEpisodes.slug);
+  const seriesUrl = absoluteUrl(series.anichinUrl) || absoluteUrl(allEpisodes.anichinUrl) ||
+    (seriesSlug ? new URL(`/donghua/${encodeURIComponent(seriesSlug)}/`, SANKA_DONGHUA_API_URL).toString() : null);
 
   return {
     title,
-    slug: safeSlug,
-    url: fullUrl,
-    episodeNumber:
-      cleanText($('meta[itemprop="episodeNumber"]').attr('content')) || cleanText($('.lm .epx').text()) || null,
-    releaseDate: cleanText($('.year .updated').text()) || null,
-    thumbnail:
-      resolveUrl(
-        $('#pembed iframe').attr('data-poster') ||
-          $('.thumbook img').attr('data-src') ||
-          $('.thumbook img').attr('src')
-      ) || null,
+    slug: safeSlug(payload.slug) || safe,
+    url: absoluteUrl(payload.anichinUrl) || new URL(`/donghua/episode/${encodeURIComponent(safe)}/`, SANKA_DONGHUA_API_URL).toString(),
+    episodeNumber: text(payload.episode_number) || title.match(/episode\s*([\d.]+)/i)?.[1] || null,
+    releaseDate: text(series.released) || null,
+    thumbnail: absoluteUrl(series.poster),
     series: {
-      title: cleanText(seriesLink.text()) || null,
-      slug: seriesUrl ? slugFromUrl(seriesUrl) : null,
+      title: text(series.title) || null,
+      slug: seriesSlug || null,
       url: seriesUrl,
     },
     navigation: {
-      prev: resolveUrl($('.naveps .nvs a[rel="prev"]').attr('href')) || null,
-      next: resolveUrl($('.naveps .nvs a[rel="next"]').attr('href')) || null,
-      allEpisodes: resolveUrl($('.naveps .nvsc a').attr('href')) || null,
+      prev: absoluteUrl(previous.anichinUrl) || absoluteUrl(previous.href),
+      next: absoluteUrl(next.anichinUrl) || absoluteUrl(next.href),
+      allEpisodes: absoluteUrl(allEpisodes.anichinUrl) || absoluteUrl(allEpisodes.href) || seriesUrl,
     },
-    servers: [...serverMap.values()],
+    servers,
   };
 }
 

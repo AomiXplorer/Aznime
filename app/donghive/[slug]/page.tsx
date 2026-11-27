@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: DonghiveDetailPageProps): Pro
       alternates: { canonical: `/donghive/${encodeURIComponent(detail.slug)}` },
     };
   } catch {
-    return { title: 'DongHive' };
+    return { title: 'Donghua' };
   }
 }
 
@@ -74,8 +74,8 @@ export default async function DonghiveDetailPage({ params }: DonghiveDetailPageP
     return (
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <ErrorState
-          title="Gagal memuat detail DongHive"
-          message={error instanceof Error ? error.message : 'DongHive tidak merespons.'}
+          title="Gagal memuat detail Donghua"
+          message={error instanceof Error ? error.message : 'API Donghua tidak merespons.'}
         />
       </div>
     );
