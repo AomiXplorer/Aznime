@@ -88,7 +88,7 @@ export default function CreditPage() {
   const lead: Contributor | undefined = featuredDeveloper?.id === 'aomi'
     ? {
         ...featuredDeveloper,
-        avatar: { kind: 'image', src: '/contributors/aomi-credit.gif' },
+        avatar: { kind: 'image', src: '/contributors/aomi-credit.webp' },
         note: 'Merancang, mengembangkan, dan mengelola infrastruktur web Aznime, mulai dari frontend, backend, database, hingga integrasi layanan dan optimasi sistem',
       }
     : featuredDeveloper;

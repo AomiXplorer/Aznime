@@ -475,11 +475,6 @@ function qualityWeight(quality: string): number {
 }
 
 /**
- * Server direct Malz adalah MP4 di storages.animein.net yang hanya bisa diambil
- * browser pengunjung (Cloudflare menolak permintaan server). Urutan sengaja
- * diturunkan dari kualitas tertinggi supaya pemutar memilih 1080p/720p lebih dulu.
- */
-/**
  * Malz menyimpan berkas video dengan garis miring di dalam nama objek, sehingga
  * tautannya memakai `%2F`. Sebagian browser menormalkannya menjadi `/` dan CDN
  * membalas 400 Bad Request. Tautan video dialihkan ke proksi /api/video supaya
@@ -495,7 +490,10 @@ export function proxiedVideoMirrors(mirrors: MirrorServer[]): MirrorServer[] {
   );
 }
 
-export function malzServersToMirrors(servers: MalzServer[]): MirrorServer[] {
+export function malzServersToMirrors(
+  servers: MalzServer[],
+  { saveBandwidth = false }: { saveBandwidth?: boolean } = {}
+): MirrorServer[] {
   const usable = servers
     .filter((server) => server && server.link)
     .map((server) => {
@@ -514,6 +512,17 @@ export function malzServersToMirrors(servers: MalzServer[]): MirrorServer[] {
     if (a.direct !== b.direct) return a.direct ? -1 : 1;
     return b.quality - a.quality;
   });
+
+  if (saveBandwidth && usable[0]?.mirror.type === 'video') {
+    // Pilih MP4 terbaik hingga 480p. Kualitas lain tetap tersedia di pemutar.
+    const economy = usable.findIndex(({ mirror, quality }) =>
+      mirror.type === 'video' && quality > 0 && quality <= 480
+    );
+    if (economy > 0) {
+      const [preferred] = usable.splice(economy, 1);
+      usable.unshift(preferred);
+    }
+  }
 
   return usable.map((entry) => entry.mirror);
 }
