@@ -3,11 +3,10 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Clock, Eye, LogOut, RotateCcw, Trash2, UserRound, Wand2 } from 'lucide-react';
+import { Clock, Eye, LogOut, RotateCcw, UserRound, Wand2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { cn } from '@/lib/cn';
 import { DEFAULT_PREFERENCES, savePreferences, type Preferences } from '@/lib/preferences';
-import { DeleteAccountDialog } from './DeleteAccountDialog';
 
 const PROVIDER_LABEL: Record<string, string> = {
   email: 'Email & password',
@@ -98,9 +97,8 @@ function Row({
 
 export function SettingsView({ initial }: { initial: Preferences }) {
   const router = useRouter();
-  const { user, refresh, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [prefs, setPrefs] = useState<Preferences>(initial);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const update = useCallback(<K extends keyof Preferences>(key: K, value: Preferences[K]) => {
@@ -195,7 +193,7 @@ export function SettingsView({ initial }: { initial: Preferences }) {
               </Link>
             </div>
 
-            <div className="flex flex-wrap gap-2 px-4 py-4">
+            <div className="px-4 py-4">
               <button
                 type="button"
                 onClick={() => {
@@ -208,19 +206,7 @@ export function SettingsView({ initial }: { initial: Preferences }) {
                 <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
                 Keluar
               </button>
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(true)}
-                className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[4px] border border-accent/30 px-3.5 text-[12.5px] font-medium text-accent-soft transition-colors duration-150 hover:border-accent hover:bg-accent/10"
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                Hapus akun
-              </button>
             </div>
-            <p className="px-4 py-3 text-[11.5px] leading-relaxed text-zinc-600">
-              Menghapus akun juga menghapus riwayat tontonan dan daftar favorit yang tersimpan di
-              server. Tindakan ini tidak bisa dibatalkan.
-            </p>
           </>
         ) : (
           <div className="px-4 py-4">
@@ -255,21 +241,6 @@ export function SettingsView({ initial }: { initial: Preferences }) {
           <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
           Kembalikan ke bawaan
         </button>
-      ) : null}
-
-      {user ? (
-        <DeleteAccountDialog
-          open={deleteOpen}
-          username={user.username}
-          onClose={() => setDeleteOpen(false)}
-          onDeleted={() => {
-            setDeleteOpen(false);
-            void refresh().then(() => {
-              router.replace('/');
-              router.refresh();
-            });
-          }}
-        />
       ) : null}
     </div>
   );

@@ -49,8 +49,3 @@ export async function pgUpdateUser(id: string, patch: { username?: string; avata
   }).eq('id', id);
   if (error) throw new PersistenceError();
 }
-
-export async function pgDeleteUser(id: string) {
-  const { error } = await database().from(TABLE).delete().eq('id', id);
-  if (error) throw new PersistenceError();
-}

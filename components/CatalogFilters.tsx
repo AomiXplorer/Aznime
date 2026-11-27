@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, RotateCcw, Search, Settings, X } from 'lucide-react';
+import { Check, ChevronDown, RotateCcw, Search, X } from 'lucide-react';
 import type { FilterOptionItem, FilterOptionsMap } from '@/lib/scraper/types';
 import { cn } from '@/lib/cn';
 import { AdultWarning } from './AdultWarning';
@@ -20,7 +19,6 @@ interface CatalogFiltersProps {
   options: FilterOptionsMap;
   current: CatalogFilterState;
   basePath?: string;
-  /** Filter konten dewasa dari Pengaturan. Bawaannya mati. */
   showAdult?: boolean;
 }
 
@@ -443,22 +441,6 @@ export function CatalogFilters({
             );
           })}
         </div>
-
-        {openKey === 'type' && !showAdult ? (
-          <div className="flex items-center justify-between gap-3 border-t border-[#241d1d] px-4 py-3">
-            <p className="text-[11.5px] leading-snug text-zinc-500">
-              Hentai dan Manhwa 18+ disembunyikan.
-            </p>
-            <Link
-              href="/settings"
-              onClick={close}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-[4px] text-[12px] font-semibold text-accent-soft transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-              <Settings className="h-3.5 w-3.5" aria-hidden="true" />
-              Atur
-            </Link>
-          </div>
-        ) : null}
       </>
     );
   };
