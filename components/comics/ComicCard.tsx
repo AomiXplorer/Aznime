@@ -44,6 +44,7 @@ const SOURCE_BADGE: Record<ComicSource, string> = {
   komiku: 'Komik',
   webtoon: 'Webtoon',
   mangasusuku: 'Manhwa 18+',
+  rumahfilm: 'Film',
 };
 
 interface ComicCardProps {
@@ -63,12 +64,16 @@ export function ComicCard({
   className,
   sizes = GRID_SIZES,
 }: ComicCardProps) {
-  const poster = comicPosterSrc(item, 240, posterHeight(240, aspect));
-  const srcSet = poster
-    ? POSTER_WIDTHS.map(
-        (width) => `${comicPosterSrc(item, width, posterHeight(width, aspect))} ${width}w`
-      ).join(', ')
-    : undefined;
+  const directPoster = item.source === 'rumahfilm';
+  const poster = directPoster
+    ? item.poster || null
+    : comicPosterSrc(item, 240, posterHeight(240, aspect));
+  const srcSet =
+    !directPoster && poster
+      ? POSTER_WIDTHS.map(
+          (width) => `${comicPosterSrc(item, width, posterHeight(width, aspect))} ${width}w`
+        ).join(', ')
+      : undefined;
 
   return (
     <article className={cn('group relative cv-item', className)}>
@@ -86,6 +91,7 @@ export function ComicCard({
             src={poster}
             srcSet={srcSet}
             sizes={sizes}
+            referrerPolicy={directPoster ? 'no-referrer' : undefined}
             alt={item.title}
             className="object-cover"
             fallback={

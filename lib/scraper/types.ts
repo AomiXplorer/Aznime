@@ -4,7 +4,7 @@ export type LinkKind = 'anime' | 'episode';
  * Sumber data: Hidori (utama), arsip Malz (pelengkap judul lama), atau Nekopoi
  * (konten 18+, hanya dipakai halaman /hentai).
  */
-export type AnimeSource = 'hidori' | 'malz' | 'nekopoi';
+export type AnimeSource = 'hidori' | 'malz' | 'nekopoi' | 'rumahfilm';
 
 export interface AnimeCardItem {
   postId: string | null;
@@ -12,6 +12,7 @@ export interface AnimeCardItem {
   seriesTitle: string;
   slug: string | null;
   url: string | null;
+  href?: string;
   kind: LinkKind;
   poster: string | null;
   type: string | null;

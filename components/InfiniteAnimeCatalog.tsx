@@ -14,10 +14,13 @@ interface InfiniteAnimeCatalogProps {
   queryParams: Record<string, string | string[] | undefined>;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyActionLabel?: string | null;
+  emptyActionHref?: string | null;
+  endLabel?: string;
 }
 
 function getStableItemKey(item: AnimeCardItem): string {
-  return `${item.kind}:${item.slug || item.url || item.postId || item.title}`;
+  return `${item.source}:${item.kind}:${item.slug || item.url || item.postId || item.title}`;
 }
 
 export function InfiniteAnimeCatalog({
@@ -27,6 +30,9 @@ export function InfiniteAnimeCatalog({
   queryParams,
   emptyTitle = 'Belum ada anime ditemukan',
   emptyDescription = 'Coba ubah filter atau kata kunci pencarian Anda.',
+  emptyActionLabel = 'Lihat Katalog Lengkap',
+  emptyActionHref = '/anime',
+  endLabel = 'anime',
 }: InfiniteAnimeCatalogProps) {
   const [items, setItems] = useState<AnimeCardItem[]>(initialItems);
   const [pagination, setPagination] = useState<PaginationInfo>(initialPagination);
@@ -155,8 +161,8 @@ export function InfiniteAnimeCatalog({
       <EmptyState
         title={emptyTitle}
         description={emptyDescription}
-        actionLabel="Lihat Katalog Lengkap"
-        actionHref="/anime"
+        actionLabel={emptyActionLabel ?? undefined}
+        actionHref={emptyActionHref ?? undefined}
       />
     );
   }
@@ -178,7 +184,7 @@ export function InfiniteAnimeCatalog({
       <div ref={sentinelRef} className="py-2 text-center">
         {!pagination.hasNextPage && !loadingMore ? (
           <p className="text-sm text-zinc-400">
-            Seluruh anime pada daftar ini sudah ditampilkan ({items.length} judul).
+            Seluruh {endLabel} pada daftar ini sudah ditampilkan ({items.length} judul).
           </p>
         ) : !loadingMore && !error ? (
           <button

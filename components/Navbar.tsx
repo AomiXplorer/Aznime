@@ -22,6 +22,7 @@ const NAV_LINKS = [
   { href: '/ongoing', label: 'Ongoing' },
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
+  { href: '/film', label: 'Film' },
   { href: '/komik', label: 'Komik' },
   { href: '/webtoon', label: 'Webtoon' },
 ] as const;

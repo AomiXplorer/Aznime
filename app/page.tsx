@@ -17,6 +17,7 @@ import { AnimeRow } from '@/components/AnimeRow';
 import { AnimeGrid } from '@/components/AnimeGrid';
 import { ComicRow } from '@/components/comics/ComicRow';
 import { getKomikFeed, getWebtoonFeed } from '@/lib/comics';
+import { getFilmFeed } from '@/lib/scrapers';
 import { ErrorState } from '@/components/ErrorState';
 
 export const revalidate = 180;
@@ -63,9 +64,10 @@ export default async function HomePage() {
   /* Sumber utama peringkat: arsip Malz (views + favorit). Daftar populer
      Hidori hanya dipakai kalau Malz sedang tidak bisa dihubungi, supaya
      bagian ini tidak pernah kosong. */
-  const [komikFeed, webtoonFeed] = await Promise.all([
+  const [komikFeed, webtoonFeed, filmFeed] = await Promise.all([
     getKomikFeed(14),
     getWebtoonFeed(14),
+    getFilmFeed(14),
   ]);
 
   const malzRanking = await getMalzPopularRanking(5).catch(() => null);
@@ -128,6 +130,8 @@ export default async function HomePage() {
         />
 
         <ComicRow title="Komik" items={komikFeed.items} viewAllHref="/komik" />
+
+        <ComicRow title="Film" items={filmFeed.items} viewAllHref="/film" />
       </div>
     </>
   );
