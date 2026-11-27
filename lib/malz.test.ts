@@ -129,6 +129,25 @@ test('malzServersToMirrors membuang server tanpa tautan', () => {
   assert.equal(mirrors.length, 0);
 });
 
+test('mode hemat memilih MP4 hingga 480p dan tetap menyediakan sumber lain', () => {
+  const mp4 = (height: number): MalzServer => ({
+    id: String(height),
+    nama: 'RAPSODI',
+    tipe: 'direct',
+    kualitas: `${height}p`,
+    ukuran_mb: null,
+    link: `https://cdn.example/${height}.mp4`,
+    host: 'cdn.example',
+    perlu_browser: true,
+  });
+  const names = (heights: number[]) =>
+    malzServersToMirrors(heights.map(mp4), { saveBandwidth: true }).map((mirror) => mirror.name);
+
+  assert.deepEqual(names([360, 720, 480]), ['RAPSODI 480p', 'RAPSODI 720p', 'RAPSODI 360p']);
+  assert.deepEqual(names([360, 720]), ['RAPSODI 360p', 'RAPSODI 720p']);
+  assert.deepEqual(names([720]), ['RAPSODI 720p']);
+});
+
 test('malzImageUrl mengarahkan poster lewat proxy gambar', () => {
   assert.equal(malzImageUrl(''), null);
   assert.equal(malzImageUrl(null), null);
