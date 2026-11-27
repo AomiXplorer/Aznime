@@ -28,6 +28,201 @@ export function isRedisConfigured(): boolean {
     !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash;
 }
 
+interface MemoryEntry {
+  kind: 'string' | 'hash' | 'zset';
+  value: string | Map<string, string> | Map<string, number>;
+  expiresAt: number | null;
+}
+
+const globalForRedis = globalThis as typeof globalThis & {
+  __aznimeMemoryRedis?: Map<string, MemoryEntry>;
+};
+
+function memoryStore(): Map<string, MemoryEntry> {
+  if (!globalForRedis.__aznimeMemoryRedis) {
+    globalForRedis.__aznimeMemoryRedis = new Map();
+  }
+  return globalForRedis.__aznimeMemoryRedis;
+}
+
+function getLiveEntry(key: string): MemoryEntry | undefined {
+  const store = memoryStore();
+  const entry = store.get(key);
+  if (!entry) return undefined;
+  if (entry.expiresAt !== null && entry.expiresAt <= Date.now()) {
+    store.delete(key);
+    return undefined;
+  }
+  return entry;
+}
+
+function executeMemoryCommand(command: (string | number)[]): unknown {
+  const op = String(command[0] || '').toUpperCase();
+  const store = memoryStore();
+
+  switch (op) {
+    case 'GET': {
+      const entry = getLiveEntry(String(command[1]));
+      return entry?.kind === 'string' ? (entry.value as string) : null;
+    }
+    case 'GETDEL': {
+      const key = String(command[1]);
+      const entry = getLiveEntry(key);
+      store.delete(key);
+      return entry?.kind === 'string' ? (entry.value as string) : null;
+    }
+    case 'SET': {
+      const key = String(command[1]);
+      const value = String(command[2]);
+      let exSeconds: number | null = null;
+      let nx = false;
+      for (let i = 3; i < command.length; i += 1) {
+        const flag = String(command[i]).toUpperCase();
+        if (flag === 'EX' && command[i + 1] !== undefined) {
+          exSeconds = Number(command[i + 1]);
+          i += 1;
+        } else if (flag === 'NX') {
+          nx = true;
+        }
+      }
+      if (nx && getLiveEntry(key)) return null;
+      const expiresAt = exSeconds && exSeconds > 0 ? Date.now() + exSeconds * 1000 : null;
+      store.set(key, { kind: 'string', value, expiresAt });
+      return 'OK';
+    }
+    case 'DEL': {
+      let deleted = 0;
+      for (let i = 1; i < command.length; i += 1) {
+        if (store.delete(String(command[i]))) deleted += 1;
+      }
+      return deleted;
+    }
+    case 'INCR': {
+      const key = String(command[1]);
+      const existing = getLiveEntry(key);
+      const current = existing?.kind === 'string' ? Number(existing.value) || 0 : 0;
+      const next = current + 1;
+      store.set(key, { kind: 'string', value: String(next), expiresAt: existing?.expiresAt ?? null });
+      return next;
+    }
+    case 'EXPIRE': {
+      const key = String(command[1]);
+      const ttl = Number(command[2]);
+      const existing = getLiveEntry(key);
+      if (!existing) return 0;
+      existing.expiresAt = ttl > 0 ? Date.now() + ttl * 1000 : Date.now();
+      return 1;
+    }
+    case 'HGETALL': {
+      const entry = getLiveEntry(String(command[1]));
+      if (entry?.kind !== 'hash') return [];
+      const flat: string[] = [];
+      for (const [k, v] of (entry.value as Map<string, string>).entries()) {
+        flat.push(k, v);
+      }
+      return flat;
+    }
+    case 'HGET': {
+      const entry = getLiveEntry(String(command[1]));
+      if (entry?.kind !== 'hash') return null;
+      return (entry.value as Map<string, string>).get(String(command[2])) ?? null;
+    }
+    case 'HSET': {
+      const key = String(command[1]);
+      let entry = getLiveEntry(key);
+      if (entry?.kind !== 'hash') {
+        entry = { kind: 'hash', value: new Map<string, string>(), expiresAt: null };
+        store.set(key, entry);
+      }
+      const map = entry.value as Map<string, string>;
+      let added = 0;
+      for (let i = 2; i + 1 < command.length; i += 2) {
+        const field = String(command[i]);
+        if (!map.has(field)) added += 1;
+        map.set(field, String(command[i + 1]));
+      }
+      return added;
+    }
+    case 'HDEL': {
+      const entry = getLiveEntry(String(command[1]));
+      if (entry?.kind !== 'hash') return 0;
+      const map = entry.value as Map<string, string>;
+      let removed = 0;
+      for (let i = 2; i < command.length; i += 1) {
+        if (map.delete(String(command[i]))) removed += 1;
+      }
+      return removed;
+    }
+    case 'HLEN': {
+      const entry = getLiveEntry(String(command[1]));
+      return entry?.kind === 'hash' ? (entry.value as Map<string, string>).size : 0;
+    }
+    case 'ZADD': {
+      const key = String(command[1]);
+      const score = Number(command[2]);
+      const member = String(command[3]);
+      let entry = getLiveEntry(key);
+      if (entry?.kind !== 'zset') {
+        entry = { kind: 'zset', value: new Map<string, number>(), expiresAt: null };
+        store.set(key, entry);
+      }
+      const zset = entry.value as Map<string, number>;
+      const isNew = !zset.has(member);
+      zset.set(member, score);
+      return isNew ? 1 : 0;
+    }
+    case 'ZSCORE': {
+      const entry = getLiveEntry(String(command[1]));
+      if (entry?.kind !== 'zset') return null;
+      const score = (entry.value as Map<string, number>).get(String(command[2]));
+      return score !== undefined ? String(score) : null;
+    }
+    case 'ZREVRANGE': {
+      const entry = getLiveEntry(String(command[1]));
+      if (entry?.kind !== 'zset') return [];
+      const sorted = [...(entry.value as Map<string, number>).entries()]
+        .sort((a, b) => b[1] - a[1] || b[0].localeCompare(a[0]))
+        .map(([member]) => member);
+      const len = sorted.length;
+      if (len === 0) return [];
+      let start = Number(command[2]);
+      let stop = Number(command[3]);
+      if (start < 0) start = Math.max(0, len + start);
+      if (stop < 0) stop = len + stop;
+      if (start >= len || stop < start) return [];
+      return sorted.slice(start, stop + 1);
+    }
+    case 'ZREM': {
+      const entry = getLiveEntry(String(command[1]));
+      if (entry?.kind !== 'zset') return 0;
+      const zset = entry.value as Map<string, number>;
+      let removed = 0;
+      for (let i = 2; i < command.length; i += 1) {
+        if (zset.delete(String(command[i]))) removed += 1;
+      }
+      return removed;
+    }
+    case 'ZCARD': {
+      const entry = getLiveEntry(String(command[1]));
+      return entry?.kind === 'zset' ? (entry.value as Map<string, number>).size : 0;
+    }
+    case 'EVAL': {
+      // Used by rate-limit.ts: EVAL script 1 key windowSeconds
+      const key = String(command[3]);
+      const windowSeconds = Number(command[4]);
+      const existing = getLiveEntry(key);
+      const current = existing?.kind === 'string' ? Number(existing.value) || 0 : 0;
+      const next = current + 1;
+      const expiresAt =
+        existing?.expiresAt ?? (windowSeconds > 0 ? Date.now() + windowSeconds * 1000 : null);
+      store.set(key, { kind: 'string', value: String(next), expiresAt });
+      return next;
+    }
+    default:
+      return null;
+  }
+}
+
 async function post<T>(path: string, body: unknown, timeoutMs = 5000): Promise<T> {
   const url = restUrl();
   const token = restToken();
@@ -61,6 +256,9 @@ async function post<T>(path: string, body: unknown, timeoutMs = 5000): Promise<T
 }
 
 export async function redisCommand<T = unknown>(...command: (string | number)[]): Promise<T> {
+  if (!isRedisConfigured()) {
+    return executeMemoryCommand(command) as T;
+  }
   const data = await post<{ result?: T; error?: string }>('', command);
   if (data.error) throw new RedisError('Redis command failed', 500);
   return data.result as T;
@@ -68,6 +266,9 @@ export async function redisCommand<T = unknown>(...command: (string | number)[])
 
 export async function redisPipeline<T = unknown>(commands: (string | number)[][]): Promise<T[]> {
   if (commands.length === 0) return [];
+  if (!isRedisConfigured()) {
+    return commands.map((cmd) => executeMemoryCommand(cmd) as T);
+  }
   const data = await post<({ result?: T; error?: string })[]>('/pipeline', commands);
   if (!Array.isArray(data)) throw new RedisError('Balasan pipeline Redis tidak valid', 502);
   const failed = data.find((entry) => entry && entry.error);
@@ -76,6 +277,9 @@ export async function redisPipeline<T = unknown>(commands: (string | number)[][]
 }
 
 export async function optionalRedisCommand<T = unknown>(...command: (string | number)[]): Promise<T> {
+  if (!isRedisConfigured()) {
+    return executeMemoryCommand(command) as T;
+  }
   const data = await post<{ result?: T; error?: string }>('', command, 500);
   if (data.error) throw new RedisError('Redis command failed', 500);
   return data.result as T;

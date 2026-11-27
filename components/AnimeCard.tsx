@@ -19,9 +19,13 @@ interface AnimeCardProps {
   tone?: 'dark' | 'light';
 }
 
-export function getAnimeItemHref(item: Pick<AnimeCardItem, 'slug' | 'kind'> & { source?: AnimeCardItem['source'] }): string {
-  if (!item.slug) return '/anime';
+export function getAnimeItemHref(
+  item: Pick<AnimeCardItem, 'slug' | 'kind'> & { source?: AnimeCardItem['source']; href?: string }
+): string {
+  if (item.href) return item.href;
+  if (!item.slug) return item.source === 'rumahfilm' ? '/film' : '/anime';
   const encoded = encodeURIComponent(item.slug);
+  if (item.source === 'rumahfilm') return `/film/${encoded}`;
   return item.kind === 'episode' ? `/watch/${encoded}` : `/anime/${encoded}`;
 }
 

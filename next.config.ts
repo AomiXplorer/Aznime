@@ -15,7 +15,6 @@ const CONTENT_SECURITY_POLICY = [
   "base-uri 'self'",
   "object-src 'none'",
   "form-action 'self'",
-  "frame-ancestors 'none'",
   `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://challenges.cloudflare.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
@@ -33,7 +32,6 @@ const SECURITY_HEADERS = [
   // jadi domain yang belum punya sertifikat tetap aman.
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'X-Frame-Options', value: 'DENY' },
   /* X-XSS-Protection sengaja tidak dikirim. Header ini sudah dihapus dari
      standar dan pada sebagian browser lama justru membuka celah (mode=block
      bisa dipakai menyuntikkan filter yang salah). Perlindungan XSS di sini
@@ -49,6 +47,7 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   /* Source map browser tidak dikirim ke publik: isi bundle server memuat nama
      variabel internal dan jalur file, tidak ada gunanya dibagikan ke pengunjung. */
   productionBrowserSourceMaps: false,

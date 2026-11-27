@@ -13,7 +13,7 @@ import webtoons from '@/lib/scrapers/webtoons.js';
 /* 'mangasusuku' adalah sumber komik dewasa di /manhwa18. Tipenya ikut di sini
    supaya kartu dan grid yang sama bisa dipakai, tetapi datanya tidak pernah
    masuk ke beranda, pencarian utama, maupun sitemap. */
-export type ComicSource = 'komiku' | 'webtoon' | 'mangasusuku';
+export type ComicSource = 'komiku' | 'webtoon' | 'mangasusuku' | 'rumahfilm';
 
 export interface ComicCard {
   id: string;
