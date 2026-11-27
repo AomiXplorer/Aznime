@@ -18,6 +18,7 @@ const BROWSE_LINKS: MenuLink[] = [
   { href: '/completed', label: 'Completed' },
   { href: '/schedule', label: 'Jadwal' },
   { href: '/komik', label: 'Komik' },
+  { href: '/donghive', label: 'Donghua' },
   { href: '/webtoon', label: 'Webtoon' },
 ];
 
