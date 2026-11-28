@@ -70,6 +70,25 @@ test('arsip panel ditolak saat folder panel tidak ditemukan', async () => {
   }
 });
 
+test('folder panel ditemukan dari cwd rilis yang bersarang', async () => {
+  const root = await makePanelRoot();
+  const release = path.join(root, 'production', 'releases', 'abc1234');
+  const previousRoot = process.env.AZNIME_PANEL_ROOT;
+  const previousCwd = process.cwd();
+  delete process.env.AZNIME_PANEL_ROOT;
+
+  try {
+    process.chdir(release);
+    const file = await createPanelBackup();
+    const raw = gunzipSync(file.data).toString('utf8');
+    assert.ok(raw.includes('production/shared/runtime.env'), 'runtime.env ikut');
+    assert.ok(raw.includes('start-aznime.mjs'), 'skrip start ikut');
+  } finally {
+    process.chdir(previousCwd);
+    if (previousRoot !== undefined) process.env.AZNIME_PANEL_ROOT = previousRoot;
+  }
+});
+
 test('formatBytes menulis ukuran yang mudah dibaca', () => {
   assert.equal(formatBytes(512), '512 B');
   assert.equal(formatBytes(2048), '2 KB');

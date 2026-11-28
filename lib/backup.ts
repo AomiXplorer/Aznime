@@ -201,14 +201,27 @@ async function buildTarGz(root: string, targets: string[]): Promise<Buffer> {
   return gzipSync(Buffer.concat(chunks), { level: 6 });
 }
 
-/** Folder panel adalah induk dari /production, tempat start-aznime.mjs berada. */
+/**
+ * Folder panel adalah induk dari production/, tempat start-aznime.mjs berada.
+ *
+ * Aplikasi ini dijalankan pengawas rilis dengan cwd production/releases/<sha>,
+ * jadi foldernya dicari dengan menaiki induk satu per satu sampai penandanya
+ * ketemu. AZNIME_PANEL_ROOT dipakai lebih dulu kalau suatu saat tata letaknya
+ * berubah.
+ */
 function resolvePanelRoot(): string | null {
-  const candidates = [
-    process.env.AZNIME_PANEL_ROOT?.trim(),
-    process.cwd(),
-    path.resolve(process.cwd(), '..'),
-    '/',
-  ];
+  const candidates: string[] = [];
+  const configured = process.env.AZNIME_PANEL_ROOT?.trim();
+  if (configured) candidates.push(configured);
+
+  let directory = process.cwd();
+  for (let depth = 0; depth < 8; depth += 1) {
+    candidates.push(directory);
+    const parent = path.dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  candidates.push('/');
 
   for (const candidate of candidates) {
     if (!candidate) continue;
