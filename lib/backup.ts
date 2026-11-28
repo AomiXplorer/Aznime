@@ -9,15 +9,14 @@ import { gzipSync } from 'node:zlib';
  * Dua sumber berkas:
  *   1. repo  — arsip ZIP branch main dari GitHub (codeload). Isinya kode repo
  *              apa adanya, tanpa node_modules karena GitHub tidak menyimpannya.
- *   2. panel — arsip tar.gz isi server Pterodactyl, dibaca langsung dari dalam
- *              container tempat aplikasi ini berjalan: skrip start, pengawas
- *              rilis, folder shared (runtime.env, release.json), dan rilis yang
- *              sedang aktif.
+ *   2. panel — arsip tar.gz seluruh berkas server Pterodactyl, dibaca langsung
+ *              dari root container tempat aplikasi ini berjalan. node_modules,
+ *              hasil build, repositori Git internal, dan cache dikecualikan.
  *
  * Arsip panel sengaja dibentuk sendiri di sini, bukan lewat API file panel:
  * API itu sedang menjawab DaemonConnectionException, dan membentuk arsip di
  * dalam container membuat isinya pasti sama dengan yang benar-benar dipakai.
- * node_modules, .next, .git, dan cache npm tidak pernah ikut, sesuai permintaan.
+ * node_modules, .next, .git, dan cache tidak pernah ikut.
  *
  * Berkas dikirim sebagai dokumen Telegram, jadi ukurannya dibatasi 45 MB
  * (batas bot Telegram 50 MB). Kalau arsip lebih besar, bot melapor gagal
@@ -164,7 +163,6 @@ async function collect(
 
   if (!info.isFile()) return;
   if (EXCLUDED_FILES.has(path.basename(relative))) return;
-  if (info.size > 32 * 1024 * 1024) return;
 
   budget.bytes += info.size;
   if (budget.bytes > MAX_SOURCE_BYTES) {
@@ -202,7 +200,9 @@ async function buildTarGz(root: string, targets: string[]): Promise<Buffer> {
 }
 
 /**
- * Folder panel adalah induk dari production/, tempat start-aznime.mjs berada.
+ * Folder panel biasanya induk dari production/. Beberapa instalasi menjalankan
+ * supervisor langsung dari folder production, jadi shared/ dan releases/ juga
+ * dikenali sebagai penanda root yang sah.
  *
  * Aplikasi ini dijalankan pengawas rilis dengan cwd production/releases/<sha>,
  * jadi foldernya dicari dengan menaiki induk satu per satu sampai penandanya
@@ -215,7 +215,7 @@ function resolvePanelRoot(): string | null {
   if (configured) candidates.push(configured);
 
   let directory = process.cwd();
-  for (let depth = 0; depth < 8; depth += 1) {
+  for (let depth = 0; depth < 16; depth += 1) {
     candidates.push(directory);
     const parent = path.dirname(directory);
     if (parent === directory) break;
@@ -225,10 +225,20 @@ function resolvePanelRoot(): string | null {
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-    if (
-      existsSync(path.join(candidate, 'start-aznime.mjs')) &&
-      existsSync(path.join(candidate, 'production', 'shared'))
-    ) {
+    const productionShared = path.join(candidate, 'production', 'shared');
+    const productionReleases = path.join(candidate, 'production', 'releases');
+    if (existsSync(productionShared) && existsSync(productionReleases)) {
+      return candidate;
+    }
+
+    const shared = path.join(candidate, 'shared');
+    const releases = path.join(candidate, 'releases');
+    if (existsSync(path.join(shared, 'release.json')) && existsSync(releases)) {
+      // Jika supervisor ada di production/, arsipkan induk container agar
+      // skrip startup yang berada di sebelah production/ ikut terbawa.
+      const parent = path.dirname(candidate);
+      if (path.basename(candidate) === 'production' && existsSync(path.join(parent, 'start-aznime.mjs')))
+        return parent;
       return candidate;
     }
   }
@@ -237,14 +247,20 @@ function resolvePanelRoot(): string | null {
 }
 
 async function currentRelease(root: string): Promise<string | null> {
-  try {
-    const raw = await readFile(path.join(root, 'production', 'shared', 'release.json'), 'utf8');
-    const parsed = JSON.parse(raw) as { current?: string };
-    const current = (parsed.current || '').trim();
-    return /^[0-9a-f]{7,40}$/i.test(current) ? current : null;
-  } catch {
-    return null;
+  for (const filename of [
+    path.join(root, 'production', 'shared', 'release.json'),
+    path.join(root, 'shared', 'release.json'),
+  ]) {
+    try {
+      const raw = await readFile(filename, 'utf8');
+      const parsed = JSON.parse(raw) as { current?: string };
+      const current = (parsed.current || '').trim();
+      if (/^[0-9a-f]{7,40}$/i.test(current)) return current;
+    } catch {
+      // Coba tata letak root panel yang lain.
+    }
   }
+  return null;
 }
 
 function assertDeliverable(data: Buffer, label: string): void {
@@ -287,10 +303,9 @@ export async function createPanelBackup(): Promise<BackupFile> {
   }
 
   const release = await currentRelease(root);
-  const targets = ['start-aznime.mjs', 'production/pterodactyl.mjs', 'production/shared'];
-  if (release) targets.push(`production/releases/${release}`);
-
-  const data = await buildTarGz(root, targets);
+  // Simpan seluruh isi container agar konfigurasi, data runtime, dan semua
+  // release ikut tersalin. collect() mengecualikan dependency dan cache.
+  const data = await buildTarGz(root, ['.']);
   assertDeliverable(data, 'panel');
 
   const label = release ? release.slice(0, 8) : 'tanpa-rilis';

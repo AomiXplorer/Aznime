@@ -272,10 +272,9 @@ function buildBackupCard(): { text: string; keyboard: InlineButton[][] } {
       'Pilih berkas yang mau dikirim ke chat ini:',
       '',
       '• <b>Repo GitHub</b> — ZIP branch <code>main</code> dari AomiXplorer/Aznime.',
-      '• <b>Panel Pterodactyl</b> — tar.gz isi server: skrip start, pengawas rilis,',
-      '  folder <code>shared</code> (runtime.env, release.json), dan rilis yang aktif.',
+      '• <b>Panel Pterodactyl</b> — tar.gz seluruh berkas di container server.',
       '',
-      '<i>node_modules, .next, .git, dan cache npm tidak pernah ikut.</i>',
+      '<i>node_modules, .next, .git, dan cache tidak pernah ikut.</i>',
     ].join('\n'),
     keyboard: [
       [{ text: 'Backup Repo GitHub', callback_data: 'b:repo' }],
