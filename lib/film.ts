@@ -167,7 +167,7 @@ function parseCards(html: string): FilmCard[] {
       href: cardHref(sourcePath),
       sourcePath,
       poster: posterFrom($, node),
-      rating: node.find('.gmr-rating-item').first().text().trim() || null,
+      rating: shortRating(node.find('.gmr-rating-item').first().text()),
       quality: node.find('.gmr-quality-item').first().text().trim() || null,
     });
   });
@@ -204,26 +204,54 @@ export async function searchFilmSafe(query: string, limit = 60): Promise<FilmFee
   }
 }
 
+/** Rating kartu ("5.667") dipendekkan jadi satu desimal supaya lencananya rapi. */
+function shortRating(text: string): string | null {
+  const clean = text.trim();
+  if (!clean) return null;
+  const value = Number(clean.replace(',', '.'));
+  return Number.isFinite(value) ? value.toFixed(1) : clean;
+}
+
 /** Angka rating dari teks "76 voting, rata-rata 7.5 dari 10". */
 function ratingFrom(text: string): string | null {
   const match = /rata-rata\s*([\d.,]+)/i.exec(text) || /([\d.,]+)\s*\/\s*10/.exec(text);
   return match ? match[1].replace(',', '.') : null;
 }
 
-/** Baris data film: rating, durasi, negara, sutradara. */
+/* Setiap baris data film (Tahun, Durasi, Negara, Direksi, ...) adalah satu
+   div .gmr-moviedata tersendiri, jadi dibaca per baris lalu dipetakan lewat
+   labelnya. Hanya blok ini yang dipakai: menu negara di kepala halaman juga
+   memuat tautan /country/ dan akan salah terbaca kalau dicari dari seluruh
+   dokumen. */
+const META_FIELDS: { label: string; key: string }[] = [
+  { label: 'Tahun', key: 'tahun' },
+  { label: 'Durasi', key: 'durasi' },
+  { label: 'Kualitas', key: 'kualitas' },
+  { label: 'Negara', key: 'negara' },
+  { label: 'Sutradara', key: 'direksi' },
+];
+
 function parseMeta($: cheerio.CheerioAPI): { label: string; value: string }[] {
-  const meta: { label: string; value: string }[] = [];
-  const push = (label: string, value: string | null) => {
-    const clean = (value || '').replace(/\s+/g, ' ').trim();
-    if (clean && clean.length < 80) meta.push({ label, value: clean });
-  };
+  const fields: Record<string, string> = {};
 
-  push('Rating', ratingFrom($('.gmr-rating').first().text()));
-  push('Durasi', $('.gmr-duration-item').first().text());
-  push('Negara', $("a[href*='/country/']").first().text());
-  push('Sutradara', $("a[href*='/director/']").first().text());
+  $('.gmr-moviedata').each((_, el) => {
+    const text = $(el).text().replace(/\s+/g, ' ').trim();
+    const match = /^([^:]{2,20}):\s*(.+)$/.exec(text);
+    if (!match) return;
+    const value = match[2].trim();
+    if (value && value.length < 80) fields[match[1].trim().toLowerCase()] = value;
+  });
 
-  return meta.slice(0, 6);
+  const rows: { label: string; value: string }[] = [];
+  for (const field of META_FIELDS) {
+    const value = fields[field.key];
+    if (value) rows.push({ label: field.label, value });
+  }
+
+  const rating = ratingFrom($('.gmr-rating').first().text());
+  if (rating) rows.push({ label: 'Rating', value: rating });
+
+  return rows.slice(0, 6);
 }
 
 export async function getFilmDetail(sourcePath: string): Promise<FilmDetail> {
@@ -248,7 +276,7 @@ export async function getFilmDetail(sourcePath: string): Promise<FilmDetail> {
 
   const genres = [
     ...new Set(
-      $("a[rel='category tag']")
+      $(".gmr-moviedata a[rel='category tag'], .entry-content-single a[rel='category tag']")
         .map((_, el) => $(el).text().trim())
         .get()
         .filter(Boolean)
