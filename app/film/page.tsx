@@ -7,7 +7,7 @@ import { FilmGrid } from '@/components/film/FilmGrid';
 
 const TITLE = 'Film';
 const DESCRIPTION =
-  'Nonton film dan bioskop terbaru subtitle Indonesia. Katalog film dari nontonfilm.digital, lengkap dengan pemutar dan tautan unduhan.';
+  'Nonton film dan bioskop terbaru subtitle Indonesia. Katalog film dari Juraganfilm, lengkap dengan pemutar dan tautan unduhan.';
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -32,7 +32,7 @@ export default async function FilmPage({ searchParams }: FilmPageProps) {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Film"
-        description="Katalog film dari nontonfilm.digital. Cari judul, lalu pilih pemutar yang tersedia."
+        description="Katalog film dari Juraganfilm. Cari judul, lalu pilih pemutar yang tersedia."
       />
 
       <form action="/film" method="GET" className="mb-8 flex max-w-xl gap-2">
@@ -64,7 +64,7 @@ export default async function FilmPage({ searchParams }: FilmPageProps) {
           </h2>
           <p className="mx-auto mt-1.5 max-w-md text-sm text-zinc-400">
             {feed.offline
-              ? 'Server nontonfilm.digital sedang tidak bisa dihubungi. Coba muat ulang beberapa saat lagi.'
+              ? 'Server sumber film sedang tidak bisa dihubungi. Coba muat ulang beberapa saat lagi.'
               : 'Coba kata kunci lain, misalnya judul asli filmnya.'}
           </p>
         </div>

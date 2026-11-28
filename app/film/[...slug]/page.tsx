@@ -58,7 +58,7 @@ export default async function FilmDetailPage({ params }: FilmDetailPageProps) {
           </h1>
           <p className="mx-auto mt-1.5 max-w-md text-sm text-zinc-400">
             {offline
-              ? 'Server nontonfilm.digital sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi.'
+              ? 'Server sumber film sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi.'
               : 'Judul ini tidak ditemukan di sumber.'}
           </p>
         </div>
@@ -160,7 +160,7 @@ export default async function FilmDetailPage({ params }: FilmDetailPageProps) {
           ) : null}
 
           <p className="mt-8 text-[11.5px] leading-relaxed text-zinc-600">
-            Pemutar dan tautan unduhan berasal dari nontonfilm.digital, bukan dari server Aznime.
+            Pemutar dan tautan unduhan berasal dari Juraganfilm, bukan dari server Aznime.
           </p>
         </div>
       </div>

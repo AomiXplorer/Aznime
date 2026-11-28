@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { getAniListCover } from '@/lib/anilist';
 import { rateLimitGuard } from '@/lib/api-guard';
+import { FILM_BASE } from '@/lib/film';
 
 /**
  * Proksi + resize gambar Aznime.
@@ -69,7 +70,7 @@ const MANGASUSUKU_HOSTS = new Set(['mangasusuku.com', 'www.mangasusuku.com']);
 /* Sampul film (halaman /film). Sumber film memakai tema WordPress, jadi
    sampulnya bisa berada di domainnya sendiri atau di CDN pihak ketiga;
    host yang tidak terdaftar dimuat langsung oleh browser. */
-const FILM_HOSTS = new Set(['nontonfilm.digital', 'www.nontonfilm.digital']);
+const FILM_HOSTS = new Set(['165.227.239.151']);
 const HIDORI_HOSTS = new Set(['v10.hidoristream.online', 'hidoristream.online']);
 const ANILIST_HOSTS = new Set(['s4.anilist.co']);
 const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
@@ -115,7 +116,7 @@ function refererFor(upstream: Upstream): string | undefined {
   if (upstream === 'komiku') return 'https://komiku.org/';
   if (upstream === 'webtoon') return 'https://m.webtoons.com/';
   if (upstream === 'mangasusuku') return 'https://mangasusuku.com/';
-  if (upstream === 'film') return 'https://www.nontonfilm.digital/';
+  if (upstream === 'film') return `${FILM_BASE}/`;
   return undefined;
 }
 

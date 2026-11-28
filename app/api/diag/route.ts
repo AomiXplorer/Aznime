@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { FILM_BASE } from '@/lib/film';
 
 export const dynamic = 'force-dynamic';
 export const preferredRegion = ['sin1'];
@@ -10,6 +11,10 @@ const TARGETS = [
   'https://komikindo.me/',
   'https://kiryuu.co/',
   'https://m.webtoons.com/id/',
+  /* Sumber film (Juraganfilm): beranda katalog dan satu pencarian. Keduanya
+     harus menjawab 200 dari server produksi; kalau tidak, /film akan kosong. */
+  `${FILM_BASE}/`,
+  `${FILM_BASE}/?s=doraemon`,
 ];
 
 const UA =
