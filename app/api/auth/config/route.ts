@@ -1,7 +1,7 @@
 import { jsonResponse, handleRouteError } from '@/lib/auth/http';
 import { rateLimitGuard } from '@/lib/api-guard';
 import { isRedisConfigured } from '@/lib/auth/redis';
-import { isTurnstileConfigured, turnstileSiteKey } from '@/lib/auth/turnstile';
+import { isTurnstileConfigured, requiresTurnstile, turnstileSiteKey } from '@/lib/auth/turnstile';
 import { oauthConfig } from '@/lib/auth/oauth';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const siteKey = turnstileSiteKey();
     return jsonResponse({
       turnstileSiteKey: siteKey || null,
-      turnstile: isTurnstileConfigured() ? 'active' : siteKey ? 'incomplete' : 'disabled',
+      turnstile: isTurnstileConfigured() ? 'active' : requiresTurnstile() ? 'incomplete' : 'disabled',
       providers: {
         google: Boolean(oauthConfig('google')),
         discord: Boolean(oauthConfig('discord')),

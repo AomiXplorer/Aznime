@@ -1,4 +1,4 @@
-import { redisCommand } from './redis';
+import { incrementRateLimit } from './redis';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -15,11 +15,7 @@ export async function consumeRateLimit(
   windowSeconds: number
 ): Promise<RateLimitResult> {
   const key = `ratelimit:${bucket}`;
-  const count = await redisCommand<number>(
-    'EVAL',
-    "local n = redis.call('INCR', KEYS[1]); if redis.call('TTL', KEYS[1]) < 0 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; return n",
-    1, key, windowSeconds,
-  );
+  const count = await incrementRateLimit(key, windowSeconds);
   const allowed = count <= limit;
   return {
     allowed,
