@@ -1,6 +1,6 @@
 # Deploy AzNime ke Pterodactyl
 
-Deploy produksi mengambil commit dari main di GitHub, membangun rilis terpisah di Pterodactyl, lalu melayani Next.js pada port 3543 melalui Cloudflare Tunnel. Vercel tetap melayani aznime.com sampai cutover disetujui. Situs ini tidak memerlukan migrasi skema Supabase untuk berpindah host.
+Produksi aznime.com berjalan di Pterodactyl pada port 3543 melalui Cloudflare Tunnel. Push ke main di AomiXplorer/Aznime memicu rilis baru. Pterodactyl memeriksa main sekitar setiap 90 detik, menjalankan build dan tes, lalu memverifikasi SHA melalui /api/health. Jika aktivasi gagal, proses kembali ke rilis sehat sebelumnya. Vercel tersedia sebagai tujuan rollback DNS. Perpindahan host tidak memerlukan migrasi skema Supabase.
 
 ## Server dan startup
 
@@ -47,3 +47,7 @@ Jika preview memakai instance Redis produksi, set AZNIME_REDIS_KEY_PREFIX dengan
 - Restart melalui Console → Restart. Untuk perubahan shared/runtime.env, restart setelah menyimpan konfigurasi. Baca log Console dengan awalan [deploy], [tunnel], dan [aznime]. UI Resources menampilkan CPU, RAM dan disk. /api/health memeriksa proses aplikasi. Uji login, database, dan upstream secara terpisah.
 - Kandidat hanya dijadikan rilis aktif setelah build, tes, dan pemeriksaan HTTP lolos. Jika gagal saat aktivasi, rilis sebelumnya dinyalakan lagi dan SHA yang gagal tercatat di release.json. Rollback manual dilakukan dengan mematikan auto-deploy, menghentikan proses, mengganti current di shared/release.json ke SHA sebelumnya yang masih tersimpan, dan menyalakan ulang. Jika perlu mengembalikan trafik publik ke Vercel, pulihkan DNS terdokumentasi melalui prosedur cutover yang disetujui.
 - Jika port tampil terbuka pada panel tetapi origin loopback tidak dapat dijangkau connector di container lain, periksa lokasi connector dan firewall. Jika build gagal, periksa akses HTTPS ke registry dan Google Fonts, cache npm yang dapat ditulis, serta binary native Sharp/SWC yang sesuai dengan arsitektur image. Pergantian proses pada satu alokasi dapat menimbulkan jeda singkat. Rilis lain tidak dibangun di atas direktori rilis aktif.
+
+## Snapshot DNS cutover
+
+Cloudflare menyimpan DNS situs, dan file /home/container/production/shared/dns-before-cutover.json memuat record Vercel untuk pemulihan apex dan www. Jika rollback DNS diperlukan, pulihkan record alamat apex dan CNAME www dari snapshot, lalu verifikasi kedua hostname melalui HTTPS. TXT verifikasi domain dipertahankan saat cutover.
