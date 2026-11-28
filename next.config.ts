@@ -105,6 +105,16 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react'],
   },
 
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.aznime.com' }],
+        destination: 'https://aznime.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
