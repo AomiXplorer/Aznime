@@ -11,6 +11,14 @@ import { rateLimitGuard } from '@/lib/api-guard';
  * 400 Bad Request. Dengan proksi ini browser hanya melihat URL aznime.com dan
  * encoding asli dipertahankan di sisi server. Range diteruskan supaya seek,
  * resume, dan streaming bertahap tetap bekerja.
+ *
+ * Sebagian host (storages.animein.net) dilindungi Cloudflare Managed Challenge:
+ * request dari IP pusat data dibalas 403 dengan header `cf-mitigated: challenge`,
+ * jadi berkasnya tidak mungkin diambil dari server sama sekali. Untuk host itu
+ * (dan untuk setiap balasan 401/403/429 dari upstream) route ini tidak memproksi,
+ * melainkan mengalihkan browser ke URL asli. Encoding `%2F` tetap utuh karena
+ * Location ditulis dari URL yang sudah terparse di sisi server, dan unduhannya
+ * dilakukan browser pengunjung yang lolos challenge.
  */
 
 const VIDEO_HOSTS = new Set([
@@ -21,6 +29,9 @@ const VIDEO_HOSTS = new Set([
   'www.animein.net',
   'animeinweb.com',
 ]);
+
+/** Host yang menolak semua permintaan non-browser, jadi harus diambil browser penonton. */
+const BROWSER_ONLY_HOSTS = new Set(['storages.animein.net']);
 
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -34,7 +45,16 @@ const PASSTHROUGH = [
   'last-modified',
 ];
 
+const HLS_PATTERN = /\.m3u8(\?|$)/i;
+
 export const dynamic = 'force-dynamic';
+
+function redirectTo(target: URL): Response {
+  return new Response(null, {
+    status: 307,
+    headers: { location: target.toString(), 'cache-control': 'no-store' },
+  });
+}
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitGuard(req, { name: 'video', limit: 240, windowSeconds: 60 });
@@ -54,6 +74,13 @@ export async function GET(req: NextRequest) {
 
   if (!VIDEO_HOSTS.has(target.hostname.toLowerCase())) {
     return new Response('Host tidak diizinkan', { status: 403 });
+  }
+
+  /* Playlist HLS tetap diproksi: segmennya relatif dan hls.js memuatnya lewat
+     XHR, yang butuh CORS dari host playlist. Berkas video biasa dialihkan. */
+  const isHls = HLS_PATTERN.test(target.pathname + target.search);
+  if (!isHls && BROWSER_ONLY_HOSTS.has(target.hostname.toLowerCase())) {
+    return redirectTo(target);
   }
 
   const range = req.headers.get('range');
@@ -83,6 +110,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (!upstream.ok) {
+    await upstream.body?.cancel();
+    /* 403 `cf-mitigated: challenge`, 401, dan 429 berarti host menolak IP server
+       atau membatasi laju. Browser pengunjung masih bisa mengambil berkasnya. */
+    if (!isHls && [401, 403, 429].includes(upstream.status)) {
+      return redirectTo(target);
+    }
     return new Response('Sumber video menolak permintaan', { status: 502 });
   }
 
