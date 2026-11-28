@@ -7,6 +7,7 @@ import {
   isOAuthProvider,
   normalizeOAuthReturnTo,
   oauthConfig,
+  oauthOrigin,
   oauthStateCookieName,
 } from '@/lib/auth/oauth';
 import { createSession, setSessionCookie } from '@/lib/auth/session';
@@ -15,13 +16,13 @@ import { normalizeEmail, usernameFromEmail } from '@/lib/auth/validation';
 
 export const dynamic = 'force-dynamic';
 
-function redirectWithError(request: Request, code: string, provider?: 'google' | 'discord'): NextResponse {
-  const response = NextResponse.redirect(new URL(`/?auth_error=${encodeURIComponent(code)}`, request.url));
+function redirectWithError(origin: string, code: string, provider?: 'google' | 'discord'): NextResponse {
+  const response = NextResponse.redirect(new URL(`/?auth_error=${encodeURIComponent(code)}`, origin));
   if (provider) {
     response.cookies.set(oauthStateCookieName(provider), '', {
       httpOnly: true,
       sameSite: 'lax',
-      secure: new URL(request.url).protocol === 'https:' || (process.env.AUTH_URL || '').startsWith('https://'),
+      secure: origin.startsWith('https://'),
       path: `/api/auth/oauth/${provider}/callback`,
       maxAge: 0,
     });
@@ -34,23 +35,24 @@ export async function GET(request: Request, ctx: { params: Promise<{ provider: s
   if (limited) return limited;
 
   const { provider } = await ctx.params;
-  if (!isOAuthProvider(provider) || !oauthConfig(provider)) return redirectWithError(request, 'provider_unavailable');
+  const origin = oauthOrigin(request.url);
+  if (!isOAuthProvider(provider) || !oauthConfig(provider)) return redirectWithError(origin, 'provider_unavailable');
 
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   const stateParam = url.searchParams.get('state');
-  if (url.searchParams.get('error')) return redirectWithError(request, 'access_denied', provider);
-  if (!code) return redirectWithError(request, 'missing_code', provider);
+  if (url.searchParams.get('error')) return redirectWithError(origin, 'access_denied', provider);
+  if (!code) return redirectWithError(origin, 'missing_code', provider);
 
   const cookieStore = await cookies();
   const stateCookie = cookieStore.get(oauthStateCookieName(provider))?.value;
-  if (!stateParam || stateCookie !== stateParam) return redirectWithError(request, 'invalid_state', provider);
+  if (!stateParam || stateCookie !== stateParam) return redirectWithError(origin, 'invalid_state', provider);
 
   const state = await consumeOAuthState(stateParam);
-  if (!state) return redirectWithError(request, 'invalid_state', provider);
+  if (!state) return redirectWithError(origin, 'invalid_state', provider);
 
   const profile = await exchangeCodeForProfile(provider, code, request.url);
-  if (!profile) return redirectWithError(request, 'profile_unavailable', provider);
+  if (!profile) return redirectWithError(origin, 'profile_unavailable', provider);
 
   let user = await findUserByOAuth(provider, profile.providerId);
 
@@ -59,7 +61,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ provider: s
     const existing = email ? await findUserByEmail(email) : null;
     // Akun dengan email yang sama tidak digabung otomatis: pemilik akun harus
     // masuk lewat metode aslinya dulu. Ini keputusan keamanan, bukan bug.
-    if (existing) return redirectWithError(request, 'email_exists', provider);
+    if (existing) return redirectWithError(origin, 'email_exists', provider);
     try {
       user = await createUser({
         email,
@@ -69,8 +71,8 @@ export async function GET(request: Request, ctx: { params: Promise<{ provider: s
         avatar: profile.avatar,
       });
     } catch (error) {
-      if (error instanceof EmailTakenError) return redirectWithError(request, 'email_exists', provider);
-      return redirectWithError(request, 'server_error', provider);
+      if (error instanceof EmailTakenError) return redirectWithError(origin, 'email_exists', provider);
+      return redirectWithError(origin, 'server_error', provider);
     }
   } else if (profile.avatar && !user.avatar) {
     await updateUser(user.id, { avatar: profile.avatar });
@@ -82,15 +84,15 @@ export async function GET(request: Request, ctx: { params: Promise<{ provider: s
   });
   await setSessionCookie(session.token);
 
-  const target = normalizeOAuthReturnTo(state.returnTo, request.url);
-  const redirectUrl = new URL(target, request.url);
+  const target = normalizeOAuthReturnTo(state.returnTo, origin);
+  const redirectUrl = new URL(target, origin);
   redirectUrl.searchParams.set('auth', 'ok');
   void toPublicUser(user);
   const response = NextResponse.redirect(redirectUrl);
   response.cookies.set(oauthStateCookieName(provider), '', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: new URL(request.url).protocol === 'https:' || (process.env.AUTH_URL || '').startsWith('https://'),
+    secure: origin.startsWith('https://'),
     path: `/api/auth/oauth/${provider}/callback`,
     maxAge: 0,
   });

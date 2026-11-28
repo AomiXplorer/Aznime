@@ -28,7 +28,7 @@ export function normalizeOAuthReturnTo(value: string | null | undefined, request
   try {
     const origin = new URL(requestUrl).origin;
     const target = new URL(value, origin);
-    if (target.origin !== origin) return '/';
+    if (target.origin !== origin || target.pathname.startsWith('//')) return '/';
     return `${target.pathname}${target.search}${target.hash}`;
   } catch {
     return '/';
@@ -64,9 +64,12 @@ export function oauthConfig(provider: OAuthProvider): ProviderConfig | null {
   };
 }
 
+export function oauthOrigin(requestUrl: string): string {
+  return new URL(process.env.AUTH_URL?.trim() || requestUrl).origin;
+}
+
 export function oauthRedirectUri(provider: OAuthProvider, requestUrl: string): string {
-  const base = (process.env.AUTH_URL || new URL(requestUrl).origin).replace(/\/+$/, '');
-  return `${base}/api/auth/oauth/${provider}/callback`;
+  return `${oauthOrigin(requestUrl)}/api/auth/oauth/${provider}/callback`;
 }
 
 export async function createOAuthState(returnTo: string): Promise<string> {

@@ -6,6 +6,7 @@ import {
   isOAuthProvider,
   normalizeOAuthReturnTo,
   oauthConfig,
+  oauthOrigin,
   oauthStateCookieName,
 } from '@/lib/auth/oauth';
 
@@ -18,21 +19,22 @@ export async function GET(request: Request, ctx: { params: Promise<{ provider: s
   if (limited) return limited;
 
   const { provider } = await ctx.params;
+  const origin = oauthOrigin(request.url);
   if (!isOAuthProvider(provider) || !oauthConfig(provider)) {
-    return NextResponse.redirect(new URL('/?auth_error=provider_unavailable', request.url));
+    return NextResponse.redirect(new URL('/?auth_error=provider_unavailable', origin));
   }
   const url = new URL(request.url);
-  const returnTo = normalizeOAuthReturnTo(url.searchParams.get('returnTo'), request.url).slice(0, 500);
+  const returnTo = normalizeOAuthReturnTo(url.searchParams.get('returnTo'), origin).slice(0, 500);
   const state = await createOAuthState(returnTo);
   const authorizeUrl = buildAuthorizeUrl(provider, state, request.url);
   if (!authorizeUrl) {
-    return NextResponse.redirect(new URL('/?auth_error=provider_unavailable', request.url));
+    return NextResponse.redirect(new URL('/?auth_error=provider_unavailable', origin));
   }
   const response = NextResponse.redirect(authorizeUrl);
   response.cookies.set(oauthStateCookieName(provider), state, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: new URL(request.url).protocol === 'https:' || (process.env.AUTH_URL || '').startsWith('https://'),
+    secure: origin.startsWith('https://'),
     path: `/api/auth/oauth/${provider}/callback`,
     maxAge: 600,
   });
