@@ -66,6 +66,10 @@ const WEBTOON_HOSTS = new Set(['webtoon-phinf.pstatic.net']);
    alamat gambar chapter berpindah-pindah CDN, jadi dibaca lewat
    /api/manhwa-page yang mengambil alamatnya dari API sumber. */
 const MANGASUSUKU_HOSTS = new Set(['mangasusuku.com', 'www.mangasusuku.com']);
+/* Sampul film (halaman /film). Sumber film memakai tema WordPress, jadi
+   sampulnya bisa berada di domainnya sendiri atau di CDN pihak ketiga;
+   host yang tidak terdaftar dimuat langsung oleh browser. */
+const FILM_HOSTS = new Set(['nontonfilm.digital', 'www.nontonfilm.digital']);
 const HIDORI_HOSTS = new Set(['v10.hidoristream.online', 'hidoristream.online']);
 const ANILIST_HOSTS = new Set(['s4.anilist.co']);
 const YOUTUBE_HOSTS = new Set(['i.ytimg.com']);
@@ -81,7 +85,8 @@ type Upstream =
   | 'youtube'
   | 'komiku'
   | 'webtoon'
-  | 'mangasusuku';
+  | 'mangasusuku'
+  | 'film';
 
 function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | null {
   if (!raw) return null;
@@ -94,6 +99,7 @@ function resolveTarget(raw: string | null): { url: URL; upstream: Upstream } | n
     if (KOMIKU_HOSTS.has(host)) return { url: parsed, upstream: 'komiku' };
     if (WEBTOON_HOSTS.has(host)) return { url: parsed, upstream: 'webtoon' };
     if (MANGASUSUKU_HOSTS.has(host)) return { url: parsed, upstream: 'mangasusuku' };
+    if (FILM_HOSTS.has(host)) return { url: parsed, upstream: 'film' };
     if (HIDORI_HOSTS.has(host)) return { url: parsed, upstream: 'hidori' };
     if (ANILIST_HOSTS.has(host)) return { url: parsed, upstream: 'anilist' };
     if (YOUTUBE_HOSTS.has(host)) return { url: parsed, upstream: 'youtube' };
@@ -109,6 +115,7 @@ function refererFor(upstream: Upstream): string | undefined {
   if (upstream === 'komiku') return 'https://komiku.org/';
   if (upstream === 'webtoon') return 'https://m.webtoons.com/';
   if (upstream === 'mangasusuku') return 'https://mangasusuku.com/';
+  if (upstream === 'film') return 'https://www.nontonfilm.digital/';
   return undefined;
 }
 

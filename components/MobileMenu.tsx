@@ -19,6 +19,7 @@ const BROWSE_LINKS: MenuLink[] = [
   { href: '/schedule', label: 'Jadwal' },
   { href: '/komik', label: 'Komik' },
   { href: '/webtoon', label: 'Webtoon' },
+  { href: '/film', label: 'Film' },
 ];
 
 const ACCOUNT_LINKS: MenuLink[] = [

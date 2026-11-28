@@ -24,6 +24,7 @@ const NAV_LINKS = [
   { href: '/schedule', label: 'Jadwal' },
   { href: '/komik', label: 'Komik' },
   { href: '/webtoon', label: 'Webtoon' },
+  { href: '/film', label: 'Film' },
 ] as const;
 
 function isActive(pathname: string, href: string) {

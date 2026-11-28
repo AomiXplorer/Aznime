@@ -18,6 +18,8 @@ import { AnimeGrid } from '@/components/AnimeGrid';
 import { ComicRow } from '@/components/comics/ComicRow';
 import { getKomikFeed, getWebtoonFeed } from '@/lib/comics';
 import { ErrorState } from '@/components/ErrorState';
+import { FilmRow } from '@/components/film/FilmRow';
+import { getFilmFeedSafe } from '@/lib/film';
 
 export const revalidate = 180;
 
@@ -63,9 +65,12 @@ export default async function HomePage() {
   /* Sumber utama peringkat: arsip Malz (views + favorit). Daftar populer
      Hidori hanya dipakai kalau Malz sedang tidak bisa dihubungi, supaya
      bagian ini tidak pernah kosong. */
-  const [komikFeed, webtoonFeed] = await Promise.all([
+  const [komikFeed, webtoonFeed, filmFeed] = await Promise.all([
     getKomikFeed(14),
     getWebtoonFeed(14),
+    /* Sumber film punya riwayat mati (502 dari Cloudflare). Kalau begitu,
+       barisnya cukup tidak tampil dan halaman depan tidak ikut gagal. */
+    getFilmFeedSafe(14),
   ]);
 
   const malzRanking = await getMalzPopularRanking(5).catch(() => null);
@@ -128,6 +133,13 @@ export default async function HomePage() {
         />
 
         <ComicRow title="Komik" items={komikFeed.items} viewAllHref="/komik" />
+
+        <FilmRow
+          title="Film"
+          items={filmFeed.items}
+          viewAllHref="/film"
+          note="Bioskop & film terbaru dari nontonfilm.digital"
+        />
       </div>
     </>
   );
