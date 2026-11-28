@@ -23,7 +23,8 @@ export function isRedisConfigured(): boolean {
   const raw = restUrl();
   if (!restToken() || !URL.canParse(raw)) return false;
   const url = new URL(raw);
-  const local = process.env.VERCEL_ENV !== 'production' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  const local = process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production' &&
+    ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
   return (url.protocol === 'https:' || (local && url.protocol === 'http:')) &&
     !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash;
 }
@@ -172,7 +173,8 @@ export async function zCard(key: string): Promise<number> {
   return redisCommand<number>('ZCARD', key);
 }
 
-export async function setIfAbsent(key: string, value: string): Promise<boolean> {
-  const result = await redisCommand<string | null>('SET', key, value, 'NX');
+export async function setIfAbsent(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+  const expiration = ttlSeconds === undefined ? [] : ['EX', ttlSeconds];
+  const result = await redisCommand<string | null>('SET', key, value, 'NX', ...expiration);
   return result === 'OK';
 }

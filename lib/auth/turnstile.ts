@@ -2,7 +2,9 @@
  * Verifikasi token Cloudflare Turnstile di server. Frontend hanya mengirim
  * token; keputusan lolos atau tidak selalu diambil dari Siteverify.
  */
+import { createHash } from 'node:crypto';
 import { request as httpsRequest } from 'node:https';
+import { setIfAbsent } from './redis';
 
 export type TurnstileFailure =
   | 'missing-token'
@@ -14,7 +16,7 @@ export type TurnstileFailure =
 export type TurnstileResult = { ok: true } | { ok: false; reason: TurnstileFailure };
 
 export function turnstileSiteKey(): string {
-  return (process.env.TURNSTILE_SITE_KEY || '').trim();
+  return process.env.TURNSTILE_SITE_KEY?.trim() || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || '';
 }
 
 function turnstileSecret(): string {
@@ -23,6 +25,10 @@ function turnstileSecret(): string {
 
 export function isTurnstileConfigured(): boolean {
   return turnstileSiteKey().length > 0 && turnstileSecret().length > 0;
+}
+
+export function requiresTurnstile(): boolean {
+  return process.env.TURNSTILE_REQUIRED === '1' || Boolean(turnstileSiteKey() || turnstileSecret());
 }
 
 /**
@@ -95,40 +101,6 @@ interface SiteverifyResponse {
   success?: boolean;
   'error-codes'?: string[];
   hostname?: string;
-  action?: string;
-}
-
-let secretProbe: { usable: boolean; at: number } | null = null;
-
-/**
- * Menanyakan ke Cloudflare apakah secret yang terpasang memang valid, dengan
- * token dummy. Hasilnya di-cache 5 menit supaya tidak menambah latensi tiap
- * request. Kalau secret salah (invalid-input-secret), proteksi dilewati dan
- * server mencatat peringatan; begitu secret diperbaiki, proteksi aktif lagi
- * tanpa perubahan kode.
- */
-export async function isTurnstileSecretUsable(): Promise<boolean> {
-  const secret = turnstileSecret();
-  if (!secret) return false;
-  if (secretProbe && Date.now() - secretProbe.at < 5 * 60 * 1000) return secretProbe.usable;
-
-  const body = new URLSearchParams();
-  body.set('secret', secret);
-  body.set('response', 'aznime-probe');
-  const raw = await postForm(body.toString());
-  let usable = false;
-  if (raw) {
-    try {
-      const data = JSON.parse(raw) as SiteverifyResponse;
-      const codes = data['error-codes'] || [];
-      usable = !codes.includes('invalid-input-secret') && !codes.includes('missing-input-secret');
-    } catch {
-      usable = false;
-    }
-  }
-  secretProbe = { usable, at: Date.now() };
-  if (!usable) console.warn('[turnstile] TURNSTILE_SECRET_KEY ditolak Cloudflare; verifikasi dilewati sampai secret diperbaiki.');
-  return usable;
 }
 
 export async function verifyTurnstile(
@@ -136,8 +108,12 @@ export async function verifyTurnstile(
   options: { ip?: string | null; expectedHostname?: string | null } = {}
 ): Promise<TurnstileResult> {
   const secret = turnstileSecret();
-  if (!secret) return { ok: false, reason: 'misconfigured' };
+  const hostname = options.expectedHostname || process.env.TURNSTILE_HOSTNAME?.trim();
+  if (!secret || !turnstileSiteKey() || (process.env.TURNSTILE_REQUIRED === '1' && !hostname)) {
+    return { ok: false, reason: 'misconfigured' };
+  }
   if (!token) return { ok: false, reason: 'missing-token' };
+  if (token.length > 2048) return { ok: false, reason: 'invalid' };
 
   const body = new URLSearchParams();
   body.set('secret', secret);
@@ -155,10 +131,15 @@ export async function verifyTurnstile(
   }
 
   const codes = data['error-codes'] || [];
-  if (data.success) {
-    const expected = options.expectedHostname || (process.env.TURNSTILE_HOSTNAME || '').trim();
-    if (expected && data.hostname && data.hostname !== expected) {
+  if (data.success === true) {
+    if (hostname && data.hostname !== hostname) {
       return { ok: false, reason: 'invalid' };
+    }
+    // Siteverify dapat menerima token yang sama saat status penggunaan belum
+    // tersebar ke semua lokasi. Redis memastikan hanya satu request lolos.
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    if (!(await setIfAbsent(`turnstile:redeemed:${tokenHash}`, '1', 300))) {
+      return { ok: false, reason: 'expired' };
     }
     return { ok: true };
   }

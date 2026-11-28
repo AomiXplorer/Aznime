@@ -13,11 +13,11 @@ export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
  * Sebelumnya penilaian ini bergantung tunggal pada AUTH_URL. Kalau variabel itu
  * lupa diisi, cookie turun jadi non-Secure di situs HTTPS. Sekarang sinyal
  * platform (VERCEL_ENV) ikut diperiksa, jadi salah konfigurasi satu variabel
- * tidak lagi melemahkan cookie.
+ * tidak lagi melemahkan cookie. Build produksi Node.js juga memakai HTTPS.
  */
 function useSecureCookie(): boolean {
   if ((process.env.AUTH_URL || '').startsWith('https://')) return true;
-  return process.env.VERCEL_ENV === 'production';
+  return process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
 }
 
 export interface SessionMeta {

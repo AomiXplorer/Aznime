@@ -48,6 +48,10 @@ const SECURITY_HEADERS = [
   { key: 'X-DNS-Prefetch-Control', value: 'off' },
 ];
 
+if (process.env.AZNIME_STAGING === '1') {
+  SECURITY_HEADERS.push({ key: 'X-Robots-Tag', value: 'noindex, nofollow' });
+}
+
 const nextConfig: NextConfig = {
   /* Source map browser tidak dikirim ke publik: isi bundle server memuat nama
      variabel internal dan jalur file, tidak ada gunanya dibagikan ke pengunjung. */

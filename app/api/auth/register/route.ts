@@ -2,7 +2,7 @@ import { clientIp, handleRouteError, isSameOrigin, jsonError, jsonResponse, read
 import { createSession, setSessionCookie } from '@/lib/auth/session';
 import { EmailTakenError, createUser, toPublicUser } from '@/lib/auth/users';
 import { consumeRateLimit } from '@/lib/auth/rate-limit';
-import { verifyTurnstile, turnstileSiteKey } from '@/lib/auth/turnstile';
+import { requiresTurnstile, verifyTurnstile } from '@/lib/auth/turnstile';
 import { syncHistory } from '@/lib/auth/history';
 import {
   normalizeEmail,
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     ].filter((error): error is FieldError => error !== null);
     if (errors.length > 0) return jsonResponse({ error: errors[0].message, errors }, 422);
 
-    if (turnstileSiteKey()) {
+    if (requiresTurnstile()) {
       const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : '';
       const result = await verifyTurnstile(token, { ip });
       if (!result.ok) {

@@ -39,6 +39,9 @@ function sanitizeIp(value: string | null | undefined): string | null {
 }
 
 export function clientIp(request: Request): string {
+  if (process.env.AZNIME_TRUST_CLOUDFLARE === '1') {
+    return sanitizeIp(request.headers.get('cf-connecting-ip')) || 'unknown';
+  }
   const realIp = sanitizeIp(request.headers.get('x-real-ip'));
   if (realIp) return realIp;
 

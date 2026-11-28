@@ -11,6 +11,7 @@ const ALLOWLIST_EXACT = new Set([
   '/api/telegram/webhook',
   '/api/maintenance/bypass',
   '/api/maintenance/status',
+  '/api/health',
   '/favicon.ico',
   '/apple-icon.png',
   '/icon.png',
