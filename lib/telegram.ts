@@ -14,6 +14,14 @@ import {
   setMaintenanceState,
   type MaintenanceState,
 } from '@/lib/maintenance';
+import {
+  BackupError,
+  createPanelBackup,
+  createRepoBackup,
+  formatBytes,
+  sendBackupDocument,
+  type BackupKind,
+} from '@/lib/backup';
 
 export interface TelegramUser {
   id: number;
@@ -256,6 +264,70 @@ async function sendBypassLink(chatId: number, siteOrigin: string): Promise<void>
   );
 }
 
+/** Kartu pilihan backup: dua sumber berkas yang bisa dikirim ke chat ini. */
+function buildBackupCard(): { text: string; keyboard: InlineButton[][] } {
+  return {
+    text: [
+      '<b>Backup Aznime</b>',
+      'Pilih berkas yang mau dikirim ke chat ini:',
+      '',
+      '• <b>Repo GitHub</b> — ZIP branch <code>main</code> dari AomiXplorer/Aznime.',
+      '• <b>Panel Pterodactyl</b> — tar.gz isi server: skrip start, pengawas rilis,',
+      '  folder <code>shared</code> (runtime.env, release.json), dan rilis yang aktif.',
+      '',
+      '<i>node_modules, .next, .git, dan cache npm tidak pernah ikut.</i>',
+    ].join('\n'),
+    keyboard: [
+      [{ text: 'Backup Repo GitHub', callback_data: 'b:repo' }],
+      [{ text: 'Backup Panel Pterodactyl', callback_data: 'b:panel' }],
+    ],
+  };
+}
+
+function backupProgressText(kind: BackupKind): string {
+  return kind === 'repo'
+    ? '<i>Mengambil arsip repo dari GitHub...</i>'
+    : '<i>Membuat arsip isi panel Pterodactyl...</i>';
+}
+
+function backupDoneText(file: { filename: string; data: Buffer; kind: BackupKind }): string {
+  return [
+    '<b>Backup selesai</b>',
+    `• Sumber: ${file.kind === 'repo' ? 'repo GitHub' : 'panel Pterodactyl'}`,
+    `• Berkas: <code>${escapeHtml(file.filename)}</code>`,
+    `• Ukuran: ${formatBytes(file.data.length)}`,
+  ].join('\n');
+}
+
+/**
+ * Dijalankan tanpa ditunggu: Bot API hanya menunggu webhook beberapa detik,
+ * sedangkan membuat arsip panel bisa lama. Kegagalan dilaporkan ke chat.
+ */
+async function deliverBackup(chatId: number, kind: BackupKind): Promise<void> {
+  try {
+    const file = kind === 'repo' ? await createRepoBackup() : await createPanelBackup();
+    const caption =
+      kind === 'repo'
+        ? `Aznime — repo GitHub (${formatBytes(file.data.length)})`
+        : `Aznime — panel Pterodactyl (${formatBytes(file.data.length)})`;
+    await sendBackupDocument(chatId, file, caption);
+    await sendMessage(chatId, backupDoneText(file));
+  } catch (error) {
+    const message =
+      error instanceof BackupError || error instanceof Error
+        ? error.message
+        : 'Kesalahan tidak dikenal.';
+    await sendMessage(chatId, `<b>Backup gagal</b>\n<i>${escapeHtml(message)}</i>`).catch(
+      () => undefined
+    );
+  }
+}
+
+async function startBackup(chatId: number, kind: BackupKind): Promise<void> {
+  await sendMessage(chatId, backupProgressText(kind));
+  void deliverBackup(chatId, kind);
+}
+
 export async function handleTelegramUpdate(update: TelegramUpdate, siteOrigin: string): Promise<void> {
   if (update.callback_query) {
     await handleCallbackQuery(update.callback_query, siteOrigin);
@@ -332,6 +404,8 @@ async function handleMessage(message: TelegramMessage, siteOrigin: string): Prom
         '• <code>/maintenance off</code> — Matikan mode maintenance',
         '• <code>/maintenance pesan Teks</code> — Ganti pesan maintenance',
         '• <code>/maintenance bypass</code> — Buat link akses admin',
+        '• <code>/backup</code> — Kirim backup repo GitHub atau panel Pterodactyl',
+        '• <code>/backup repo</code> / <code>/backup panel</code> — Langsung pilih sumber',
         '',
         card.text,
       ].join('\n'),
@@ -344,6 +418,21 @@ async function handleMessage(message: TelegramMessage, siteOrigin: string): Prom
     const state = await getMaintenanceState({ bypassCache: true });
     const card = buildStatusCard(state);
     await sendMessage(chatId, `${card.text}\n\n${buildDiagnosticsSummary()}`, card.keyboard);
+    return;
+  }
+
+  if (command === '/backup') {
+    const target = subRaw.toLowerCase();
+    if (target === 'repo' || target === 'github') {
+      await startBackup(chatId, 'repo');
+      return;
+    }
+    if (target === 'panel' || target === 'pterodactyl') {
+      await startBackup(chatId, 'panel');
+      return;
+    }
+    const card = buildBackupCard();
+    await sendMessage(chatId, card.text, card.keyboard);
     return;
   }
 
@@ -587,6 +676,14 @@ async function handleCallbackQuery(query: TelegramCallbackQuery, siteOrigin: str
       query.id,
       nextState.enabled ? 'Maintenance diaktifkan.' : 'Maintenance dimatikan.'
     );
+    return;
+  }
+
+  if (data === 'b:repo' || data === 'b:panel') {
+    const kind: BackupKind = data === 'b:repo' ? 'repo' : 'panel';
+    await editMessageText(chatId, msg.message_id, backupProgressText(kind));
+    await answerCallbackQuery(query.id, 'Menyiapkan backup...');
+    void deliverBackup(chatId, kind);
     return;
   }
 

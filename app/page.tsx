@@ -138,7 +138,6 @@ export default async function HomePage() {
           title="Film"
           items={filmFeed.items}
           viewAllHref="/film"
-          note="Bioskop & film terbaru dari Juraganfilm"
         />
       </div>
     </>
