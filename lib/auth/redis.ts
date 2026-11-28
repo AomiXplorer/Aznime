@@ -19,6 +19,40 @@ function restToken(): string {
   return (process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
 }
 
+type RedisArgument = string | number;
+
+const SINGLE_KEY_COMMANDS = new Set([
+  'GET', 'GETDEL', 'SET', 'INCR', 'EXPIRE',
+  'HGETALL', 'HGET', 'HSET', 'HDEL', 'HLEN',
+  'ZADD', 'ZSCORE', 'ZREVRANGE', 'ZREM', 'ZCARD',
+]);
+
+const RATE_LIMIT_SCRIPT =
+  "local n = redis.call('INCR', KEYS[1]); if redis.call('TTL', KEYS[1]) < 0 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; return n";
+
+function stageCommand(command: RedisArgument[]): RedisArgument[] {
+  const prefix = process.env.AZNIME_REDIS_KEY_PREFIX;
+  if (prefix === undefined) return command;
+  if (process.env.AZNIME_STAGING !== '1' || !/^aznime:staging:[a-z0-9-]+:$/.test(prefix)) {
+    throw new RedisError('Invalid staging Redis configuration', 503);
+  }
+
+  const [name, key, ...args] = command;
+  if (name === 'PING' && command.length === 1) return command;
+  if (typeof key === 'string' && SINGLE_KEY_COMMANDS.has(String(name))) {
+    return [name, prefix + key, ...args];
+  }
+  if (name === 'DEL' && command.length > 1 && command.slice(1).every((part) => typeof part === 'string')) {
+    return [name, ...command.slice(1).map((part) => prefix + part)];
+  }
+  const [count, scriptKey, ttl] = args;
+  if (name === 'EVAL' && key === RATE_LIMIT_SCRIPT && count === 1 && typeof scriptKey === 'string' &&
+    typeof ttl === 'number' && command.length === 5) {
+    return [name, key, count, prefix + scriptKey, ttl];
+  }
+  throw new RedisError('Redis command is unavailable with a staging prefix', 503);
+}
+
 export function isRedisConfigured(): boolean {
   const raw = restUrl();
   if (!restToken() || !URL.canParse(raw)) return false;
@@ -62,14 +96,14 @@ async function post<T>(path: string, body: unknown, timeoutMs = 5000): Promise<T
 }
 
 export async function redisCommand<T = unknown>(...command: (string | number)[]): Promise<T> {
-  const data = await post<{ result?: T; error?: string }>('', command);
+  const data = await post<{ result?: T; error?: string }>('', stageCommand(command));
   if (data.error) throw new RedisError('Redis command failed', 500);
   return data.result as T;
 }
 
 export async function redisPipeline<T = unknown>(commands: (string | number)[][]): Promise<T[]> {
   if (commands.length === 0) return [];
-  const data = await post<({ result?: T; error?: string })[]>('/pipeline', commands);
+  const data = await post<({ result?: T; error?: string })[]>('/pipeline', commands.map(stageCommand));
   if (!Array.isArray(data)) throw new RedisError('Balasan pipeline Redis tidak valid', 502);
   const failed = data.find((entry) => entry && entry.error);
   if (failed?.error) throw new RedisError('Redis pipeline command failed', 500);
@@ -77,9 +111,13 @@ export async function redisPipeline<T = unknown>(commands: (string | number)[][]
 }
 
 export async function optionalRedisCommand<T = unknown>(...command: (string | number)[]): Promise<T> {
-  const data = await post<{ result?: T; error?: string }>('', command, 500);
+  const data = await post<{ result?: T; error?: string }>('', stageCommand(command), 500);
   if (data.error) throw new RedisError('Redis command failed', 500);
   return data.result as T;
+}
+
+export function incrementRateLimit(key: string, windowSeconds: number): Promise<number> {
+  return redisCommand<number>('EVAL', RATE_LIMIT_SCRIPT, 1, key, windowSeconds);
 }
 
 export function kvGetDel(key: string): Promise<string | null> {

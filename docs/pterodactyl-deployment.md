@@ -19,6 +19,7 @@ Utamakan variabel Startup individual. Jika variabel tidak tersedia, minta admin 
 | Pengaturan | Nama variabel |
 |---|---|
 | Redis wajib untuk akun, sesi, dan rate limit | UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN |
+| Prefix Redis untuk preview yang memakai instance bersama | AZNIME_REDIS_KEY_PREFIX (contoh aznime:staging:migration:) |
 | Akun dan URL autentikasi | AUTH_SECRET, AUTH_URL |
 | Supabase sesuai mode persistence saat ini | AZNIME_PERSISTENCE, AZNIME_HISTORY_PERSISTENCE, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY |
 | OAuth | GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET |
@@ -28,6 +29,8 @@ Utamakan variabel Startup individual. Jika variabel tidak tersedia, minta admin 
 | Tunnel dan deploy | CLOUDFLARE_TUNNEL_TOKEN, AZNIME_BIND_HOST, AZNIME_AUTODEPLOY, AZNIME_VERIFY_SIGNED_COMMITS, AZNIME_TUNNEL_HEALTH_URL, SERVER_PORT |
 
 Set AUTH_URL dan NEXT_PUBLIC_SITE_URL ke URL HTTPS lingkungan yang tepat. Pertahankan AUTH_SECRET dan mode persistence produksi saat cutover agar sesi dan data tetap terbaca. SUPABASE_ANON_KEY muncul di Vercel dan hanya direferensikan alat migrasi lokal di repo, sehingga aplikasi tidak membutuhkannya. Salin nilai deployment produksi langsung dari dashboard yang berwenang atau pengelola rahasia. Jika nilai sensitif disembunyikan Vercel, ambil dari sumber aslinya di provider. Gunakan Redis, Supabase, OAuth, dan Telegram staging terpisah saat menguji operasi yang menulis. Tambahkan callback /api/auth/oauth/google/callback dan /api/auth/oauth/discord/callback pada hostname staging ke masing-masing provider.
+
+Jika preview memakai instance Redis produksi, set AZNIME_REDIS_KEY_PREFIX dengan format aznime:staging:NAMA: dan gunakan AUTH_SECRET tersendiri. Jalankan preview dari direktori rilis yang semua build-nya mendukung prefix, termasuk build rollback. Prefix diterapkan ke rate limit, sesi, akun, cache, dan status maintenance di klien Redis. Instance bersama tetap memakai kuota dan izin token yang sama.
 
 ## Tunnel, DNS, dan Turnstile
 
